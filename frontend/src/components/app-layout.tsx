@@ -18,6 +18,7 @@ export function AppLayout() {
           </NavLink>
           <NavLink to="/bookings">Bookings</NavLink>
           <NavLink to="/reviews">Reviews</NavLink>
+          <NavLink to="/services">Services</NavLink>
           <NavLink to="/plans">Plans</NavLink>
           <NavLink to="/messages">Messages</NavLink>
           <NavLink to="/notifications">Notifications</NavLink>

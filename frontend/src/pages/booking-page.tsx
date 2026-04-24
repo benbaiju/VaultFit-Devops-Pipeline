@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { createBooking, getBookings, payBooking } from "../services/bookings";
+import { useMemo, useState } from "react";
+import { createBooking, getBookings, getOpenSlots, payBooking } from "../services/bookings";
 import { getTrainers } from "../services/trainers";
 import { useAuth } from "../state/auth-context";
 
@@ -8,6 +8,9 @@ export function BookingPage() {
   const { token } = useAuth();
   const queryClient = useQueryClient();
   const [trainerId, setTrainerId] = useState("");
+  const [fromDate, setFromDate] = useState("2026-04-27");
+  const [toDate, setToDate] = useState("2026-05-04");
+  const [selectedSlot, setSelectedSlot] = useState<{ date: string; startTime: string; endTime: string } | null>(null);
   const [error, setError] = useState("");
 
   const trainersQuery = useQuery({
@@ -20,18 +23,26 @@ export function BookingPage() {
     queryFn: () => getBookings(token),
   });
 
+  const openSlotsQuery = useQuery({
+    queryKey: ["open-slots", trainerId, fromDate, toDate],
+    queryFn: () => getOpenSlots(trainerId, fromDate, toDate),
+    enabled: Boolean(trainerId && fromDate && toDate),
+  });
+
   const createMutation = useMutation({
     mutationFn: () =>
       createBooking(token, {
         trainerId,
-        bookingDate: "2026-04-27",
-        startTime: "10:00:00",
-        endTime: "11:00:00",
+        bookingDate: selectedSlot?.date ?? fromDate,
+        startTime: selectedSlot?.startTime ?? "10:00:00",
+        endTime: selectedSlot?.endTime ?? "11:00:00",
         notes: "Booked from VaultFit web app",
       }),
     onSuccess: () => {
       setError("");
+      setSelectedSlot(null);
       void queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      void queryClient.invalidateQueries({ queryKey: ["open-slots", trainerId, fromDate, toDate] });
     },
     onError: (e) => {
       setError((e as Error).message);
@@ -51,6 +62,11 @@ export function BookingPage() {
 
   const trainers = trainersQuery.data ?? [];
   const bookings = bookingsQuery.data ?? [];
+  const openSlots = openSlotsQuery.data ?? [];
+  const slotLabel = useMemo(
+    () => (selectedSlot ? `${selectedSlot.date} ${selectedSlot.startTime}-${selectedSlot.endTime}` : "None selected"),
+    [selectedSlot],
+  );
 
   return (
     <section>
@@ -67,9 +83,39 @@ export function BookingPage() {
             </option>
           ))}
         </select>
+        <div className="row-grid">
+          <div>
+            <label>From</label>
+            <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+          </div>
+          <div>
+            <label>To</label>
+            <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+          </div>
+        </div>
+        <p className="muted">Selected slot: {slotLabel}</p>
+        <div className="slot-list">
+          {openSlotsQuery.isLoading ? <p className="muted">Loading open slots...</p> : null}
+          {openSlots.map((slot, idx) => (
+            <button
+              key={`${slot.date}-${slot.startTime}-${idx}`}
+              className={`secondary-btn slot-btn ${
+                selectedSlot &&
+                selectedSlot.date === slot.date &&
+                selectedSlot.startTime === slot.startTime &&
+                selectedSlot.endTime === slot.endTime
+                  ? "slot-btn-active"
+                  : ""
+              }`}
+              onClick={() => setSelectedSlot(slot)}
+            >
+              {slot.date} {slot.startTime}-{slot.endTime}
+            </button>
+          ))}
+        </div>
         <button
           className="primary-btn"
-          disabled={!trainerId || createMutation.isPending}
+          disabled={!trainerId || !selectedSlot || createMutation.isPending}
           onClick={() => createMutation.mutate()}
         >
           {createMutation.isPending ? "Creating..." : "Create booking"}

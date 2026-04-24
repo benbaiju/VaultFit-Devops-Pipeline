@@ -15,6 +15,13 @@ const blockedDateSchema = z.object({
   reason: z.string().optional(),
 });
 
+const openSlotsQuerySchema = z
+  .object({
+    from: z.iso.date(),
+    to: z.iso.date(),
+  })
+  .refine((v) => v.from <= v.to, { message: "'from' must be before or equal to 'to'" });
+
 export const availabilityRouter = Router();
 
 availabilityRouter.get("/:trainerId/availability", async (req, res) => {
@@ -27,6 +34,72 @@ availabilityRouter.get("/:trainerId/availability", async (req, res) => {
 
   if (error) throw new HttpError(400, error.message, "AVAILABILITY_LIST_FAILED");
   res.json(data);
+});
+
+availabilityRouter.get("/:trainerId/open-slots", async (req, res) => {
+  const trainerId = String(req.params.trainerId);
+  const query = openSlotsQuerySchema.parse({
+    from: String(req.query.from),
+    to: String(req.query.to),
+  });
+
+  const { data: availabilityRows, error: availabilityError } = await supabaseAdmin
+    .from("trainer_availability")
+    .select("day_of_week, start_time, end_time")
+    .eq("trainer_id", trainerId);
+  if (availabilityError) throw new HttpError(400, availabilityError.message, "OPEN_SLOTS_FAILED");
+
+  const { data: blockedDates, error: blockedError } = await supabaseAdmin
+    .from("blocked_dates")
+    .select("blocked_date")
+    .eq("trainer_id", trainerId)
+    .gte("blocked_date", query.from)
+    .lte("blocked_date", query.to);
+  if (blockedError) throw new HttpError(400, blockedError.message, "OPEN_SLOTS_FAILED");
+
+  const { data: bookings, error: bookingsError } = await supabaseAdmin
+    .from("bookings")
+    .select("booking_date, start_time, end_time, status")
+    .eq("trainer_id", trainerId)
+    .gte("booking_date", query.from)
+    .lte("booking_date", query.to)
+    .in("status", ["confirmed", "completed"]);
+  if (bookingsError) throw new HttpError(400, bookingsError.message, "OPEN_SLOTS_FAILED");
+
+  const blockedSet = new Set((blockedDates ?? []).map((b) => String(b.blocked_date)));
+  const openSlots: Array<{ date: string; startTime: string; endTime: string }> = [];
+
+  for (let d = new Date(`${query.from}T00:00:00`); d <= new Date(`${query.to}T00:00:00`); d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().slice(0, 10);
+    if (blockedSet.has(dateStr)) continue;
+
+    const jsDay = d.getDay();
+    const dayOfWeek = (jsDay + 6) % 7;
+    const dayAvailability = (availabilityRows ?? []).filter((slot) => slot.day_of_week === dayOfWeek);
+    if (dayAvailability.length === 0) continue;
+
+    const dayBookings = (bookings ?? []).filter((b) => String(b.booking_date) === dateStr);
+    const bookedRanges = dayBookings.map((b) => ({
+      start: toMinutes(String(b.start_time)),
+      end: toMinutes(String(b.end_time)),
+    }));
+
+    for (const slot of dayAvailability) {
+      const base = [{ start: toMinutes(String(slot.start_time)), end: toMinutes(String(slot.end_time)) }];
+      const remaining = subtractRanges(base, bookedRanges);
+      for (const part of remaining) {
+        if (part.start < part.end) {
+          openSlots.push({
+            date: dateStr,
+            startTime: fromMinutes(part.start),
+            endTime: fromMinutes(part.end),
+          });
+        }
+      }
+    }
+  }
+
+  res.json(openSlots);
 });
 
 availabilityRouter.post("/:trainerId/availability", requireAuth, requireRole(["trainer", "admin"]), async (req, res) => {
@@ -88,6 +161,44 @@ availabilityRouter.delete(
     res.status(204).send();
   },
 );
+
+function toMinutes(timeValue: string): number {
+  const [h, m] = timeValue.split(":");
+  return Number(h) * 60 + Number(m);
+}
+
+function fromMinutes(total: number): string {
+  const h = Math.floor(total / 60)
+    .toString()
+    .padStart(2, "0");
+  const m = Math.floor(total % 60)
+    .toString()
+    .padStart(2, "0");
+  return `${h}:${m}:00`;
+}
+
+type Range = { start: number; end: number };
+
+function subtractRanges(baseRanges: Range[], removeRanges: Range[]): Range[] {
+  let result = [...baseRanges];
+  for (const remove of removeRanges) {
+    const next: Range[] = [];
+    for (const current of result) {
+      if (remove.end <= current.start || remove.start >= current.end) {
+        next.push(current);
+        continue;
+      }
+      if (remove.start > current.start) {
+        next.push({ start: current.start, end: remove.start });
+      }
+      if (remove.end < current.end) {
+        next.push({ start: remove.end, end: current.end });
+      }
+    }
+    result = next;
+  }
+  return result;
+}
 
 availabilityRouter.get("/:trainerId/blocked-dates", async (req, res) => {
   const { data, error } = await supabaseAdmin

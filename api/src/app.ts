@@ -8,6 +8,7 @@ import { bookingsRouter } from "./routes/bookings.js";
 import { healthRouter } from "./routes/health.js";
 import { paymentsRouter } from "./routes/payments.js";
 import { profilesRouter } from "./routes/profiles.js";
+import { reviewsRouter } from "./routes/reviews.js";
 import { trainersRouter } from "./routes/trainers.js";
 import { errorHandler } from "./middleware/error-handler.js";
 
@@ -29,5 +30,6 @@ app.use("/trainers", trainersRouter);
 app.use("/trainers", availabilityRouter);
 app.use("/bookings", bookingsRouter);
 app.use("/payments", paymentsRouter);
+app.use("/", reviewsRouter);
 
 app.use(errorHandler);

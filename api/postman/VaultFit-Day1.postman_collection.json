@@ -1,0 +1,476 @@
+{
+  "info": {
+    "_postman_id": "d6caa507-5be6-4f43-9673-6ef95b0d0940",
+    "name": "VaultFit Day1 API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Day 1 complete API tests for VaultFit backend."
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000" },
+    { "key": "clientEmail", "value": "client@example.com" },
+    { "key": "clientPassword", "value": "Password123!" },
+    { "key": "trainerEmail", "value": "trainer@example.com" },
+    { "key": "trainerPassword", "value": "Password123!" },
+    { "key": "trainerUserId", "value": "" },
+    { "key": "trainerProfileId", "value": "" },
+    { "key": "clientToken", "value": "" },
+    { "key": "trainerToken", "value": "" },
+    { "key": "bookingId", "value": "" },
+    { "key": "paymentId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Body has status ok', function () { pm.expect(body.status).to.eql('ok'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Auth",
+      "item": [
+        {
+          "name": "POST /auth/register (client)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Client User\",\n  \"email\": \"{{clientEmail}}\",\n  \"password\": \"{{clientPassword}}\",\n  \"role\": \"client\",\n  \"phone\": \"0400000001\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Register client returns 201 or 409', function () { pm.expect([201,409]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  pm.collectionVariables.set('clientToken', body.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/register (trainer)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Trainer User\",\n  \"email\": \"{{trainerEmail}}\",\n  \"password\": \"{{trainerPassword}}\",\n  \"role\": \"trainer\",\n  \"phone\": \"0400000002\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Register trainer returns 201 or 409', function () { pm.expect([201,409]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  pm.collectionVariables.set('trainerToken', body.token);",
+                  "  pm.collectionVariables.set('trainerUserId', body.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/login (client)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{clientEmail}}\",\n  \"password\": \"{{clientPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Client login status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('clientToken', body.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/login (trainer)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{trainerEmail}}\",\n  \"password\": \"{{trainerPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Trainer login status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('trainerToken', body.token);",
+                  "pm.collectionVariables.set('trainerUserId', body.user.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 Profiles",
+      "item": [
+        {
+          "name": "GET /profiles/me (trainer)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "url": "{{baseUrl}}/profiles/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Profile me status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('trainerUserId', body.id);",
+                  "pm.test('Role is trainer', function () { pm.expect(body.role).to.eql('trainer'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 Trainers",
+      "item": [
+        {
+          "name": "POST /trainers",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"Certified strength trainer\",\n  \"specialty\": \"strength\",\n  \"experienceYears\": 5,\n  \"hourlyRate\": 90\n}"
+            },
+            "url": "{{baseUrl}}/trainers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create trainer returns 201 or 400', function () { pm.expect([201,400]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  pm.collectionVariables.set('trainerProfileId', body.id);",
+                  "} else {",
+                  "  // If already exists, fetch via list call",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /trainers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/trainers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('List trainers status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "if (!pm.collectionVariables.get('trainerProfileId') && Array.isArray(body) && body.length > 0) {",
+                  "  const match = body.find((t) => t.user_id === pm.collectionVariables.get('trainerUserId'));",
+                  "  if (match) pm.collectionVariables.set('trainerProfileId', match.id);",
+                  "}",
+                  "pm.test('Trainer ID available for next requests', function () { pm.expect(pm.collectionVariables.get('trainerProfileId')).to.not.eql(''); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /trainers/:id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/trainers/{{trainerProfileId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get trainer status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 Availability",
+      "item": [
+        {
+          "name": "POST /trainers/:id/availability",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dayOfWeek\": 1,\n  \"startTime\": \"09:00:00\",\n  \"endTime\": \"17:00:00\"\n}"
+            },
+            "url": "{{baseUrl}}/trainers/{{trainerProfileId}}/availability"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create availability returns 201 or 400', function () { pm.expect([201,400]).to.include(pm.response.code); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /trainers/:id/availability",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/trainers/{{trainerProfileId}}/availability"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('List availability status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /trainers/:id/blocked-dates",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"blockedDate\": \"2026-04-28\",\n  \"reason\": \"Unavailable\"\n}"
+            },
+            "url": "{{baseUrl}}/trainers/{{trainerProfileId}}/blocked-dates"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Block date returns 201 or 400', function () { pm.expect([201,400]).to.include(pm.response.code); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 Bookings",
+      "item": [
+        {
+          "name": "POST /bookings (valid slot)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trainerId\": \"{{trainerProfileId}}\",\n  \"bookingDate\": \"2026-04-27\",\n  \"startTime\": \"10:00:00\",\n  \"endTime\": \"11:00:00\",\n  \"notes\": \"First session\"\n}"
+            },
+            "url": "{{baseUrl}}/bookings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create booking status 201', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('bookingId', body.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /bookings (client)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "url": "{{baseUrl}}/bookings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('List bookings status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Booking present', function () { pm.expect(body.some((b) => b.id === pm.collectionVariables.get('bookingId'))).to.eql(true); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /bookings (blocked date - negative)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trainerId\": \"{{trainerProfileId}}\",\n  \"bookingDate\": \"2026-04-28\",\n  \"startTime\": \"10:00:00\",\n  \"endTime\": \"11:00:00\"\n}"
+            },
+            "url": "{{baseUrl}}/bookings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Blocked date rejected', function () { pm.expect([400,409]).to.include(pm.response.code); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 Payments (Mock)",
+      "item": [
+        {
+          "name": "POST /payments/initiate",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"amount\": 90,\n  \"currency\": \"AUD\"\n}"
+            },
+            "url": "{{baseUrl}}/payments/initiate"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Payment initiated status 201', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('paymentId', body.payment.id);",
+                  "pm.test('Payment provider is mock', function () { pm.expect(body.payment.provider).to.eql('mock'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /bookings (trainer view confirmed)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "url": "{{baseUrl}}/bookings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Trainer bookings status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "const booking = body.find((b) => b.id === pm.collectionVariables.get('bookingId'));",
+                  "pm.test('Booking moved to confirmed', function () { pm.expect(booking && booking.status).to.eql('confirmed'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

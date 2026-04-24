@@ -7,6 +7,7 @@ import { availabilityRouter } from "./routes/availability.js";
 import { bookingsRouter } from "./routes/bookings.js";
 import { healthRouter } from "./routes/health.js";
 import { paymentsRouter } from "./routes/payments.js";
+import { plansRouter } from "./routes/plans.js";
 import { profilesRouter } from "./routes/profiles.js";
 import { reviewsRouter } from "./routes/reviews.js";
 import { trainersRouter } from "./routes/trainers.js";
@@ -30,6 +31,7 @@ app.use("/trainers", trainersRouter);
 app.use("/trainers", availabilityRouter);
 app.use("/bookings", bookingsRouter);
 app.use("/payments", paymentsRouter);
+app.use("/plans", plansRouter);
 app.use("/", reviewsRouter);
 
 app.use(errorHandler);

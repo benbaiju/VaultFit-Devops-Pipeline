@@ -1,9 +1,9 @@
 {
   "info": {
     "_postman_id": "d6caa507-5be6-4f43-9673-6ef95b0d0940",
-    "name": "VaultFit Day1 API Collection",
+    "name": "VaultFit API Full Collection",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Day 1 complete API tests for VaultFit backend."
+    "description": "Complete API tests for all currently implemented VaultFit backend routes."
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:4000" },
@@ -11,13 +11,20 @@
     { "key": "clientPassword", "value": "Password123!" },
     { "key": "trainerEmail", "value": "trainer@example.com" },
     { "key": "trainerPassword", "value": "Password123!" },
+    { "key": "clientUserId", "value": "" },
     { "key": "trainerUserId", "value": "" },
     { "key": "trainerProfileId", "value": "" },
     { "key": "clientToken", "value": "" },
     { "key": "trainerToken", "value": "" },
     { "key": "bookingId", "value": "" },
     { "key": "paymentId", "value": "" },
-    { "key": "reviewId", "value": "" }
+    { "key": "reviewId", "value": "" },
+    { "key": "planId", "value": "" },
+    { "key": "conversationId", "value": "" },
+    { "key": "messageId", "value": "" },
+    { "key": "notificationId", "value": "" },
+    { "key": "availabilitySlotId", "value": "" },
+    { "key": "blockedDateId", "value": "" }
   ],
   "item": [
     {
@@ -68,6 +75,7 @@
                   "if (pm.response.code === 201) {",
                   "  const body = pm.response.json();",
                   "  pm.collectionVariables.set('clientToken', body.token);",
+                  "  pm.collectionVariables.set('clientUserId', body.user.id);",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -121,7 +129,8 @@
                 "exec": [
                   "pm.test('Client login status 200', function () { pm.response.to.have.status(200); });",
                   "const body = pm.response.json();",
-                  "pm.collectionVariables.set('clientToken', body.token);"
+                  "pm.collectionVariables.set('clientToken', body.token);",
+                  "pm.collectionVariables.set('clientUserId', body.user.id);"
                 ],
                 "type": "text/javascript"
               }
@@ -175,6 +184,32 @@
                   "const body = pm.response.json();",
                   "pm.collectionVariables.set('trainerUserId', body.id);",
                   "pm.test('Role is trainer', function () { pm.expect(body.role).to.eql('trainer'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /profiles/me (trainer)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Trainer User Updated\",\n  \"phone\": \"0400009999\",\n  \"timezone\": \"Australia/Melbourne\"\n}"
+            },
+            "url": "{{baseUrl}}/profiles/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Update profile status 200', function () { pm.response.to.have.status(200); });"
                 ],
                 "type": "text/javascript"
               }
@@ -259,6 +294,32 @@
               }
             }
           ]
+        },
+        {
+          "name": "PUT /trainers/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"Updated trainer bio\",\n  \"specialty\": \"mobility\",\n  \"experienceYears\": 6,\n  \"hourlyRate\": 95\n}"
+            },
+            "url": "{{baseUrl}}/trainers/{{trainerProfileId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Update trainer status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         }
       ]
     },
@@ -284,7 +345,11 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Create availability returns 201 or 400', function () { pm.expect([201,400]).to.include(pm.response.code); });"
+                  "pm.test('Create availability returns 201 or 400', function () { pm.expect([201,400]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  pm.collectionVariables.set('availabilitySlotId', body.id);",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -310,6 +375,25 @@
           ]
         },
         {
+          "name": "DELETE /trainers/:id/availability/:slotId",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "url": "{{baseUrl}}/trainers/{{trainerProfileId}}/availability/{{availabilitySlotId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Delete availability status 204 or 400', function () { pm.expect([204,400]).to.include(pm.response.code); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
           "name": "POST /trainers/:id/blocked-dates",
           "request": {
             "method": "POST",
@@ -328,7 +412,48 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Block date returns 201 or 400', function () { pm.expect([201,400]).to.include(pm.response.code); });"
+                  "pm.test('Block date returns 201 or 400', function () { pm.expect([201,400]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  pm.collectionVariables.set('blockedDateId', body.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /trainers/:id/blocked-dates",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/trainers/{{trainerProfileId}}/blocked-dates"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('List blocked dates status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /trainers/:id/blocked-dates/:blockedDateId",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "url": "{{baseUrl}}/trainers/{{trainerProfileId}}/blocked-dates/{{blockedDateId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Delete blocked date status 204 or 400', function () { pm.expect([204,400]).to.include(pm.response.code); });"
                 ],
                 "type": "text/javascript"
               }
@@ -571,6 +696,301 @@
               "script": {
                 "exec": [
                   "pm.test('Delete review status 204', function () { pm.response.to.have.status(204); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "09 Plans",
+      "item": [
+        {
+          "name": "POST /plans",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientId\": \"{{clientUserId}}\",\n  \"title\": \"4-week starter plan\",\n  \"planType\": \"fitness\",\n  \"content\": {\"weeks\":[{\"week\":1,\"days\":[]}]}\n}"
+            },
+            "url": "{{baseUrl}}/plans"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create plan status 201', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('planId', body.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /plans (trainer)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "url": "{{baseUrl}}/plans"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('List plans status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /plans/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "url": "{{baseUrl}}/plans/{{planId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get plan status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /plans/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"4-week starter plan (updated)\",\n  \"planType\": \"hybrid\"\n}"
+            },
+            "url": "{{baseUrl}}/plans/{{planId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Update plan status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /plans/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "url": "{{baseUrl}}/plans/{{planId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Delete plan status 204', function () { pm.response.to.have.status(204); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10 Messaging & Notifications",
+      "item": [
+        {
+          "name": "POST /conversations",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trainerId\": \"{{trainerProfileId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/conversations"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create/list conversation status 200 or 201', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('conversationId', body.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /conversations (client)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "url": "{{baseUrl}}/conversations"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('List conversations status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /conversations/:id/messages (client)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Hi coach, can we start next week?\"\n}"
+            },
+            "url": "{{baseUrl}}/conversations/{{conversationId}}/messages"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Send message status 201', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('messageId', body.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /conversations/:id/messages (trainer)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "url": "{{baseUrl}}/conversations/{{conversationId}}/messages?limit=20&offset=0"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('List messages status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /conversations/:id/messages/read (trainer)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "url": "{{baseUrl}}/conversations/{{conversationId}}/messages/read"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Mark messages read status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /notifications (trainer)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "url": "{{baseUrl}}/notifications"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('List notifications status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "if (Array.isArray(body) && body.length > 0) {",
+                  "  pm.collectionVariables.set('notificationId', body[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /notifications/:id/read (trainer)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "url": "{{baseUrl}}/notifications/{{notificationId}}/read"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Mark notification read status 200 or 400', function () { pm.expect([200,400]).to.include(pm.response.code); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /notifications/read-all (trainer)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "url": "{{baseUrl}}/notifications/read-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Mark all notifications read status 200', function () { pm.response.to.have.status(200); });"
                 ],
                 "type": "text/javascript"
               }

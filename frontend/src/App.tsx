@@ -4,6 +4,8 @@ import { ProtectedRoute } from "./components/protected-route.tsx";
 import { BookingPage } from "./pages/booking-page.tsx";
 import { HomePage } from "./pages/home-page.tsx";
 import { LoginPage } from "./pages/login-page.tsx";
+import { MessagesPage } from "./pages/messages-page.tsx";
+import { NotificationsPage } from "./pages/notifications-page.tsx";
 import { PlansPage } from "./pages/plans-page.tsx";
 import { RegisterPage } from "./pages/register-page.tsx";
 import { ReviewsPage } from "./pages/reviews-page.tsx";
@@ -26,6 +28,8 @@ function App() {
         <Route path="bookings" element={<BookingPage />} />
         <Route path="reviews" element={<ReviewsPage />} />
         <Route path="plans" element={<PlansPage />} />
+        <Route path="messages" element={<MessagesPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

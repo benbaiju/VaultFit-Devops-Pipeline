@@ -19,6 +19,8 @@ export function AppLayout() {
           <NavLink to="/bookings">Bookings</NavLink>
           <NavLink to="/reviews">Reviews</NavLink>
           <NavLink to="/plans">Plans</NavLink>
+          <NavLink to="/messages">Messages</NavLink>
+          <NavLink to="/notifications">Notifications</NavLink>
           <button className="secondary-btn" onClick={logout}>
             Logout
           </button>

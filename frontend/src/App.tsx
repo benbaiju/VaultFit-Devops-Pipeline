@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { AdminPage } from "./pages/admin-page.tsx";
 import { AppLayout } from "./components/app-layout.tsx";
 import { ProtectedRoute } from "./components/protected-route.tsx";
 import { BookingPage } from "./pages/booking-page.tsx";
@@ -10,6 +11,7 @@ import { PlansPage } from "./pages/plans-page.tsx";
 import { RegisterPage } from "./pages/register-page.tsx";
 import { ReviewsPage } from "./pages/reviews-page.tsx";
 import { ServicesPage } from "./pages/services-page.tsx";
+import { VerificationPage } from "./pages/verification-page.tsx";
 import "./App.css";
 
 function App() {
@@ -32,6 +34,8 @@ function App() {
         <Route path="plans" element={<PlansPage />} />
         <Route path="messages" element={<MessagesPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="verification" element={<VerificationPage />} />
+        <Route path="admin" element={<AdminPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

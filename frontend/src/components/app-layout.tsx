@@ -22,6 +22,8 @@ export function AppLayout() {
           <NavLink to="/plans">Plans</NavLink>
           <NavLink to="/messages">Messages</NavLink>
           <NavLink to="/notifications">Notifications</NavLink>
+          <NavLink to="/verification">Verification</NavLink>
+          {user?.role === "admin" ? <NavLink to="/admin">Admin</NavLink> : null}
           <button className="secondary-btn" onClick={logout}>
             Logout
           </button>

@@ -11,6 +11,8 @@
     { "key": "clientPassword", "value": "Password123!" },
     { "key": "trainerEmail", "value": "trainer@example.com" },
     { "key": "trainerPassword", "value": "Password123!" },
+    { "key": "adminEmail", "value": "admin@example.com" },
+    { "key": "adminPassword", "value": "Password123!" },
     { "key": "clientUserId", "value": "" },
     { "key": "trainerUserId", "value": "" },
     { "key": "trainerProfileId", "value": "" },
@@ -23,6 +25,9 @@
     { "key": "conversationId", "value": "" },
     { "key": "messageId", "value": "" },
     { "key": "notificationId", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "serviceId", "value": "" },
+    { "key": "verificationRequestId", "value": "" },
     { "key": "availabilitySlotId", "value": "" },
     { "key": "blockedDateId", "value": "" }
   ],
@@ -157,6 +162,58 @@
                   "const body = pm.response.json();",
                   "pm.collectionVariables.set('trainerToken', body.token);",
                   "pm.collectionVariables.set('trainerUserId', body.user.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/register (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Admin User\",\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"role\": \"admin\",\n  \"phone\": \"0400000003\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Register admin returns 201 or 409', function () { pm.expect([201,409]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  pm.collectionVariables.set('adminToken', body.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/login (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin login status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('adminToken', body.token);"
                 ],
                 "type": "text/javascript"
               }
@@ -991,6 +1048,242 @@
               "script": {
                 "exec": [
                   "pm.test('Mark all notifications read status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "11 Services & Open Slots",
+      "item": [
+        {
+          "name": "POST /trainers/:id/services",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"60-min strength session\",\n  \"serviceType\": \"session\",\n  \"durationMinutes\": 60,\n  \"price\": 95,\n  \"isActive\": true\n}"
+            },
+            "url": "{{baseUrl}}/trainers/{{trainerProfileId}}/services"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create service status 201', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('serviceId', body.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /trainers/:id/services",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/trainers/{{trainerProfileId}}/services"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('List services status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /trainers/:id/services/:serviceId",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"60-min strength session updated\",\n  \"price\": 105,\n  \"isActive\": true\n}"
+            },
+            "url": "{{baseUrl}}/trainers/{{trainerProfileId}}/services/{{serviceId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Update service status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /trainers/:id/open-slots",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/trainers/{{trainerProfileId}}/open-slots?from=2026-04-27&to=2026-05-04"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Open slots status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /trainers/:id/services/:serviceId",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "url": "{{baseUrl}}/trainers/{{trainerProfileId}}/services/{{serviceId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Delete service status 204', function () { pm.response.to.have.status(204); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "12 Verification & Admin",
+      "item": [
+        {
+          "name": "POST /verification-requests (trainer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"credentialUrl\": \"credential-docs/trainer-credential.pdf\",\n  \"notes\": \"Please verify my certification\"\n}"
+            },
+            "url": "{{baseUrl}}/verification-requests"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Submit verification returns 201 or 409', function () { pm.expect([201,409]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  pm.collectionVariables.set('verificationRequestId', body.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /admin/verification-requests",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/verification-requests"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('List admin verification requests status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "if (!pm.collectionVariables.get('verificationRequestId') && Array.isArray(body) && body.length > 0) {",
+                  "  pm.collectionVariables.set('verificationRequestId', body[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /admin/verification-requests/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\",\n  \"adminNotes\": \"Credentials validated\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/verification-requests/{{verificationRequestId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Review verification request status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /verification-requests/:id (trainer)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "url": "{{baseUrl}}/verification-requests/{{verificationRequestId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Trainer view verification request status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /admin/users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/users"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('List admin users status 200', function () { pm.response.to.have.status(200); });"
                 ],
                 "type": "text/javascript"
               }

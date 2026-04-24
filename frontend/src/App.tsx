@@ -5,6 +5,7 @@ import { BookingPage } from "./pages/booking-page.tsx";
 import { HomePage } from "./pages/home-page.tsx";
 import { LoginPage } from "./pages/login-page.tsx";
 import { RegisterPage } from "./pages/register-page.tsx";
+import { ReviewsPage } from "./pages/reviews-page.tsx";
 import "./App.css";
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
       >
         <Route index element={<HomePage />} />
         <Route path="bookings" element={<BookingPage />} />
+        <Route path="reviews" element={<ReviewsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

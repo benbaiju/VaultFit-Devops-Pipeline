@@ -6,6 +6,7 @@ import { authRouter } from "./routes/auth.js";
 import { availabilityRouter } from "./routes/availability.js";
 import { bookingsRouter } from "./routes/bookings.js";
 import { healthRouter } from "./routes/health.js";
+import { messagingRouter } from "./routes/messaging.js";
 import { paymentsRouter } from "./routes/payments.js";
 import { plansRouter } from "./routes/plans.js";
 import { profilesRouter } from "./routes/profiles.js";
@@ -33,5 +34,6 @@ app.use("/bookings", bookingsRouter);
 app.use("/payments", paymentsRouter);
 app.use("/plans", plansRouter);
 app.use("/", reviewsRouter);
+app.use("/", messagingRouter);
 
 app.use(errorHandler);

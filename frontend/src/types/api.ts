@@ -27,4 +27,15 @@ export interface Booking {
   booking_date: string;
   start_time: string;
   end_time: string;
+  trainer_id?: string;
+}
+
+export interface Review {
+  id: string;
+  booking_id: string;
+  client_id: string;
+  trainer_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
 }

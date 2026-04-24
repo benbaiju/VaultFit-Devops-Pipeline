@@ -16,7 +16,8 @@
     { "key": "clientToken", "value": "" },
     { "key": "trainerToken", "value": "" },
     { "key": "bookingId", "value": "" },
-    { "key": "paymentId", "value": "" }
+    { "key": "paymentId", "value": "" },
+    { "key": "reviewId", "value": "" }
   ],
   "item": [
     {
@@ -464,6 +465,112 @@
                   "const body = pm.response.json();",
                   "const booking = body.find((b) => b.id === pm.collectionVariables.get('bookingId'));",
                   "pm.test('Booking moved to confirmed', function () { pm.expect(booking && booking.status).to.eql('confirmed'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "08 Reviews",
+      "item": [
+        {
+          "name": "PATCH /bookings/:id/status (mark completed)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\"\n}"
+            },
+            "url": "{{baseUrl}}/bookings/{{bookingId}}/status"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Mark booking completed status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Booking is completed', function () { pm.expect(body.status).to.eql('completed'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /bookings/:id/review",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Great first session\"\n}"
+            },
+            "url": "{{baseUrl}}/bookings/{{bookingId}}/review"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create review returns 201 or 409', function () { pm.expect([201,409]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  pm.collectionVariables.set('reviewId', body.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /trainers/:id/reviews",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/trainers/{{trainerProfileId}}/reviews"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('List reviews status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "if (!pm.collectionVariables.get('reviewId') && Array.isArray(body) && body.length > 0) {",
+                  "  const match = body.find((r) => r.booking_id === pm.collectionVariables.get('bookingId'));",
+                  "  if (match) pm.collectionVariables.set('reviewId', match.id);",
+                  "}",
+                  "pm.test('Review ID available for delete', function () { pm.expect(pm.collectionVariables.get('reviewId')).to.not.eql(''); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /reviews/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "url": "{{baseUrl}}/reviews/{{reviewId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Delete review status 204', function () { pm.response.to.have.status(204); });"
                 ],
                 "type": "text/javascript"
               }

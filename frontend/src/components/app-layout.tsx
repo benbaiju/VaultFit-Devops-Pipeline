@@ -17,6 +17,7 @@ export function AppLayout() {
             Trainers
           </NavLink>
           <NavLink to="/bookings">Bookings</NavLink>
+          <NavLink to="/reviews">Reviews</NavLink>
           <button className="secondary-btn" onClick={logout}>
             Logout
           </button>

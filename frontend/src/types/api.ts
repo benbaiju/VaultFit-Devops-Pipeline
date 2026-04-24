@@ -23,6 +23,7 @@ export interface Trainer {
 
 export interface Booking {
   id: string;
+  client_id?: string;
   status: "pending" | "confirmed" | "completed" | "cancelled";
   booking_date: string;
   start_time: string;
@@ -37,5 +38,15 @@ export interface Review {
   trainer_id: string;
   rating: number;
   comment: string | null;
+  created_at: string;
+}
+
+export interface Plan {
+  id: string;
+  client_id: string;
+  trainer_id: string;
+  title: string;
+  plan_type: "fitness" | "nutrition" | "hybrid";
+  content: unknown;
   created_at: string;
 }

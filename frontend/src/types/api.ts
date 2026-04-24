@@ -93,3 +93,21 @@ export interface Notification {
   is_read: boolean;
   created_at: string;
 }
+
+export interface VerificationRequest {
+  id: string;
+  trainer_id: string;
+  status: "pending" | "approved" | "rejected";
+  credential_url: string;
+  admin_notes: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: Role;
+  created_at: string;
+}

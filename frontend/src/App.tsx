@@ -9,6 +9,7 @@ import { NotificationsPage } from "./pages/notifications-page.tsx";
 import { PlansPage } from "./pages/plans-page.tsx";
 import { RegisterPage } from "./pages/register-page.tsx";
 import { ReviewsPage } from "./pages/reviews-page.tsx";
+import { ServicesPage } from "./pages/services-page.tsx";
 import "./App.css";
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
         <Route index element={<HomePage />} />
         <Route path="bookings" element={<BookingPage />} />
         <Route path="reviews" element={<ReviewsPage />} />
+        <Route path="services" element={<ServicesPage />} />
         <Route path="plans" element={<PlansPage />} />
         <Route path="messages" element={<MessagesPage />} />
         <Route path="notifications" element={<NotificationsPage />} />

@@ -14,11 +14,23 @@ export interface AuthResponse {
 
 export interface Trainer {
   id: string;
+  user_id?: string;
   bio: string | null;
   specialty: string | null;
   hourly_rate: number;
   verified: boolean;
   profiles?: { full_name?: string; avatar_url?: string };
+}
+
+export interface Service {
+  id: string;
+  trainer_id: string;
+  title: string;
+  service_type: "session" | "program" | "consultation";
+  duration_minutes: number;
+  price: number;
+  is_active: boolean;
+  created_at?: string;
 }
 
 export interface Booking {

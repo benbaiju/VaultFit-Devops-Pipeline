@@ -43,6 +43,12 @@ export interface Booking {
   trainer_id?: string;
 }
 
+export interface OpenSlot {
+  date: string;
+  startTime: string;
+  endTime: string;
+}
+
 export interface Review {
   id: string;
   booking_id: string;

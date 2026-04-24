@@ -135,6 +135,28 @@ button:disabled {
   gap: 0.5rem;
 }
 
+.row-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.slot-list {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 220px;
+  overflow: auto;
+  margin-bottom: 0.8rem;
+}
+
+.slot-btn {
+  text-align: left;
+}
+
+.slot-btn-active {
+  border: 2px solid #1d4ed8;
+}
+
 .error {
   color: #b91c1c;
   font-weight: 600;

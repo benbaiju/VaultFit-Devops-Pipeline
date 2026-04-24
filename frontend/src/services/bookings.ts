@@ -1,5 +1,5 @@
 import { apiRequest } from "../lib/api-client";
-import type { Booking } from "../types/api";
+import type { Booking, OpenSlot } from "../types/api";
 
 type CreateBookingInput = {
   trainerId: string;
@@ -22,6 +22,11 @@ export async function createBooking(token: string, input: CreateBookingInput): P
     },
     token,
   );
+}
+
+export async function getOpenSlots(trainerId: string, from: string, to: string): Promise<OpenSlot[]> {
+  const params = new URLSearchParams({ from, to });
+  return apiRequest<OpenSlot[]>(`/trainers/${trainerId}/open-slots?${params.toString()}`);
 }
 
 export async function payBooking(token: string, bookingId: string, amount = 90): Promise<void> {

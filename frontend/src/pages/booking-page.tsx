@@ -10,10 +10,14 @@ export function BookingPage() {
   const queryClient = useQueryClient();
   const [trainerId, setTrainerId] = useState("");
   const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [availabilityMode, setAvailabilityMode] = useState<"single" | "range">("single");
+  const [dayDate, setDayDate] = useState("2026-04-27");
   const [fromDate, setFromDate] = useState("2026-04-27");
   const [toDate, setToDate] = useState("2026-05-04");
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; startTime: string; endTime: string } | null>(null);
   const [error, setError] = useState("");
+  const queryFrom = availabilityMode === "single" ? dayDate : fromDate;
+  const queryTo = availabilityMode === "single" ? dayDate : toDate;
 
   const trainersQuery = useQuery({
     queryKey: ["trainers"],
@@ -39,9 +43,9 @@ export function BookingPage() {
   });
 
   const openSlotsQuery = useQuery({
-    queryKey: ["open-slots", trainerId, selectedServiceId, fromDate, toDate],
-    queryFn: () => getOpenSlots(trainerId, selectedServiceId, fromDate, toDate),
-    enabled: Boolean(trainerId && selectedServiceId && fromDate && toDate),
+    queryKey: ["open-slots", trainerId, selectedServiceId, availabilityMode, queryFrom, queryTo],
+    queryFn: () => getOpenSlots(trainerId, selectedServiceId, queryFrom, queryTo),
+    enabled: Boolean(trainerId && selectedServiceId && queryFrom && queryTo),
   });
 
   const createMutation = useMutation({
@@ -58,7 +62,9 @@ export function BookingPage() {
       setError("");
       setSelectedSlot(null);
       void queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      void queryClient.invalidateQueries({ queryKey: ["open-slots", trainerId, selectedServiceId, fromDate, toDate] });
+      void queryClient.invalidateQueries({
+        queryKey: ["open-slots", trainerId, selectedServiceId, availabilityMode, queryFrom, queryTo],
+      });
     },
     onError: (e) => {
       setError((e as Error).message);
@@ -98,6 +104,13 @@ export function BookingPage() {
   );
   const bookings = bookingsQuery.data ?? [];
   const openSlots = openSlotsQuery.data ?? [];
+  const slotsByDate = useMemo(() => {
+    return openSlots.reduce<Record<string, typeof openSlots>>((acc, slot) => {
+      acc[slot.date] = acc[slot.date] ? [...acc[slot.date], slot] : [slot];
+      return acc;
+    }, {});
+  }, [openSlots]);
+  const orderedSlotDates = useMemo(() => Object.keys(slotsByDate).sort((a, b) => a.localeCompare(b)), [slotsByDate]);
   const slotLabel = useMemo(
     () => (selectedSlot ? `${selectedSlot.date} ${selectedSlot.startTime}-${selectedSlot.endTime}` : "None selected"),
     [selectedSlot],
@@ -132,37 +145,74 @@ export function BookingPage() {
             Selected: {selectedService.title} by {selectedService.trainerName} (${selectedService.price})
           </p>
         ) : null}
-        <div className="row-grid">
-          <div>
-            <label>From</label>
-            <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-          </div>
-          <div>
-            <label>To</label>
-            <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-          </div>
+        <label>Availability view</label>
+        <div className="booking-mode-toggle">
+          <button
+            type="button"
+            className={`secondary-btn mode-toggle-btn ${availabilityMode === "single" ? "mode-toggle-active" : ""}`}
+            onClick={() => {
+              setAvailabilityMode("single");
+              setSelectedSlot(null);
+            }}
+          >
+            Single day
+          </button>
+          <button
+            type="button"
+            className={`secondary-btn mode-toggle-btn ${availabilityMode === "range" ? "mode-toggle-active" : ""}`}
+            onClick={() => {
+              setAvailabilityMode("range");
+              setSelectedSlot(null);
+            }}
+          >
+            Date range plan
+          </button>
         </div>
+        {availabilityMode === "single" ? (
+          <div>
+            <label>Date</label>
+            <input type="date" value={dayDate} onChange={(e) => setDayDate(e.target.value)} />
+          </div>
+        ) : (
+          <div className="row-grid">
+            <div>
+              <label>From</label>
+              <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+            </div>
+            <div>
+              <label>To</label>
+              <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+            </div>
+          </div>
+        )}
         <p className="muted">Selected slot: {slotLabel}</p>
         <div className="slot-list">
           {openSlotsQuery.isLoading ? <p className="muted">Loading open slots...</p> : null}
           {!openSlotsQuery.isLoading && selectedService && openSlots.length === 0 ? (
             <p className="muted">No availability configured for this service in the selected date range.</p>
           ) : null}
-          {openSlots.map((slot, idx) => (
-            <button
-              key={`${slot.date}-${slot.startTime}-${idx}`}
-              className={`secondary-btn slot-btn ${
-                selectedSlot &&
-                selectedSlot.date === slot.date &&
-                selectedSlot.startTime === slot.startTime &&
-                selectedSlot.endTime === slot.endTime
-                  ? "slot-btn-active"
-                  : ""
-              }`}
-              onClick={() => setSelectedSlot(slot)}
-            >
-              {slot.date} {slot.startTime}-{slot.endTime}
-            </button>
+          {orderedSlotDates.map((date) => (
+            <div key={date} className="slot-date-group">
+              <p className="slot-date-title">{date}</p>
+              <div className="slot-date-grid">
+                {(slotsByDate[date] ?? []).map((slot, idx) => (
+                  <button
+                    key={`${slot.date}-${slot.startTime}-${idx}`}
+                    className={`secondary-btn slot-btn ${
+                      selectedSlot &&
+                      selectedSlot.date === slot.date &&
+                      selectedSlot.startTime === slot.startTime &&
+                      selectedSlot.endTime === slot.endTime
+                        ? "slot-btn-active"
+                        : ""
+                    }`}
+                    onClick={() => setSelectedSlot(slot)}
+                  >
+                    {slot.startTime.slice(0, 5)}-{slot.endTime.slice(0, 5)}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
         <button

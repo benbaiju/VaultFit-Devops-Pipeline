@@ -16,12 +16,25 @@ const queryClient = new QueryClient({
   },
 });
 
+import { Toaster } from "react-hot-toast";
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
           <App />
+          <Toaster 
+            position="top-right" 
+            toastOptions={{ 
+              style: { 
+                background: 'rgba(16, 21, 36, 0.8)', 
+                backdropFilter: 'blur(10px)',
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.1)'
+              } 
+            }} 
+          />
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>

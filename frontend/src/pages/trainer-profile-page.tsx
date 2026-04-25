@@ -214,9 +214,9 @@ export function TrainerProfilePage() {
             <input type="number" min={0} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value || 0))} />
             <label>Phone</label>
             <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+61..." />
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.4rem" }}>
+            <div className="phone-otp-row">
               <button
-                className="secondary-btn"
+                className="secondary-btn otp-btn-sm"
                 type="button"
                 disabled={!phone.trim() || profileUpdateMutation.isPending}
                 onClick={() => profileUpdateMutation.mutate()}
@@ -240,7 +240,7 @@ export function TrainerProfilePage() {
                 onChange={(e) => setOtpCode(e.target.value)}
                 placeholder="Enter 6-digit OTP"
                 maxLength={6}
-                style={{ maxWidth: 180 }}
+                className="otp-code-input"
               />
               <button
                 className="secondary-btn otp-btn-sm"
@@ -371,9 +371,21 @@ export function TrainerProfilePage() {
           color: var(--text-primary);
         }
         .otp-btn-sm {
-          padding: 0.38rem 0.72rem;
-          font-size: 0.78rem;
-          min-height: 30px;
+          padding: 0 0.72rem;
+          font-size: 0.8rem;
+          min-height: 34px;
+          border-radius: 10px;
+        }
+        .phone-otp-row {
+          display: flex;
+          gap: 0.45rem;
+          flex-wrap: wrap;
+          margin-top: 0.35rem;
+          align-items: center;
+        }
+        .otp-code-input {
+          max-width: 170px;
+          min-height: 34px;
         }
       `}</style>
     </section>

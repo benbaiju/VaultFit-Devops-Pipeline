@@ -65,7 +65,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
                 <NavItem to={ROUTES.trainer.profile} icon={<User size={18}/>} label="My Profile" />
                 {trainerVerified && (
                   <>
-                    <NavItem to={ROUTES.trainer.services} icon={<Settings size={18}/>} label="Services Setup" />
+                    <NavItem to={ROUTES.trainer.servicesCreate} icon={<Settings size={18}/>} label="Services Setup" />
                     <NavItem to={ROUTES.trainer.bookings} icon={<CalendarDays size={18}/>} label="Session Requests" />
                     <NavItem to={ROUTES.trainer.plans} icon={<ClipboardCheck size={18}/>} label="Client Plans" />
                     <p className="sidebar-heading">Communication</p>

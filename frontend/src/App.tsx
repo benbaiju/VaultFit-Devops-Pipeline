@@ -67,6 +67,38 @@ function App() {
           }
         />
         <Route
+          path="services/create"
+          element={
+            <TrainerVerifiedRoute>
+              <ServicesPage />
+            </TrainerVerifiedRoute>
+          }
+        />
+        <Route
+          path="services/schedule"
+          element={
+            <TrainerVerifiedRoute>
+              <ServicesPage />
+            </TrainerVerifiedRoute>
+          }
+        />
+        <Route
+          path="services/blocked-dates"
+          element={
+            <TrainerVerifiedRoute>
+              <ServicesPage />
+            </TrainerVerifiedRoute>
+          }
+        />
+        <Route
+          path="services/existing"
+          element={
+            <TrainerVerifiedRoute>
+              <ServicesPage />
+            </TrainerVerifiedRoute>
+          }
+        />
+        <Route
           path="bookings"
           element={
             <TrainerVerifiedRoute>

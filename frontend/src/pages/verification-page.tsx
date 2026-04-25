@@ -23,6 +23,7 @@ export function VerificationPage() {
   });
 
   const trainerProfileCreated = meQuery.isSuccess && !!meQuery.data;
+  const isAlreadyVerified = Boolean(meQuery.data?.verified);
 
   const submitMutation = useMutation({
     mutationFn: () => {
@@ -75,8 +76,14 @@ export function VerificationPage() {
            <Link to={ROUTES.trainer.profile} className="primary-btn max-w-sm">Create Profile Now</Link>
          </div>
       )}
+      {trainerProfileCreated && isAlreadyVerified ? (
+        <div className="card glass-card border-success mb-6">
+          <h3 className="m-0 mb-2">Already verified</h3>
+          <p className="m-0">Your documents are already approved. You do not need to submit verification again.</p>
+        </div>
+      ) : null}
 
-      <div className={`card glass-card ${!trainerProfileCreated ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className={`card glass-card ${!trainerProfileCreated || isAlreadyVerified ? "opacity-50 pointer-events-none" : ""}`}>
         <h3>Upload Documents</h3>
         <p className="muted mb-6">
           Please upload clear copies of your professional certification and a valid government ID.
@@ -127,7 +134,7 @@ export function VerificationPage() {
 
         <button
           className="primary-btn w-full max-w-sm"
-          disabled={!trainerProfileCreated || !credentialFile || !identityFile || submitMutation.isPending}
+          disabled={!trainerProfileCreated || isAlreadyVerified || !credentialFile || !identityFile || submitMutation.isPending}
           onClick={() => submitMutation.mutate()}
         >
           {submitMutation.isPending ? "Uploading Securely..." : "Submit for Verification"}

@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { Star } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { ROUTES } from "../lib/navigation";
+import { getTrainerReviews } from "../services/reviews";
 import { getTrainerById } from "../services/trainers";
 
 export function TrainerPublicProfilePage() {
@@ -11,12 +13,23 @@ export function TrainerPublicProfilePage() {
     queryFn: () => getTrainerById(trainerId ?? ""),
     enabled: Boolean(trainerId),
   });
+  const reviewsQuery = useQuery({
+    queryKey: ["reviews", trainerId],
+    queryFn: () => getTrainerReviews(trainerId ?? ""),
+    enabled: Boolean(trainerId),
+  });
 
   if (trainerQuery.isLoading) return <p>Loading trainer profile...</p>;
   if (trainerQuery.isError) return <p className="error">{(trainerQuery.error as Error).message}</p>;
   if (!trainerQuery.data) return <p className="muted">Trainer not found.</p>;
 
   const trainer = trainerQuery.data;
+  const trainerReviews = reviewsQuery.data ?? [];
+  const averageRating =
+    trainerReviews.length > 0
+      ? trainerReviews.reduce((sum, review) => sum + review.rating, 0) / trainerReviews.length
+      : 0;
+  const roundedRating = Math.round(averageRating);
   const displayName = trainer.profiles?.full_name ?? "Unnamed Trainer";
   const initials = displayName
     .split(" ")
@@ -46,6 +59,23 @@ export function TrainerPublicProfilePage() {
           <p className="muted trainer-profile-subtitle">
             {trainer.specialty ?? "General fitness"} trainer
           </p>
+          <div className="trainer-profile-rating">
+            <span className="trainer-profile-stars">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  size={16}
+                  fill={star <= roundedRating ? "currentColor" : "none"}
+                  style={{ color: star <= roundedRating ? "#f59e0b" : "#64748b" }}
+                />
+              ))}
+            </span>
+            <span className="muted">
+              {trainerReviews.length > 0
+                ? `${averageRating.toFixed(1)} / 5 (${trainerReviews.length} review${trainerReviews.length > 1 ? "s" : ""})`
+                : "No reviews yet"}
+            </span>
+          </div>
           <p className="trainer-profile-bio">{trainer.bio ?? "This trainer has not added a bio yet."}</p>
           <div className="trainer-profile-actions">
             <Link className="primary-btn" to={ROUTES.client.book}>
@@ -114,6 +144,17 @@ export function TrainerPublicProfilePage() {
         .trainer-profile-bio {
           margin: 0 0 1rem;
           line-height: 1.55;
+        }
+        .trainer-profile-rating {
+          margin: 0 0 0.9rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+        .trainer-profile-stars {
+          display: inline-flex;
+          gap: 0.12rem;
         }
         .trainer-profile-actions {
           display: flex;

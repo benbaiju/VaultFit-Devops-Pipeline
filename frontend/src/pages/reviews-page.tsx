@@ -1,9 +1,53 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { Star } from "lucide-react";
 import { getBookings } from "../services/bookings";
 import { createReview, deleteReview, getTrainerReviews } from "../services/reviews";
 import { getTrainers } from "../services/trainers";
 import { useAuth } from "../state/auth-context";
+
+function StarDisplay({ value }: { value: number }) {
+  return (
+    <span style={{ display: "inline-flex", gap: "0.1rem", verticalAlign: "middle" }}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          size={14}
+          fill={star <= value ? "currentColor" : "none"}
+          style={{ color: star <= value ? "#f59e0b" : "#64748b" }}
+        />
+      ))}
+    </span>
+  );
+}
+
+function StarInput({ value, onChange }: { value: number; onChange: (next: number) => void }) {
+  return (
+    <div style={{ display: "inline-flex", gap: "0.2rem" }} role="radiogroup" aria-label="Rating">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onChange(star)}
+          aria-label={`${star} star${star > 1 ? "s" : ""}`}
+          style={{
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            lineHeight: 0,
+          }}
+        >
+          <Star
+            size={20}
+            fill={star <= value ? "currentColor" : "none"}
+            style={{ color: star <= value ? "#f59e0b" : "#64748b" }}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function ReviewsPage() {
   const { token, user } = useAuth();
@@ -134,7 +178,7 @@ export function ReviewsPage() {
                   {existingReview ? (
                     <span className="muted">
                       {" "}
-                      · Your review: {existingReview.rating}/5
+                      · Your review: <StarDisplay value={existingReview.rating} />
                       {existingReview.comment ? ` - ${existingReview.comment}` : ""}
                     </span>
                   ) : (
@@ -163,13 +207,12 @@ export function ReviewsPage() {
                 {activeBookingId === booking.id && !existingReview ? (
                   <div style={{ width: "100%", marginTop: "0.5rem" }}>
                     <label>Rating</label>
-                    <select value={draftRating} onChange={(e) => setDraftRating(Number(e.target.value))}>
-                      <option value={5}>5</option>
-                      <option value={4}>4</option>
-                      <option value={3}>3</option>
-                      <option value={2}>2</option>
-                      <option value={1}>1</option>
-                    </select>
+                    <div style={{ marginBottom: "0.4rem" }}>
+                      <StarInput value={draftRating} onChange={setDraftRating} />
+                      <span className="muted" style={{ marginLeft: "0.4rem" }}>
+                        {draftRating}/5
+                      </span>
+                    </div>
                     <label>Comment</label>
                     <input
                       value={draftComment}
@@ -215,7 +258,10 @@ export function ReviewsPage() {
           {(reviewsQuery.data ?? []).map((review) => (
             <li key={review.id}>
               <span>
-                <b>{review.rating}/5</b> - {review.comment ?? "No comment"}
+                <b>
+                  <StarDisplay value={review.rating} /> ({review.rating}/5)
+                </b>{" "}
+                - {review.comment ?? "No comment"}
               </span>
               {review.client_id === user?.id ? (
                 <button

@@ -27,12 +27,12 @@ servicesRouter.get("/:trainerId/services", async (req, res) => {
   res.json(data);
 });
 
-servicesRouter.post("/:trainerId/services", requireAuth, requireRole(["trainer", "admin"]), async (req, res) => {
+servicesRouter.post("/:trainerId/services", requireAuth, requireRole(["trainer", "nutritionist", "admin"]), async (req, res) => {
   const payload = createServiceSchema.parse(req.body);
   const trainerId = String(req.params.trainerId);
   const trainer = await getTrainerOrThrow(trainerId);
   ensureTrainerOwnership(req.user!.id, req.user!.role, trainer.user_id);
-  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
+  if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
 
   const { data, error } = await supabaseAdmin
     .from("services")
@@ -54,14 +54,14 @@ servicesRouter.post("/:trainerId/services", requireAuth, requireRole(["trainer",
 servicesRouter.put(
   "/:trainerId/services/:serviceId",
   requireAuth,
-  requireRole(["trainer", "admin"]),
+  requireRole(["trainer", "nutritionist", "admin"]),
   async (req, res) => {
     const payload = updateServiceSchema.parse(req.body);
     const trainerId = String(req.params.trainerId);
     const serviceId = String(req.params.serviceId);
     const trainer = await getTrainerOrThrow(trainerId);
     ensureTrainerOwnership(req.user!.id, req.user!.role, trainer.user_id);
-    if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
+    if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
 
     const { data, error } = await supabaseAdmin
       .from("services")
@@ -85,13 +85,13 @@ servicesRouter.put(
 servicesRouter.delete(
   "/:trainerId/services/:serviceId",
   requireAuth,
-  requireRole(["trainer", "admin"]),
+  requireRole(["trainer", "nutritionist", "admin"]),
   async (req, res) => {
     const trainerId = String(req.params.trainerId);
     const serviceId = String(req.params.serviceId);
     const trainer = await getTrainerOrThrow(trainerId);
     ensureTrainerOwnership(req.user!.id, req.user!.role, trainer.user_id);
-    if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
+    if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
 
     const { error } = await supabaseAdmin
       .from("services")

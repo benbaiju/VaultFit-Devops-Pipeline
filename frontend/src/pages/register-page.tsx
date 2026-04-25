@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { postLoginPath } from "../lib/navigation";
 import { useAuth } from "../state/auth-context";
 
-type SignupRole = "client" | "trainer";
+type SignupRole = "client" | "trainer" | "nutritionist";
 
 export function RegisterPage() {
   const { register } = useAuth();
@@ -44,6 +44,7 @@ export function RegisterPage() {
         <select value={role} onChange={(e) => setRole(e.target.value as SignupRole)}>
           <option value="client">Client — book sessions with trainers</option>
           <option value="trainer">Trainer — list services and take bookings</option>
+          <option value="nutritionist">Nutritionist — offer nutrition coaching and meal plans</option>
         </select>
         <label>Email</label>
         <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />

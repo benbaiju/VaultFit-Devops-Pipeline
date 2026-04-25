@@ -35,10 +35,10 @@ export function TrainerVerifiedRoute({ children }: { children: React.ReactNode }
   const meQuery = useQuery({
     queryKey: ["trainer-me"],
     queryFn: () => getMyTrainerProfile(token),
-    enabled: user?.role === "trainer",
+    enabled: user?.role === "trainer" || user?.role === "nutritionist",
   });
 
-  if (user?.role !== "trainer") return <>{children}</>;
+  if (user?.role !== "trainer" && user?.role !== "nutritionist") return <>{children}</>;
   if (meQuery.isLoading) return <p>Checking verification status...</p>;
   if (meQuery.isError) return <p className="error">{(meQuery.error as Error).message}</p>;
 

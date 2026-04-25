@@ -135,7 +135,7 @@ availabilityRouter.get("/:trainerId/open-slots", async (req, res) => {
   res.json(openSlots);
 });
 
-availabilityRouter.post("/:trainerId/availability", requireAuth, requireRole(["trainer", "admin"]), async (req, res) => {
+availabilityRouter.post("/:trainerId/availability", requireAuth, requireRole(["trainer", "nutritionist", "admin"]), async (req, res) => {
   const payload = availabilitySchema.parse(req.body);
   if (payload.startTime >= payload.endTime) {
     throw new HttpError(400, "startTime must be less than endTime", "INVALID_TIME_RANGE");
@@ -153,7 +153,7 @@ availabilityRouter.post("/:trainerId/availability", requireAuth, requireRole(["t
   if (req.user!.role !== "admin" && trainer.user_id !== req.user!.id) {
     throw new HttpError(403, "Can only manage your own availability", "FORBIDDEN");
   }
-  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
+  if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
 
   const { data, error } = await supabaseAdmin
     .from("trainer_availability")
@@ -174,7 +174,7 @@ availabilityRouter.post("/:trainerId/availability", requireAuth, requireRole(["t
 availabilityRouter.delete(
   "/:trainerId/availability/:slotId",
   requireAuth,
-  requireRole(["trainer", "admin"]),
+  requireRole(["trainer", "nutritionist", "admin"]),
   async (req, res) => {
     const trainerId = req.params.trainerId;
 
@@ -187,7 +187,7 @@ availabilityRouter.delete(
     if (req.user!.role !== "admin" && trainer.user_id !== req.user!.id) {
       throw new HttpError(403, "Can only manage your own availability", "FORBIDDEN");
     }
-    if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
+    if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
 
     const { error } = await supabaseAdmin
       .from("trainer_availability")
@@ -253,7 +253,7 @@ availabilityRouter.get("/:trainerId/blocked-dates", async (req, res) => {
   res.json(data);
 });
 
-availabilityRouter.post("/:trainerId/blocked-dates", requireAuth, requireRole(["trainer", "admin"]), async (req, res) => {
+availabilityRouter.post("/:trainerId/blocked-dates", requireAuth, requireRole(["trainer", "nutritionist", "admin"]), async (req, res) => {
   const payload = blockedDateSchema.parse(req.body);
   const trainerId = String(req.params.trainerId);
 
@@ -267,7 +267,7 @@ availabilityRouter.post("/:trainerId/blocked-dates", requireAuth, requireRole(["
   if (req.user!.role !== "admin" && trainer.user_id !== req.user!.id) {
     throw new HttpError(403, "Can only manage your own blocked dates", "FORBIDDEN");
   }
-  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
+  if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
 
   const { data, error } = await supabaseAdmin
     .from("blocked_dates")
@@ -286,7 +286,7 @@ availabilityRouter.post("/:trainerId/blocked-dates", requireAuth, requireRole(["
 availabilityRouter.delete(
   "/:trainerId/blocked-dates/:blockedDateId",
   requireAuth,
-  requireRole(["trainer", "admin"]),
+  requireRole(["trainer", "nutritionist", "admin"]),
   async (req, res) => {
     const trainerId = req.params.trainerId;
 
@@ -299,7 +299,7 @@ availabilityRouter.delete(
     if (req.user!.role !== "admin" && trainer.user_id !== req.user!.id) {
       throw new HttpError(403, "Can only manage your own blocked dates", "FORBIDDEN");
     }
-    if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
+    if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
 
     const { error } = await supabaseAdmin
       .from("blocked_dates")

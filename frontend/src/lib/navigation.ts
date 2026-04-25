@@ -38,6 +38,7 @@ export function defaultHomeForRole(role: Role | undefined): string {
     case "admin":
       return ROUTES.admin.root;
     case "trainer":
+    case "nutritionist":
       return ROUTES.trainer.root;
     case "client":
       return ROUTES.client.root;
@@ -51,6 +52,7 @@ export function postLoginPath(role: Role | undefined, from?: string | null): str
   if (!from || from === "/" || from === ROUTES.login) return home;
   if (role === "client" && from.startsWith("/client")) return from;
   if (role === "trainer" && from.startsWith("/trainer")) return from;
+  if (role === "nutritionist" && from.startsWith("/trainer")) return from;
   if (role === "admin" && from.startsWith("/admin")) return from;
   return home;
 }

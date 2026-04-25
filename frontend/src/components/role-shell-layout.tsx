@@ -17,7 +17,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
   const trainerMeQuery = useQuery({
     queryKey: ["trainer-me"],
     queryFn: () => getMyTrainerProfile(token),
-    enabled: variant === "trainer" && user?.role === "trainer",
+    enabled: variant === "trainer" && (user?.role === "trainer" || user?.role === "nutritionist"),
   });
   
   const trainerVerified = trainerMeQuery.data?.verified === true;
@@ -38,7 +38,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
             <Dumbbell className="sidebar-logo-icon" />
             <span className="sidebar-logo-text">VaultFit Pro</span>
           </div>
-          <span className="sidebar-role-badge">{variant}</span>
+          <span className="sidebar-role-badge">{user?.role ?? variant}</span>
         </div>
         
         <div className="sidebar-scroll">
@@ -61,7 +61,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
             
             {variant === "trainer" && (
               <>
-                <p className="sidebar-heading">Trainer Console</p>
+                <p className="sidebar-heading">{user?.role === "nutritionist" ? "Nutritionist Console" : "Trainer Console"}</p>
                 <NavItem to={ROUTES.trainer.root} icon={<LayoutDashboard size={18}/>} label="Overview" end />
                 <NavItem to={ROUTES.trainer.profile} icon={<User size={18}/>} label="My Profile" />
                 {trainerVerified && (
@@ -112,7 +112,11 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
       <main className="dashboard-main">
         <header className="dashboard-header">
           <div className="dashboard-header-title">
-            <h2>{variant.charAt(0).toUpperCase() + variant.slice(1)} Dashboard</h2>
+            <h2>
+              {variant === "trainer" && user?.role === "nutritionist"
+                ? "Nutritionist Dashboard"
+                : `${variant.charAt(0).toUpperCase() + variant.slice(1)} Dashboard`}
+            </h2>
           </div>
         </header>
         <div className="dashboard-content">

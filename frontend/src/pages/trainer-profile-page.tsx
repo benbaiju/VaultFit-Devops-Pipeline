@@ -106,8 +106,7 @@ export function TrainerProfilePage() {
   const latestVerification = (verificationQuery.data ?? [])[0];
   const isVerified = Boolean(meQuery.data?.verified);
   const profileDisplayName = meQuery.data?.profiles?.full_name?.trim() || "My profile";
-  const roleLabel =
-    (meQuery.data?.specialty ?? "").toLowerCase().includes("nutri") ? "Nutritionist" : "Trainer";
+  const roleLabel = profileQuery.data?.role === "nutritionist" ? "Nutritionist" : "Trainer";
   const avatarUrl = meQuery.data?.profiles?.avatar_url ?? "";
   const avatarInitial = profileDisplayName.charAt(0).toUpperCase();
   const normalizedCurrentPhone = phone.trim().replace(/[\s\-()]/g, "");

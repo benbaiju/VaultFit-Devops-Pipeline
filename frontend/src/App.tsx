@@ -52,7 +52,7 @@ function App() {
         path="/trainer"
         element={
           <ProtectedRoute>
-            <RoleRoute allowedRoles={["trainer"]}>
+            <RoleRoute allowedRoles={["trainer", "nutritionist"]}>
               <RoleShellLayout variant="trainer" />
             </RoleRoute>
           </ProtectedRoute>

@@ -22,3 +22,28 @@ export async function updateMyProfile(token: string, input: UpdateProfileInput):
     token,
   );
 }
+
+export async function sendPhoneOtp(token: string, phone: string): Promise<{ message: string; otpPreview?: string }> {
+  return apiRequest<{ message: string; otpPreview?: string }>(
+    "/profiles/me/phone/send-otp",
+    {
+      method: "POST",
+      body: JSON.stringify({ phone }),
+    },
+    token,
+  );
+}
+
+export async function verifyPhoneOtp(
+  token: string,
+  otp: string,
+): Promise<{ message: string; verifiedAt: string; phone: string }> {
+  return apiRequest<{ message: string; verifiedAt: string; phone: string }>(
+    "/profiles/me/phone/verify-otp",
+    {
+      method: "POST",
+      body: JSON.stringify({ otp }),
+    },
+    token,
+  );
+}

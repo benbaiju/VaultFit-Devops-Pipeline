@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getBookings } from "../services/bookings";
 import { getTrainerReviews } from "../services/reviews";
 import { getTrainers } from "../services/trainers";
-import { getMyProfile, updateMyProfile } from "../services/profiles";
+import { getMyProfile, sendPhoneOtp, updateMyProfile, verifyPhoneOtp } from "../services/profiles";
 import { useAuth } from "../state/auth-context";
 
 function StarDisplay({ value }: { value: number }) {
@@ -35,6 +35,9 @@ export function ClientProfilePage() {
   const [avatarOffsetY, setAvatarOffsetY] = useState(0);
   const [isDraggingAvatar, setIsDraggingAvatar] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpPreview, setOtpPreview] = useState("");
+  const [otpStatus, setOtpStatus] = useState("");
   const [error, setError] = useState("");
   const avatarFileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -178,6 +181,27 @@ export function ClientProfilePage() {
     },
     onError: (e) => setError((e as Error).message),
   });
+  const sendOtpMutation = useMutation({
+    mutationFn: () => sendPhoneOtp(token, phone.trim()),
+    onSuccess: (payload) => {
+      setError("");
+      setOtpStatus("OTP sent to your phone number.");
+      setOtpPreview(payload.otpPreview ?? "");
+      void queryClient.invalidateQueries({ queryKey: ["profile-me"] });
+    },
+    onError: (e) => setError((e as Error).message),
+  });
+  const verifyOtpMutation = useMutation({
+    mutationFn: () => verifyPhoneOtp(token, otpCode.trim()),
+    onSuccess: () => {
+      setError("");
+      setOtpStatus("Phone number verified.");
+      setOtpCode("");
+      setOtpPreview("");
+      void queryClient.invalidateQueries({ queryKey: ["profile-me"] });
+    },
+    onError: (e) => setError((e as Error).message),
+  });
 
   return (
     <section>
@@ -218,7 +242,14 @@ export function ClientProfilePage() {
               </article>
               <article className="profile-view-item">
                 <p className="profile-view-label">Phone</p>
-                <p className="profile-view-value">{phone || "Not set"}</p>
+                <p className="profile-view-value">
+                  {phone || "Not set"}{" "}
+                  {profileQuery.data?.phone_verified ? (
+                    <span className="badge badge-success">Verified</span>
+                  ) : (
+                    <span className="badge badge-muted">Not verified</span>
+                  )}
+                </p>
               </article>
               <article className="profile-view-item">
                 <p className="profile-view-label">Timezone</p>
@@ -246,6 +277,33 @@ export function ClientProfilePage() {
 
             <label>Phone</label>
             <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+61..." />
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.4rem" }}>
+              <button
+                className="secondary-btn"
+                type="button"
+                disabled={!phone.trim() || sendOtpMutation.isPending}
+                onClick={() => sendOtpMutation.mutate()}
+              >
+                {sendOtpMutation.isPending ? "Sending OTP..." : "Send OTP"}
+              </button>
+              <input
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                placeholder="Enter 6-digit OTP"
+                maxLength={6}
+                style={{ maxWidth: 180 }}
+              />
+              <button
+                className="secondary-btn"
+                type="button"
+                disabled={otpCode.trim().length !== 6 || verifyOtpMutation.isPending}
+                onClick={() => verifyOtpMutation.mutate()}
+              >
+                {verifyOtpMutation.isPending ? "Verifying..." : "Verify OTP"}
+              </button>
+            </div>
+            {otpStatus ? <p className="muted">{otpStatus}</p> : null}
+            {otpPreview ? <p className="muted">Dev OTP: {otpPreview}</p> : null}
 
             <label>Timezone</label>
             <input value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="Australia/Melbourne" />

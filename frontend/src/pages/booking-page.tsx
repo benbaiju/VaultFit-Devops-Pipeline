@@ -1,15 +1,31 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { createBooking, getBookings, getOpenSlots, payBooking } from "../services/bookings";
 import { getServices } from "../services/services";
 import { getTrainers } from "../services/trainers";
+import { ROUTES } from "../lib/navigation";
 import { useAuth } from "../state/auth-context";
 import toast from "react-hot-toast";
 import { ChevronRight, Calendar, CreditCard, User, Clock, CheckCircle, ArrowLeft } from "lucide-react";
 import { format, addDays, startOfToday } from "date-fns";
 
+function isNutritionSpecialty(value: string | null | undefined): boolean {
+  const text = (value ?? "").toLowerCase();
+  return text.includes("nutri") || text.includes("diet") || text.includes("meal");
+}
+
+function classifyProfessional(trainer: { profiles?: { role?: string }; specialty?: string | null }): "trainer" | "nutritionist" | "unknown" {
+  if (trainer.profiles?.role === "trainer") return "trainer";
+  if (trainer.profiles?.role === "nutritionist") return "nutritionist";
+  if (isNutritionSpecialty(trainer.specialty)) return "nutritionist";
+  if ((trainer.specialty ?? "").trim()) return "trainer";
+  return "unknown";
+}
+
 export function BookingPage() {
   const { token } = useAuth();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
@@ -21,12 +37,26 @@ export function BookingPage() {
   const formattedQueryDate = format(selectedDate, "yyyy-MM-dd");
 
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; startTime: string; endTime: string } | null>(null);
+  const bookingWith = searchParams.get("with");
+  const specificTrainerId = searchParams.get("trainerId") ?? "";
 
   const trainersQuery = useQuery({ queryKey: ["trainers"], queryFn: getTrainers });
-  const verifiedTrainers = useMemo(() => (trainersQuery.data ?? []).filter((t) => t.verified), [trainersQuery.data]);
+  const verifiedProfessionals = useMemo(() => {
+    let base = (trainersQuery.data ?? []).filter((t) => t.verified);
+    if (specificTrainerId) {
+      base = base.filter((trainer) => trainer.id === specificTrainerId);
+    }
+    if (bookingWith === "trainer") {
+      return base.filter((trainer) => classifyProfessional(trainer) === "trainer");
+    }
+    if (bookingWith === "nutritionist") {
+      return base.filter((trainer) => classifyProfessional(trainer) === "nutritionist");
+    }
+    return base;
+  }, [bookingWith, trainersQuery.data, specificTrainerId]);
 
   const servicesByTrainer = useQueries({
-    queries: verifiedTrainers.map((trainer) => ({
+    queries: verifiedProfessionals.map((trainer) => ({
       queryKey: ["services", trainer.id],
       queryFn: () => getServices(trainer.id),
       enabled: Boolean(trainer.id),
@@ -71,14 +101,14 @@ export function BookingPage() {
 
   const serviceOptions = useMemo(() =>
     servicesByTrainer.flatMap((query, index) => {
-      const trainer = verifiedTrainers[index];
+      const trainer = verifiedProfessionals[index];
       if (!trainer) return [];
       return (query.data ?? []).filter((s) => s.is_active).map((s) => ({
         ...s,
         trainerName: trainer.profiles?.full_name ?? "Unnamed Trainer",
       }));
     }),
-  [servicesByTrainer, verifiedTrainers]);
+  [servicesByTrainer, verifiedProfessionals]);
 
   const selectedService = useMemo(() => serviceOptions.find((s) => s.id === selectedServiceId) ?? null, [selectedServiceId, serviceOptions]);
 
@@ -124,7 +154,28 @@ export function BookingPage() {
         {step === 1 && (
           <div className="step-section">
             <h2 className="step-title">Choose a Service</h2>
-            <p className="muted mb-4">Select the trainer and service you'd like to book.</p>
+            <p className="muted mb-4">
+              Select the {bookingWith === "nutritionist" ? "nutritionist" : bookingWith === "trainer" ? "trainer" : "professional"} and service you'd like to book.
+            </p>
+            <p className="muted mb-3">
+              Active filter:{" "}
+              <strong>{bookingWith === "nutritionist" ? "Nutritionists only" : bookingWith === "trainer" ? "Trainers only" : "All professionals"}</strong>
+              {specificTrainerId ? " · Selected profile only" : ""}
+            </p>
+            <div className="flex gap-2 mb-4 flex-wrap">
+              <Link className={`secondary-btn ${bookingWith === "trainer" ? "active-filter-btn" : ""}`} to={`${ROUTES.client.book}?with=trainer`}>
+                Trainers only
+              </Link>
+              <Link
+                className={`secondary-btn ${bookingWith === "nutritionist" ? "active-filter-btn" : ""}`}
+                to={`${ROUTES.client.book}?with=nutritionist`}
+              >
+                Nutritionists only
+              </Link>
+              <Link className={`secondary-btn ${!bookingWith ? "active-filter-btn" : ""}`} to={ROUTES.client.book}>
+                All professionals
+              </Link>
+            </div>
             <div className="service-grid">
               {serviceOptions.map((service) => (
                 <div key={service.id} className="service-card" onClick={() => handleServiceSelect(service.id, service.trainer_id)}>
@@ -139,7 +190,12 @@ export function BookingPage() {
                   <button className="secondary-btn w-full mt-3">Select</button>
                 </div>
               ))}
-              {serviceOptions.length === 0 && <p className="muted">No services available right now.</p>}
+              {serviceOptions.length === 0 && (
+                <p className="muted">
+                  No {bookingWith === "nutritionist" ? "nutritionist" : bookingWith === "trainer" ? "trainer" : "professional"} services
+                  available right now.
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -315,6 +371,13 @@ export function BookingPage() {
         .session-icon { background: rgba(79, 70, 229, 0.15); color: var(--primary); padding: 0.75rem; border-radius: var(--radius-md); }
         .session-actions { display: flex; gap: 1rem; align-items: center; }
         .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+        .active-filter-btn {
+          border-color: var(--primary);
+          box-shadow: inset 0 0 0 1px var(--primary);
+          background: rgba(79, 70, 229, 0.18);
+          color: #fff;
+          text-decoration: none;
+        }
         
         .flex { display: flex; }
         .items-center { align-items: center; }

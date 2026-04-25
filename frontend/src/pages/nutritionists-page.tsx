@@ -42,8 +42,8 @@ export function NutritionistsPage() {
     <section>
       <div className="section-head">
         <h2>Find nutritionists</h2>
-        <Link className="secondary-link" to={ROUTES.client.book}>
-          Book a session
+        <Link className="secondary-link" to={`${ROUTES.client.book}?with=nutritionist`}>
+          Book with nutritionist
         </Link>
       </div>
       <div className="card" style={{ marginBottom: "1rem" }}>

@@ -23,6 +23,25 @@ profilesRouter.get("/me", requireAuth, async (req, res) => {
 
 profilesRouter.put("/me", requireAuth, async (req, res) => {
   const payload = updateProfileSchema.parse(req.body);
+  const { data: existing, error: readError } = await supabaseAdmin
+    .from("profiles")
+    .select("id, full_name")
+    .eq("id", req.user!.id)
+    .single();
+  if (readError || !existing) {
+    throw new HttpError(400, readError?.message ?? "Profile not found", "PROFILE_READ_FAILED");
+  }
+
+  // Clients can set their name once, but cannot change it later.
+  if (
+    req.user!.role === "client" &&
+    existing.full_name &&
+    payload.fullName &&
+    payload.fullName.trim() !== existing.full_name
+  ) {
+    throw new HttpError(409, "Client name cannot be changed once set", "PROFILE_NAME_LOCKED");
+  }
+
   const { data, error } = await supabaseAdmin
     .from("profiles")
     .update({

@@ -15,6 +15,7 @@ export function TrainerProfilePage() {
   const [specialty, setSpecialty] = useState("");
   const [experienceYears, setExperienceYears] = useState(0);
   const [hourlyRate, setHourlyRate] = useState(90);
+  const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState("");
 
   const meQuery = useQuery({
@@ -51,6 +52,7 @@ export function TrainerProfilePage() {
     },
     onSuccess: () => {
       setError("");
+      setIsEditing(false);
       void queryClient.invalidateQueries({ queryKey: ["trainer-me"] });
       void queryClient.invalidateQueries({ queryKey: ["trainers"] });
     },
@@ -62,11 +64,28 @@ export function TrainerProfilePage() {
   const profileDisplayName = meQuery.data?.profiles?.full_name?.trim() || "My profile";
   const roleLabel =
     (meQuery.data?.specialty ?? "").toLowerCase().includes("nutri") ? "Nutritionist" : "Trainer";
+  const avatarUrl = meQuery.data?.profiles?.avatar_url ?? "";
+  const avatarInitial = profileDisplayName.charAt(0).toUpperCase();
 
   return (
     <section>
-      <h2>{`Hi, ${profileDisplayName}`}</h2>
-      <p className="muted">{roleLabel}</p>
+      <div className="profile-hero">
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={profileDisplayName}
+            className="profile-hero-avatar"
+          />
+        ) : (
+          <div className="profile-hero-avatar profile-hero-avatar-fallback">{avatarInitial}</div>
+        )}
+        <div>
+          <h2 style={{ margin: 0 }}>{`Hi, ${profileDisplayName}`}</h2>
+          <p className="muted" style={{ margin: "0.25rem 0 0" }}>
+            {roleLabel}
+          </p>
+        </div>
+      </div>
       <p className="muted">Complete your trainer or nutritionist profile and submit verification to unlock platform features.</p>
 
       <div className="card">
@@ -94,19 +113,68 @@ export function TrainerProfilePage() {
         </Link>
       </div>
 
-      <div className="card">
-        <h3>{meQuery.data ? "Edit profile" : "Create profile"}</h3>
-        <label>Specialty</label>
-        <input value={specialty} onChange={(e) => setSpecialty(e.target.value)} placeholder="strength, nutritionist, rehab..." />
-        <label>Bio</label>
-        <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4} placeholder="Describe your experience and approach" />
-        <label>Experience years</label>
-        <input type="number" min={0} value={experienceYears} onChange={(e) => setExperienceYears(Number(e.target.value || 0))} />
-        <label>Hourly rate (AUD)</label>
-        <input type="number" min={0} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value || 0))} />
-        <button className="primary-btn" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-          {saveMutation.isPending ? "Saving..." : meQuery.data ? "Update profile" : "Create profile"}
-        </button>
+      <div className="card profile-details-card">
+        <h3>{meQuery.data ? "Profile details" : "Create profile"}</h3>
+        {!isEditing && meQuery.data ? (
+          <>
+            <div className="profile-view-grid">
+              <article className="profile-view-item">
+                <p className="profile-view-label">Role</p>
+                <p className="profile-view-value">{roleLabel}</p>
+              </article>
+              <article className="profile-view-item">
+                <p className="profile-view-label">Specialty</p>
+                <p className="profile-view-value">{specialty || "Not set"}</p>
+              </article>
+              <article className="profile-view-item">
+                <p className="profile-view-label">Experience</p>
+                <p className="profile-view-value">{experienceYears} years</p>
+              </article>
+              <article className="profile-view-item">
+                <p className="profile-view-label">Hourly rate</p>
+                <p className="profile-view-value">${hourlyRate}</p>
+              </article>
+            </div>
+            <p className="muted">
+              <b>Bio:</b> {bio || "Not set"}
+            </p>
+            <button className="primary-btn" onClick={() => setIsEditing(true)}>
+              Edit profile
+            </button>
+          </>
+        ) : (
+          <>
+            <label>Specialty</label>
+            <input value={specialty} onChange={(e) => setSpecialty(e.target.value)} placeholder="strength, nutritionist, rehab..." />
+            <label>Bio</label>
+            <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4} placeholder="Describe your experience and approach" />
+            <label>Experience years</label>
+            <input type="number" min={0} value={experienceYears} onChange={(e) => setExperienceYears(Number(e.target.value || 0))} />
+            <label>Hourly rate (AUD)</label>
+            <input type="number" min={0} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value || 0))} />
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button className="primary-btn" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+                {saveMutation.isPending ? "Saving..." : meQuery.data ? "Save changes" : "Create profile"}
+              </button>
+              {meQuery.data ? (
+                <button
+                  className="secondary-btn"
+                  type="button"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setError("");
+                    setBio(meQuery.data.bio ?? "");
+                    setSpecialty(meQuery.data.specialty ?? "");
+                    setExperienceYears(meQuery.data.experience_years ?? 0);
+                    setHourlyRate(meQuery.data.hourly_rate ?? 0);
+                  }}
+                >
+                  Cancel
+                </button>
+              ) : null}
+            </div>
+          </>
+        )}
         {error ? <p className="error">{error}</p> : null}
       </div>
 
@@ -137,6 +205,64 @@ export function TrainerProfilePage() {
           ))}
         </ul>
       </div>
+
+      <style>{`
+        .profile-hero {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 0.35rem;
+        }
+        .profile-hero-avatar {
+          width: 84px;
+          height: 84px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid var(--border-light);
+        }
+        .profile-hero-avatar-fallback {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, var(--primary), var(--accent));
+          color: #fff;
+          font-weight: 800;
+          font-size: 1.65rem;
+        }
+        .profile-hero h2 {
+          font-size: 2rem;
+          line-height: 1.1;
+        }
+        .profile-details-card {
+          padding: 1.35rem;
+        }
+        .profile-view-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 0.85rem;
+          margin-bottom: 1rem;
+        }
+        .profile-view-item {
+          border: 1px solid var(--border-light);
+          border-radius: var(--radius-md);
+          padding: 0.95rem 1rem;
+          background: rgba(255, 255, 255, 0.02);
+        }
+        .profile-view-label {
+          margin: 0 0 0.35rem;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: var(--text-muted);
+          font-weight: 700;
+        }
+        .profile-view-value {
+          margin: 0;
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+      `}</style>
     </section>
   );
 }

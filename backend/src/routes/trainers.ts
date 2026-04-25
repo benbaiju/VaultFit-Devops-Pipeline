@@ -19,7 +19,7 @@ trainersRouter.get("/", async (req, res) => {
   const specialty = req.query.specialty as string | undefined;
   const verified = req.query.verified as string | undefined;
 
-  let query = supabaseAdmin.from("trainers").select("*, profiles:user_id(full_name, avatar_url)");
+  let query = supabaseAdmin.from("trainers").select("*, profiles:user_id(full_name, avatar_url, role)");
   if (specialty) query = query.eq("specialty", specialty);
   if (verified === "true") query = query.eq("verified", true);
 
@@ -31,7 +31,7 @@ trainersRouter.get("/", async (req, res) => {
 trainersRouter.get("/me/profile", requireAuth, requireRole(["trainer", "nutritionist", "admin"]), async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from("trainers")
-    .select("*, profiles:user_id(full_name, avatar_url)")
+    .select("*, profiles:user_id(full_name, avatar_url, role)")
     .eq("user_id", req.user!.id)
     .maybeSingle();
   if (error) throw new HttpError(400, error.message, "TRAINER_READ_FAILED");
@@ -41,7 +41,7 @@ trainersRouter.get("/me/profile", requireAuth, requireRole(["trainer", "nutritio
 trainersRouter.get("/:id", async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from("trainers")
-    .select("*, profiles:user_id(full_name, avatar_url)")
+    .select("*, profiles:user_id(full_name, avatar_url, role)")
     .eq("id", req.params.id)
     .single();
   if (error) throw new HttpError(404, "Trainer not found", "TRAINER_NOT_FOUND");

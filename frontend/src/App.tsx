@@ -18,6 +18,7 @@ import { TrainerBookingsPage } from "./pages/trainer-bookings-page.tsx";
 import { TrainerDashboardPage } from "./pages/trainer-dashboard-page.tsx";
 import { TrainerProfilePage } from "./pages/trainer-profile-page.tsx";
 import { TrainerPublicProfilePage } from "./pages/trainer-public-profile-page.tsx";
+import { TrainersPage } from "./pages/trainers-page.tsx";
 import { VerificationPage } from "./pages/verification-page.tsx";
 import "./App.css";
 
@@ -38,7 +39,7 @@ function App() {
         }
       >
         <Route index element={<HomePage />} />
-        <Route path="trainers" element={<HomePage />} />
+        <Route path="trainers" element={<TrainersPage />} />
         <Route path="nutritionists" element={<NutritionistsPage />} />
         <Route path="trainers/:trainerId" element={<TrainerPublicProfilePage />} />
         <Route path="profile" element={<ClientProfilePage />} />

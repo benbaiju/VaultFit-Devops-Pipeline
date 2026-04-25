@@ -78,7 +78,7 @@ export function TrainerPublicProfilePage() {
           </div>
           <p className="trainer-profile-bio">{trainer.bio ?? "This trainer has not added a bio yet."}</p>
           <div className="trainer-profile-actions">
-            <Link className="primary-btn" to={ROUTES.client.book}>
+            <Link className="primary-btn" to={`${ROUTES.client.book}?with=trainer&trainerId=${trainer.id}`}>
               Book with this trainer
             </Link>
             <Link className="secondary-link" to={ROUTES.client.trainers}>

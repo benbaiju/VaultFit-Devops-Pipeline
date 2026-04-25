@@ -42,8 +42,8 @@ export function TrainersPage() {
     <section>
       <div className="section-head">
         <h2>Find trainers</h2>
-        <Link className="secondary-link" to={ROUTES.client.book}>
-          Book a session
+        <Link className="secondary-link" to={`${ROUTES.client.book}?with=trainer`}>
+          Book with trainer
         </Link>
       </div>
 

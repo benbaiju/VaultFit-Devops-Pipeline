@@ -50,8 +50,11 @@ export function HomePage() {
           <Link className="secondary-link" to={ROUTES.client.nutritionists}>
             Browse nutritionists
           </Link>
-          <Link className="secondary-link" to={ROUTES.client.book}>
-            Book a session
+          <Link className="secondary-link" to={`${ROUTES.client.book}?with=trainer`}>
+            Book with trainer
+          </Link>
+          <Link className="secondary-link" to={`${ROUTES.client.book}?with=nutritionist`}>
+            Book with nutritionist
           </Link>
         </div>
       </div>

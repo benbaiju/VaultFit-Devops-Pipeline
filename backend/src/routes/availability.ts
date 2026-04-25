@@ -5,18 +5,21 @@ import { ensureVerifiedTrainerUser, requireAuth, requireRole } from "../middlewa
 import { HttpError } from "../middleware/error-handler.js";
 
 const availabilitySchema = z.object({
+  serviceId: z.uuid(),
   dayOfWeek: z.number().int().min(0).max(6),
   startTime: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
   endTime: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
 });
 
 const blockedDateSchema = z.object({
+  serviceId: z.uuid(),
   blockedDate: z.iso.date(),
   reason: z.string().optional(),
 });
 
 const openSlotsQuerySchema = z
   .object({
+    serviceId: z.uuid(),
     from: z.iso.date(),
     to: z.iso.date(),
   })
@@ -25,10 +28,16 @@ const openSlotsQuerySchema = z
 export const availabilityRouter = Router();
 
 availabilityRouter.get("/:trainerId/availability", async (req, res) => {
+  const serviceId = String(req.query.serviceId ?? "");
+  if (!serviceId) {
+    throw new HttpError(400, "serviceId query param is required", "SERVICE_ID_REQUIRED");
+  }
+  await ensureServiceBelongsToTrainer(req.params.trainerId, serviceId);
   const { data, error } = await supabaseAdmin
     .from("trainer_availability")
     .select("*")
     .eq("trainer_id", req.params.trainerId)
+    .eq("service_id", serviceId)
     .order("day_of_week", { ascending: true })
     .order("start_time", { ascending: true });
 
@@ -39,20 +48,25 @@ availabilityRouter.get("/:trainerId/availability", async (req, res) => {
 availabilityRouter.get("/:trainerId/open-slots", async (req, res) => {
   const trainerId = String(req.params.trainerId);
   const query = openSlotsQuerySchema.parse({
+    serviceId: String(req.query.serviceId),
     from: String(req.query.from),
     to: String(req.query.to),
   });
+  await ensureServiceBelongsToTrainer(trainerId, query.serviceId);
 
-  const { data: availabilityRows, error: availabilityError } = await supabaseAdmin
+  const filteredAvailabilityQuery = supabaseAdmin
     .from("trainer_availability")
     .select("day_of_week, start_time, end_time")
-    .eq("trainer_id", trainerId);
-  if (availabilityError) throw new HttpError(400, availabilityError.message, "OPEN_SLOTS_FAILED");
+    .eq("trainer_id", trainerId)
+    .eq("service_id", query.serviceId);
+  const { data: serviceAvailabilityRows, error: serviceAvailabilityError } = await filteredAvailabilityQuery;
+  if (serviceAvailabilityError) throw new HttpError(400, serviceAvailabilityError.message, "OPEN_SLOTS_FAILED");
 
   const { data: blockedDates, error: blockedError } = await supabaseAdmin
     .from("blocked_dates")
     .select("blocked_date")
     .eq("trainer_id", trainerId)
+    .eq("service_id", query.serviceId)
     .gte("blocked_date", query.from)
     .lte("blocked_date", query.to);
   if (blockedError) throw new HttpError(400, blockedError.message, "OPEN_SLOTS_FAILED");
@@ -75,7 +89,7 @@ availabilityRouter.get("/:trainerId/open-slots", async (req, res) => {
 
     const jsDay = d.getDay();
     const dayOfWeek = (jsDay + 6) % 7;
-    const dayAvailability = (availabilityRows ?? []).filter((slot) => slot.day_of_week === dayOfWeek);
+    const dayAvailability = (serviceAvailabilityRows ?? []).filter((slot) => slot.day_of_week === dayOfWeek);
     if (dayAvailability.length === 0) continue;
 
     const dayBookings = (bookings ?? []).filter((b) => String(b.booking_date) === dateStr);
@@ -108,7 +122,7 @@ availabilityRouter.post("/:trainerId/availability", requireAuth, requireRole(["t
     throw new HttpError(400, "startTime must be less than endTime", "INVALID_TIME_RANGE");
   }
 
-  const trainerId = req.params.trainerId;
+  const trainerId = String(req.params.trainerId);
   const { data: trainer, error: trainerError } = await supabaseAdmin
     .from("trainers")
     .select("id, user_id")
@@ -116,6 +130,7 @@ availabilityRouter.post("/:trainerId/availability", requireAuth, requireRole(["t
     .single();
 
   if (trainerError || !trainer) throw new HttpError(404, "Trainer not found", "TRAINER_NOT_FOUND");
+  await ensureServiceBelongsToTrainer(trainerId, payload.serviceId);
   if (req.user!.role !== "admin" && trainer.user_id !== req.user!.id) {
     throw new HttpError(403, "Can only manage your own availability", "FORBIDDEN");
   }
@@ -125,6 +140,7 @@ availabilityRouter.post("/:trainerId/availability", requireAuth, requireRole(["t
     .from("trainer_availability")
     .insert({
       trainer_id: trainerId,
+      service_id: payload.serviceId,
       day_of_week: payload.dayOfWeek,
       start_time: payload.startTime,
       end_time: payload.endTime,
@@ -203,10 +219,16 @@ function subtractRanges(baseRanges: Range[], removeRanges: Range[]): Range[] {
 }
 
 availabilityRouter.get("/:trainerId/blocked-dates", async (req, res) => {
+  const serviceId = String(req.query.serviceId ?? "");
+  if (!serviceId) {
+    throw new HttpError(400, "serviceId query param is required", "SERVICE_ID_REQUIRED");
+  }
+  await ensureServiceBelongsToTrainer(String(req.params.trainerId), serviceId);
   const { data, error } = await supabaseAdmin
     .from("blocked_dates")
     .select("*")
     .eq("trainer_id", req.params.trainerId)
+    .eq("service_id", serviceId)
     .order("blocked_date", { ascending: true });
   if (error) throw new HttpError(400, error.message, "BLOCKED_DATES_LIST_FAILED");
   res.json(data);
@@ -214,7 +236,7 @@ availabilityRouter.get("/:trainerId/blocked-dates", async (req, res) => {
 
 availabilityRouter.post("/:trainerId/blocked-dates", requireAuth, requireRole(["trainer", "admin"]), async (req, res) => {
   const payload = blockedDateSchema.parse(req.body);
-  const trainerId = req.params.trainerId;
+  const trainerId = String(req.params.trainerId);
 
   const { data: trainer, error: trainerError } = await supabaseAdmin
     .from("trainers")
@@ -222,6 +244,7 @@ availabilityRouter.post("/:trainerId/blocked-dates", requireAuth, requireRole(["
     .eq("id", trainerId)
     .single();
   if (trainerError || !trainer) throw new HttpError(404, "Trainer not found", "TRAINER_NOT_FOUND");
+  await ensureServiceBelongsToTrainer(trainerId, payload.serviceId);
   if (req.user!.role !== "admin" && trainer.user_id !== req.user!.id) {
     throw new HttpError(403, "Can only manage your own blocked dates", "FORBIDDEN");
   }
@@ -231,6 +254,7 @@ availabilityRouter.post("/:trainerId/blocked-dates", requireAuth, requireRole(["
     .from("blocked_dates")
     .insert({
       trainer_id: trainerId,
+      service_id: payload.serviceId,
       blocked_date: payload.blockedDate,
       reason: payload.reason ?? null,
     })
@@ -267,3 +291,14 @@ availabilityRouter.delete(
     res.status(204).send();
   },
 );
+
+async function ensureServiceBelongsToTrainer(trainerId: string, serviceId: string): Promise<void> {
+  const { data, error } = await supabaseAdmin
+    .from("services")
+    .select("id")
+    .eq("id", serviceId)
+    .eq("trainer_id", trainerId)
+    .maybeSingle();
+  if (error) throw new HttpError(400, error.message, "SERVICE_LOOKUP_FAILED");
+  if (!data) throw new HttpError(404, "Service not found for trainer", "SERVICE_NOT_FOUND");
+}

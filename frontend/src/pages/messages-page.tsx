@@ -68,6 +68,12 @@ export function MessagesPage() {
     void markConversationRead(token, selectedConversationId);
   }, [selectedConversationId, token]);
 
+  useEffect(() => {
+    if (!selectedConversationId && (conversationsQuery.data ?? []).length > 0) {
+      setSelectedConversationId(conversationsQuery.data![0].id);
+    }
+  }, [conversationsQuery.data, selectedConversationId]);
+
   const createConversationMutation = useMutation({
     mutationFn: () => createConversation(token, selectedTrainerId),
     onSuccess: (conversation) => {
@@ -93,6 +99,23 @@ export function MessagesPage() {
   const conversations = conversationsQuery.data ?? [];
   const messages = messagesQuery.data ?? [];
 
+  const trainerNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    trainers.forEach((trainer) => {
+      map.set(trainer.id, trainer.profiles?.full_name ?? "Trainer");
+    });
+    return map;
+  }, [trainers]);
+
+  function conversationLabel(conversationId: string): string {
+    const conversation = conversations.find((c) => c.id === conversationId);
+    if (!conversation) return "Conversation";
+    if (user?.role === "client") {
+      return trainerNameById.get(conversation.trainer_id) ?? "Trainer";
+    }
+    return `Client ${conversation.client_id.slice(0, 8)}`;
+  }
+
   const selectedConversation = useMemo(
     () => conversations.find((c) => c.id === selectedConversationId),
     [conversations, selectedConversationId],
@@ -101,66 +124,98 @@ export function MessagesPage() {
   return (
     <section>
       <h2>Messages</h2>
+      <div className="chat-layout">
+        <aside className="card chat-sidebar">
+          {user?.role === "client" ? (
+            <div className="chat-start">
+              <h3>Start chat</h3>
+              <label>Trainer</label>
+              <select value={selectedTrainerId} onChange={(e) => setSelectedTrainerId(e.target.value)}>
+                <option value="">Select trainer</option>
+                {trainers.map((trainer) => (
+                  <option key={trainer.id} value={trainer.id}>
+                    {trainer.profiles?.full_name ?? trainer.id}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="primary-btn"
+                disabled={!selectedTrainerId || createConversationMutation.isPending}
+                onClick={() => createConversationMutation.mutate()}
+              >
+                {createConversationMutation.isPending ? "Starting..." : "Start chat"}
+              </button>
+            </div>
+          ) : null}
 
-      {user?.role === "client" ? (
-        <div className="card">
-          <h3>Start conversation</h3>
-          <label>Trainer</label>
-          <select value={selectedTrainerId} onChange={(e) => setSelectedTrainerId(e.target.value)}>
-            <option value="">Select trainer</option>
-            {trainers.map((trainer) => (
-              <option key={trainer.id} value={trainer.id}>
-                {trainer.profiles?.full_name ?? trainer.id}
-              </option>
-            ))}
-          </select>
-          <button
-            className="primary-btn"
-            disabled={!selectedTrainerId || createConversationMutation.isPending}
-            onClick={() => createConversationMutation.mutate()}
-          >
-            {createConversationMutation.isPending ? "Starting..." : "Start chat"}
-          </button>
-        </div>
-      ) : null}
+          <div className="chat-conversations">
+            <h3>Conversations</h3>
+            {conversationsQuery.isLoading ? <p className="muted">Loading conversations...</p> : null}
+            {!conversationsQuery.isLoading && conversations.length === 0 ? (
+              <p className="muted">
+                No active chats yet. Chats unlock only after payment is completed and close once the service is completed.
+              </p>
+            ) : null}
+            <div className="chat-conversation-list">
+              {conversations.map((conversation) => {
+                const active = conversation.id === selectedConversationId;
+                return (
+                  <button
+                    key={conversation.id}
+                    type="button"
+                    className={`chat-conversation-item ${active ? "chat-conversation-item-active" : ""}`}
+                    onClick={() => setSelectedConversationId(conversation.id)}
+                  >
+                    <span className="chat-conversation-name">{conversationLabel(conversation.id)}</span>
+                    <span className="chat-conversation-meta">{conversation.id.slice(0, 8)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </aside>
 
-      <div className="card">
-        <h3>Conversations</h3>
-        <select value={selectedConversationId} onChange={(e) => setSelectedConversationId(e.target.value)}>
-          <option value="">Select conversation</option>
-          {conversations.map((conversation) => (
-            <option key={conversation.id} value={conversation.id}>
-              {conversation.id}
-            </option>
-          ))}
-        </select>
+        <section className="card chat-thread">
+          {!selectedConversation ? (
+            <p className="muted">Select a conversation to start messaging.</p>
+          ) : (
+            <>
+              <div className="chat-thread-head">
+                <h3>{conversationLabel(selectedConversation.id)}</h3>
+                <p className="muted">Live thread</p>
+              </div>
+
+              {messagesQuery.isError ? <p className="error">{(messagesQuery.error as Error).message}</p> : null}
+
+              <div className="chat-messages">
+                {messages.length === 0 ? <p className="muted">No messages yet. Say hello.</p> : null}
+                {messages.map((message) => {
+                  const mine = message.sender_id === user?.id;
+                  return (
+                    <div key={message.id} className={`chat-message-row ${mine ? "chat-message-row-mine" : ""}`}>
+                      <div className={`chat-bubble ${mine ? "chat-bubble-mine" : ""}`}>
+                        <p>{message.message}</p>
+                        <span>{new Date(message.created_at).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="chat-composer">
+                <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Type your message..." />
+                <button
+                  className="primary-btn"
+                  disabled={!draft.trim() || sendMessageMutation.isPending || messagesQuery.isError}
+                  onClick={() => sendMessageMutation.mutate()}
+                >
+                  {sendMessageMutation.isPending ? "Sending..." : "Send"}
+                </button>
+              </div>
+            </>
+          )}
+        </section>
       </div>
-
-      {selectedConversation ? (
-        <div className="card">
-          <h3>Conversation thread</h3>
-          <ul className="list">
-            {messages.map((message) => (
-              <li key={message.id}>
-                <span>
-                  <b>{message.sender_id === user?.id ? "You" : "Other"}:</b> {message.message}
-                </span>
-                <span className="muted">{new Date(message.created_at).toLocaleString()}</span>
-              </li>
-            ))}
-          </ul>
-
-          <label>New message</label>
-          <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Type message..." />
-          <button
-            className="primary-btn"
-            disabled={!draft.trim() || sendMessageMutation.isPending}
-            onClick={() => sendMessageMutation.mutate()}
-          >
-            {sendMessageMutation.isPending ? "Sending..." : "Send"}
-          </button>
-        </div>
-      ) : null}
 
       {error ? <p className="error">{error}</p> : null}
       {!realtimeClient ? <p className="muted">Realtime disabled: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.</p> : null}

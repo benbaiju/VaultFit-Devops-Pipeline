@@ -25,7 +25,13 @@ messagingRouter.get("/conversations", requireAuth, async (req, res) => {
 
   const { data, error } = await query;
   if (error) throw new HttpError(400, error.message, "CONVERSATIONS_LIST_FAILED");
-  res.json(data);
+
+  const activeConversations = [];
+  for (const conversation of data ?? []) {
+    const allowed = await hasActivePaidSession(conversation.client_id, conversation.trainer_id);
+    if (allowed) activeConversations.push(conversation);
+  }
+  res.json(activeConversations);
 });
 
 messagingRouter.post("/conversations", requireAuth, async (req, res) => {
@@ -41,6 +47,14 @@ messagingRouter.post("/conversations", requireAuth, async (req, res) => {
   if (targetTrainerError || !targetTrainer) throw new HttpError(404, "Trainer not found", "TRAINER_NOT_FOUND");
   if (!targetTrainer.verified) {
     throw new HttpError(409, "Trainer is not verified and cannot receive conversations yet", "TRAINER_NOT_VERIFIED");
+  }
+  const hasPaidActiveSession = await hasActivePaidSession(clientId, payload.trainerId);
+  if (!hasPaidActiveSession) {
+    throw new HttpError(
+      409,
+      "Chat unlocks only after payment is completed for an active booking, and closes once service is completed.",
+      "CHAT_NOT_AVAILABLE",
+    );
   }
 
   const { data: existing, error: existingError } = await supabaseAdmin
@@ -71,6 +85,7 @@ messagingRouter.get("/conversations/:id/messages", requireAuth, async (req, res)
   if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
   const conversationId = String(req.params.id);
   const conversation = await getConversationForUser(conversationId, req.user!.id);
+  await ensureConversationMessagingOpen(conversation.client_id, conversation.trainer_id);
 
   const limit = Number(req.query.limit ?? 50);
   const offset = Number(req.query.offset ?? 0);
@@ -91,6 +106,7 @@ messagingRouter.post("/conversations/:id/messages", requireAuth, async (req, res
   const payload = sendMessageSchema.parse(req.body);
   const conversationId = String(req.params.id);
   const conversation = await getConversationForUser(conversationId, req.user!.id);
+  await ensureConversationMessagingOpen(conversation.client_id, conversation.trainer_id);
 
   const { data, error } = await supabaseAdmin
     .from("messages")
@@ -115,6 +131,7 @@ messagingRouter.patch("/conversations/:id/messages/read", requireAuth, async (re
   if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
   const conversationId = String(req.params.id);
   const conversation = await getConversationForUser(conversationId, req.user!.id);
+  await ensureConversationMessagingOpen(conversation.client_id, conversation.trainer_id);
 
   const { error } = await supabaseAdmin
     .from("messages")
@@ -189,4 +206,37 @@ async function createNotification(userId: string, title: string, body: string): 
   if (error) {
     console.error("Failed to create notification", error.message);
   }
+}
+
+async function ensureConversationMessagingOpen(clientId: string, trainerId: string): Promise<void> {
+  const allowed = await hasActivePaidSession(clientId, trainerId);
+  if (!allowed) {
+    throw new HttpError(
+      409,
+      "Chat is closed for this client-trainer pair. Payment must be completed and at least one booking must still be active.",
+      "CHAT_CLOSED",
+    );
+  }
+}
+
+async function hasActivePaidSession(clientId: string, trainerId: string): Promise<boolean> {
+  const { data: bookings, error: bookingsError } = await supabaseAdmin
+    .from("bookings")
+    .select("id")
+    .eq("client_id", clientId)
+    .eq("trainer_id", trainerId)
+    .eq("status", "confirmed");
+  if (bookingsError) throw new HttpError(400, bookingsError.message, "CHAT_ELIGIBILITY_CHECK_FAILED");
+
+  const bookingIds = (bookings ?? []).map((booking) => booking.id);
+  if (bookingIds.length === 0) return false;
+
+  const { data: paidRows, error: paidError } = await supabaseAdmin
+    .from("payments")
+    .select("booking_id")
+    .in("booking_id", bookingIds)
+    .eq("status", "paid");
+  if (paidError) throw new HttpError(400, paidError.message, "CHAT_ELIGIBILITY_CHECK_FAILED");
+
+  return (paidRows ?? []).length > 0;
 }

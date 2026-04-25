@@ -20,6 +20,7 @@ export const env = {
   host: process.env.HOST ?? "0.0.0.0",
   nodeEnv: process.env.NODE_ENV ?? "development",
   paymentsMode: (process.env.PAYMENTS_MODE ?? "mock") as "mock" | "stripe",
+  verificationDocsBucket: process.env.VERIFICATION_DOCS_BUCKET ?? "credential-docs",
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL as string,
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY as string,

@@ -97,6 +97,7 @@ function legacyVerificationItem(v: {
   status: string;
   trainer_id: string;
   credential_url: string;
+  identity_url?: string | null;
   admin_notes: string | null;
   reviewed_at: string | null;
   submitted_at?: string;
@@ -114,6 +115,7 @@ function legacyVerificationItem(v: {
       outcome: v.status,
       admin_notes: v.admin_notes,
       credential_url: v.credential_url,
+      identity_url: v.identity_url ?? null,
       note: "Logged before admin audit table existed",
     },
   };

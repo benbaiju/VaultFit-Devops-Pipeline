@@ -99,6 +99,7 @@ export interface VerificationRequest {
   trainer_id: string;
   status: "pending" | "approved" | "rejected";
   credential_url: string;
+  identity_url: string | null;
   admin_notes: string | null;
   submitted_at: string;
   reviewed_at: string | null;

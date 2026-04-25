@@ -1,13 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "../lib/navigation";
 import { getTrainers } from "../services/trainers";
 
 export function HomePage() {
+  const [search, setSearch] = useState("");
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["trainers"],
     queryFn: getTrainers,
   });
+
+  const filteredTrainers = useMemo(() => {
+    const trainers = data ?? [];
+    const query = search.trim().toLowerCase();
+    if (!query) return trainers;
+    return trainers.filter((trainer) => {
+      const name = trainer.profiles?.full_name ?? "";
+      const specialty = trainer.specialty ?? "";
+      const bio = trainer.bio ?? "";
+      return [name, specialty, bio].some((field) => field.toLowerCase().includes(query));
+    });
+  }, [data, search]);
 
   if (isLoading) return <p>Loading trainers...</p>;
   if (isError) return <p className="error">{(error as Error).message}</p>;
@@ -20,8 +34,19 @@ export function HomePage() {
           Book a session
         </Link>
       </div>
+      <div className="card" style={{ marginBottom: "1rem" }}>
+        <label>Search trainers</label>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, specialty, or bio..."
+        />
+        <p className="muted" style={{ marginBottom: 0 }}>
+          Showing {filteredTrainers.length} of {(data ?? []).length} trainers
+        </p>
+      </div>
       <div className="grid">
-        {(data ?? []).map((trainer) => (
+        {filteredTrainers.map((trainer) => (
           <Link
             key={trainer.id}
             className="card trainer-card"
@@ -41,6 +66,7 @@ export function HomePage() {
             <p className="muted">Click to view full profile</p>
           </Link>
         ))}
+        {filteredTrainers.length === 0 ? <p className="muted">No trainers match your search.</p> : null}
       </div>
     </section>
   );

@@ -1,8 +1,11 @@
 import { apiRequest } from "../lib/api-client";
 import type { Conversation, Message, Notification } from "../types/api";
 
-export async function getConversations(token: string): Promise<Conversation[]> {
-  return apiRequest<Conversation[]>("/conversations", {}, token);
+export async function getConversations(token: string, includeClosed = false): Promise<Conversation[]> {
+  const params = new URLSearchParams();
+  if (includeClosed) params.set("includeClosed", "true");
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return apiRequest<Conversation[]>(`/conversations${suffix}`, {}, token);
 }
 
 export async function createConversation(token: string, bookingId: string): Promise<Conversation> {

@@ -23,7 +23,7 @@ export function MessagesPage() {
 
   const conversationsQuery = useQuery({
     queryKey: ["conversations"],
-    queryFn: () => getConversations(token),
+    queryFn: () => getConversations(token, true),
   });
 
   const trainersQuery = useQuery({
@@ -71,7 +71,8 @@ export function MessagesPage() {
 
   useEffect(() => {
     if (!selectedConversationId && (conversationsQuery.data ?? []).length > 0) {
-      setSelectedConversationId(conversationsQuery.data![0].id);
+      const active = conversationsQuery.data!.find((c) => c.chat_open !== false);
+      setSelectedConversationId((active ?? conversationsQuery.data![0]).id);
     }
   }, [conversationsQuery.data, selectedConversationId]);
 
@@ -94,6 +95,8 @@ export function MessagesPage() {
 
   const trainers = trainersQuery.data ?? [];
   const conversations = conversationsQuery.data ?? [];
+  const activeConversations = conversations.filter((c) => c.chat_open !== false);
+  const archivedConversations = conversations.filter((c) => c.chat_open === false);
   const messages = messagesQuery.data ?? [];
 
   const trainerNameById = useMemo(() => {
@@ -137,7 +140,7 @@ export function MessagesPage() {
               </p>
             ) : null}
             <div className="chat-conversation-list">
-              {conversations.map((conversation) => {
+              {activeConversations.map((conversation) => {
                 const active = conversation.id === selectedConversationId;
                 return (
                   <button
@@ -152,6 +155,27 @@ export function MessagesPage() {
                 );
               })}
             </div>
+            {archivedConversations.length > 0 ? (
+              <>
+                <p className="booking-section-title">Archived (read-only)</p>
+                <div className="chat-conversation-list">
+                  {archivedConversations.map((conversation) => {
+                    const active = conversation.id === selectedConversationId;
+                    return (
+                      <button
+                        key={conversation.id}
+                        type="button"
+                        className={`chat-conversation-item ${active ? "chat-conversation-item-active" : ""}`}
+                        onClick={() => setSelectedConversationId(conversation.id)}
+                      >
+                        <span className="chat-conversation-name">{conversationLabel(conversation.id)}</span>
+                        <span className="chat-conversation-meta">archived</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : null}
           </div>
         </aside>
 
@@ -162,10 +186,13 @@ export function MessagesPage() {
             <>
               <div className="chat-thread-head">
                 <h3>{selectedConversationLabel}</h3>
-                <p className="muted">Live thread</p>
+                <p className="muted">{selectedConversation?.chat_open === false ? "Archived thread" : "Live thread"}</p>
               </div>
 
               {messagesQuery.isError ? <p className="error">{(messagesQuery.error as Error).message}</p> : null}
+              {selectedConversation?.chat_open === false ? (
+                <p className="muted">Service completed. This chat is archived and read-only.</p>
+              ) : null}
 
               <div className="chat-messages">
                 {messages.length === 0 ? <p className="muted">No messages yet. Say hello.</p> : null}
@@ -186,7 +213,12 @@ export function MessagesPage() {
                 <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Type your message..." />
                 <button
                   className="primary-btn"
-                  disabled={!draft.trim() || sendMessageMutation.isPending || messagesQuery.isError}
+                  disabled={
+                    !draft.trim() ||
+                    sendMessageMutation.isPending ||
+                    messagesQuery.isError ||
+                    selectedConversation?.chat_open === false
+                  }
                   onClick={() => sendMessageMutation.mutate()}
                 >
                   {sendMessageMutation.isPending ? "Sending..." : "Send"}

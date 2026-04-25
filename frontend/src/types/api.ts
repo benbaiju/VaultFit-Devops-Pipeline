@@ -94,6 +94,7 @@ export interface Conversation {
   trainer_id: string;
   booking_id?: string | null;
   service_id?: string | null;
+  chat_open?: boolean;
   created_at: string;
 }
 

@@ -19,6 +19,7 @@ messagingRouter.get("/conversations", requireAuth, async (req, res) => {
   if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
   const userId = req.user!.id;
   const trainerId = await getTrainerIdForUser(userId);
+  const includeClosed = String(req.query.includeClosed ?? "false") === "true";
 
   let query = supabaseAdmin.from("conversations").select("*").order("created_at", { ascending: false });
   query = trainerId ? query.or(`client_id.eq.${userId},trainer_id.eq.${trainerId}`) : query.eq("client_id", userId);
@@ -26,14 +27,19 @@ messagingRouter.get("/conversations", requireAuth, async (req, res) => {
   const { data, error } = await query;
   if (error) throw new HttpError(400, error.message, "CONVERSATIONS_LIST_FAILED");
 
-  const activeConversations = [];
+  const conversationsWithState = [];
   for (const conversation of data ?? []) {
     const allowed = conversation.booking_id
       ? await isBookingChatOpen(conversation.booking_id)
       : await hasActivePaidSession(conversation.client_id, conversation.trainer_id);
-    if (allowed) activeConversations.push(conversation);
+    if (allowed || includeClosed) {
+      conversationsWithState.push({
+        ...conversation,
+        chat_open: allowed,
+      });
+    }
   }
-  res.json(activeConversations);
+  res.json(conversationsWithState);
 });
 
 messagingRouter.post("/conversations", requireAuth, async (req, res) => {
@@ -95,7 +101,6 @@ messagingRouter.get("/conversations/:id/messages", requireAuth, async (req, res)
   if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
   const conversationId = String(req.params.id);
   const conversation = await getConversationForUser(conversationId, req.user!.id);
-  await ensureConversationMessagingOpen(conversation);
 
   const limit = Number(req.query.limit ?? 50);
   const offset = Number(req.query.offset ?? 0);
@@ -141,7 +146,6 @@ messagingRouter.patch("/conversations/:id/messages/read", requireAuth, async (re
   if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
   const conversationId = String(req.params.id);
   const conversation = await getConversationForUser(conversationId, req.user!.id);
-  await ensureConversationMessagingOpen(conversation);
 
   const { error } = await supabaseAdmin
     .from("messages")

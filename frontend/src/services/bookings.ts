@@ -3,6 +3,7 @@ import type { Booking, OpenSlot } from "../types/api";
 
 type CreateBookingInput = {
   trainerId: string;
+  serviceId: string;
   bookingDate: string;
   startTime: string;
   endTime: string;
@@ -24,8 +25,8 @@ export async function createBooking(token: string, input: CreateBookingInput): P
   );
 }
 
-export async function getOpenSlots(trainerId: string, from: string, to: string): Promise<OpenSlot[]> {
-  const params = new URLSearchParams({ from, to });
+export async function getOpenSlots(trainerId: string, serviceId: string, from: string, to: string): Promise<OpenSlot[]> {
+  const params = new URLSearchParams({ serviceId, from, to });
   return apiRequest<OpenSlot[]>(`/trainers/${trainerId}/open-slots?${params.toString()}`);
 }
 

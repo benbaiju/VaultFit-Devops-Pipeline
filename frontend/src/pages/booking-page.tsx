@@ -1,6 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { createBooking, getBookings, getOpenSlots, payBooking } from "../services/bookings";
+import { getServices } from "../services/services";
 import { getTrainers } from "../services/trainers";
 import { useAuth } from "../state/auth-context";
 
@@ -8,6 +9,7 @@ export function BookingPage() {
   const { token } = useAuth();
   const queryClient = useQueryClient();
   const [trainerId, setTrainerId] = useState("");
+  const [selectedServiceId, setSelectedServiceId] = useState("");
   const [fromDate, setFromDate] = useState("2026-04-27");
   const [toDate, setToDate] = useState("2026-05-04");
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; startTime: string; endTime: string } | null>(null);
@@ -18,21 +20,35 @@ export function BookingPage() {
     queryFn: getTrainers,
   });
 
+  const verifiedTrainers = useMemo(
+    () => (trainersQuery.data ?? []).filter((trainer) => trainer.verified),
+    [trainersQuery.data],
+  );
+
+  const servicesByTrainer = useQueries({
+    queries: verifiedTrainers.map((trainer) => ({
+      queryKey: ["services", trainer.id],
+      queryFn: () => getServices(trainer.id),
+      enabled: Boolean(trainer.id),
+    })),
+  });
+
   const bookingsQuery = useQuery({
     queryKey: ["bookings"],
     queryFn: () => getBookings(token),
   });
 
   const openSlotsQuery = useQuery({
-    queryKey: ["open-slots", trainerId, fromDate, toDate],
-    queryFn: () => getOpenSlots(trainerId, fromDate, toDate),
-    enabled: Boolean(trainerId && fromDate && toDate),
+    queryKey: ["open-slots", trainerId, selectedServiceId, fromDate, toDate],
+    queryFn: () => getOpenSlots(trainerId, selectedServiceId, fromDate, toDate),
+    enabled: Boolean(trainerId && selectedServiceId && fromDate && toDate),
   });
 
   const createMutation = useMutation({
     mutationFn: () =>
       createBooking(token, {
         trainerId,
+        serviceId: selectedServiceId,
         bookingDate: selectedSlot?.date ?? fromDate,
         startTime: selectedSlot?.startTime ?? "10:00:00",
         endTime: selectedSlot?.endTime ?? "11:00:00",
@@ -42,7 +58,7 @@ export function BookingPage() {
       setError("");
       setSelectedSlot(null);
       void queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      void queryClient.invalidateQueries({ queryKey: ["open-slots", trainerId, fromDate, toDate] });
+      void queryClient.invalidateQueries({ queryKey: ["open-slots", trainerId, selectedServiceId, fromDate, toDate] });
     },
     onError: (e) => {
       setError((e as Error).message);
@@ -60,7 +76,26 @@ export function BookingPage() {
     },
   });
 
-  const trainers = trainersQuery.data ?? [];
+  const servicesLoading = servicesByTrainer.some((query) => query.isLoading);
+  const servicesError = servicesByTrainer.find((query) => query.isError)?.error;
+  const serviceOptions = useMemo(
+    () =>
+      servicesByTrainer.flatMap((query, index) => {
+        const trainer = verifiedTrainers[index];
+        if (!trainer) return [];
+        return (query.data ?? [])
+          .filter((service) => service.is_active)
+          .map((service) => ({
+            ...service,
+            trainerName: trainer.profiles?.full_name ?? "Unnamed Trainer",
+          }));
+      }),
+    [servicesByTrainer, verifiedTrainers],
+  );
+  const selectedService = useMemo(
+    () => serviceOptions.find((service) => service.id === selectedServiceId) ?? null,
+    [selectedServiceId, serviceOptions],
+  );
   const bookings = bookingsQuery.data ?? [];
   const openSlots = openSlotsQuery.data ?? [];
   const slotLabel = useMemo(
@@ -68,21 +103,35 @@ export function BookingPage() {
     [selectedSlot],
   );
 
+  function handleServiceChange(value: string) {
+    setSelectedServiceId(value);
+    const service = serviceOptions.find((option) => option.id === value);
+    setTrainerId(service?.trainer_id ?? "");
+    setSelectedSlot(null);
+  }
+
   return (
     <section>
       <h2>Book a session</h2>
       <div className="card">
-        <h3>Pick a time</h3>
-        <p className="muted">Choose a trainer, then an open slot from their calendar.</p>
-        <label>Trainer</label>
-        <select value={trainerId} onChange={(e) => setTrainerId(e.target.value)}>
-          <option value="">Select trainer</option>
-          {trainers.map((trainer) => (
-            <option key={trainer.id} value={trainer.id}>
-              {trainer.profiles?.full_name ?? trainer.id}
+        <h3>Choose service and slot</h3>
+        <p className="muted">Pick a session/service first, then choose an open time for that trainer.</p>
+        <label>Service</label>
+        <select value={selectedServiceId} onChange={(e) => handleServiceChange(e.target.value)}>
+          <option value="">Select service</option>
+          {serviceOptions.map((service) => (
+            <option key={service.id} value={service.id}>
+              {service.title} - {service.trainerName} - ${service.price} ({service.duration_minutes} min)
             </option>
           ))}
         </select>
+        {servicesLoading ? <p className="muted">Loading services...</p> : null}
+        {servicesError ? <p className="error">{(servicesError as Error).message}</p> : null}
+        {selectedService ? (
+          <p className="muted">
+            Selected: {selectedService.title} by {selectedService.trainerName} (${selectedService.price})
+          </p>
+        ) : null}
         <div className="row-grid">
           <div>
             <label>From</label>
@@ -96,6 +145,9 @@ export function BookingPage() {
         <p className="muted">Selected slot: {slotLabel}</p>
         <div className="slot-list">
           {openSlotsQuery.isLoading ? <p className="muted">Loading open slots...</p> : null}
+          {!openSlotsQuery.isLoading && selectedService && openSlots.length === 0 ? (
+            <p className="muted">No availability configured for this service in the selected date range.</p>
+          ) : null}
           {openSlots.map((slot, idx) => (
             <button
               key={`${slot.date}-${slot.startTime}-${idx}`}
@@ -115,7 +167,7 @@ export function BookingPage() {
         </div>
         <button
           className="primary-btn"
-          disabled={!trainerId || !selectedSlot || createMutation.isPending}
+          disabled={!selectedService || !trainerId || !selectedSlot || createMutation.isPending}
           onClick={() => createMutation.mutate()}
         >
           {createMutation.isPending ? "Creating..." : "Create booking"}

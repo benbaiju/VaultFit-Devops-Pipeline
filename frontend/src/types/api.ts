@@ -37,6 +37,7 @@ export interface Service {
 export interface Booking {
   id: string;
   client_id?: string;
+  service_id?: string;
   status: "pending" | "confirmed" | "completed" | "cancelled";
   booking_date: string;
   start_time: string;
@@ -48,6 +49,23 @@ export interface OpenSlot {
   date: string;
   startTime: string;
   endTime: string;
+}
+
+export interface AvailabilitySlot {
+  id: string;
+  trainer_id: string;
+  service_id?: string | null;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+}
+
+export interface BlockedDate {
+  id: string;
+  trainer_id: string;
+  service_id?: string | null;
+  blocked_date: string;
+  reason: string | null;
 }
 
 export interface Review {

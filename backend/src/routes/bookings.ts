@@ -7,6 +7,7 @@ import { HttpError } from "../middleware/error-handler.js";
 
 const createBookingSchema = z.object({
   trainerId: z.uuid(),
+  serviceId: z.uuid(),
   bookingDate: z.iso.date(),
   startTime: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
   endTime: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
@@ -37,6 +38,19 @@ bookingsRouter.post("/", requireAuth, async (req, res) => {
     throw new HttpError(400, "startTime must be less than endTime", "INVALID_TIME_RANGE");
   }
 
+  const { data: service, error: serviceError } = await supabaseAdmin
+    .from("services")
+    .select("id, trainer_id, is_active")
+    .eq("id", payload.serviceId)
+    .single();
+  if (serviceError || !service) throw new HttpError(404, "Service not found", "SERVICE_NOT_FOUND");
+  if (service.trainer_id !== payload.trainerId) {
+    throw new HttpError(400, "Selected service does not belong to this trainer", "SERVICE_TRAINER_MISMATCH");
+  }
+  if (!service.is_active) {
+    throw new HttpError(409, "Selected service is not active", "SERVICE_INACTIVE");
+  }
+
   const bookingDate = new Date(`${payload.bookingDate}T00:00:00`);
   const jsDay = bookingDate.getDay();
   const dayOfWeek = (jsDay + 6) % 7; // convert JS 0=Sun..6=Sat to schema 0=Mon..6=Sun
@@ -45,15 +59,17 @@ bookingsRouter.post("/", requireAuth, async (req, res) => {
     .from("blocked_dates")
     .select("id")
     .eq("trainer_id", payload.trainerId)
+    .eq("service_id", payload.serviceId)
     .eq("blocked_date", payload.bookingDate)
     .maybeSingle();
   if (blockedError) throw new HttpError(400, blockedError.message, "BOOKING_CREATE_FAILED");
-  if (blocked) throw new HttpError(409, "Trainer is unavailable on this date", "DATE_BLOCKED");
+  if (blocked) throw new HttpError(409, "Service is unavailable on this date", "DATE_BLOCKED");
 
   const { data: slots, error: slotsError } = await supabaseAdmin
     .from("trainer_availability")
     .select("id, start_time, end_time")
     .eq("trainer_id", payload.trainerId)
+    .eq("service_id", payload.serviceId)
     .eq("day_of_week", dayOfWeek);
   if (slotsError) throw new HttpError(400, slotsError.message, "BOOKING_CREATE_FAILED");
 
@@ -69,6 +85,7 @@ bookingsRouter.post("/", requireAuth, async (req, res) => {
     .insert({
       client_id: req.user!.id,
       trainer_id: payload.trainerId,
+      service_id: payload.serviceId,
       booking_date: payload.bookingDate,
       start_time: payload.startTime,
       end_time: payload.endTime,

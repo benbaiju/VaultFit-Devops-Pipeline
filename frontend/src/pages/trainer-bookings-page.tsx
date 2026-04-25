@@ -43,7 +43,7 @@ export function TrainerBookingsPage() {
               <span>
                 {b.booking_date} {b.start_time}–{b.end_time} · <b className={`status status-${b.status}`}>{b.status}</b>
               </span>
-              <p className="muted">Client: {b.client_id ?? "—"} · Booking {b.id}</p>
+              <p className="muted">Client session</p>
               <div className="inline-actions">
                 {(NEXT_STATUS[b.status] ?? []).map((next) => (
                   <button

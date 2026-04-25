@@ -169,7 +169,7 @@ export function ReviewsPage() {
           {completedBookings.map((booking) => {
             const existingReview = myReviewByBookingId.get(booking.id);
             const trainerLabel = booking.trainer_id
-              ? (trainerNameById.get(booking.trainer_id) ?? `Trainer ${booking.trainer_id.slice(0, 8)}`)
+              ? (trainerNameById.get(booking.trainer_id) ?? "Trainer")
               : "Trainer";
             return (
               <li key={booking.id}>

@@ -219,7 +219,7 @@ export function TrainerProfilePage() {
                 {profileUpdateMutation.isPending ? "Saving phone..." : "Save phone"}
               </button>
               <button
-                className="secondary-btn"
+                className="secondary-btn otp-btn-sm"
                 type="button"
                 disabled={!phone.trim() || sendOtpMutation.isPending}
                 onClick={() => sendOtpMutation.mutate()}
@@ -234,7 +234,7 @@ export function TrainerProfilePage() {
                 style={{ maxWidth: 180 }}
               />
               <button
-                className="secondary-btn"
+                className="secondary-btn otp-btn-sm"
                 type="button"
                 disabled={otpCode.trim().length !== 6 || verifyOtpMutation.isPending}
                 onClick={() => verifyOtpMutation.mutate()}
@@ -353,6 +353,11 @@ export function TrainerProfilePage() {
           font-size: 1.05rem;
           font-weight: 700;
           color: var(--text-primary);
+        }
+        .otp-btn-sm {
+          padding: 0.38rem 0.72rem;
+          font-size: 0.78rem;
+          min-height: 30px;
         }
       `}</style>
     </section>

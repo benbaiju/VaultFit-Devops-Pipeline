@@ -267,12 +267,12 @@ export function PlansPage() {
 
   const roleBookings = useMemo(() => bookingsQuery.data ?? [], [bookingsQuery.data]);
   const clientOptions = useMemo(() => {
-    const byClient = new Map<string, { latestDate: string; bookingId: string }>();
+    const byClient = new Map<string, { latestDate: string }>();
     roleBookings.forEach((booking) => {
       if (!booking.client_id) return;
       const existing = byClient.get(booking.client_id);
       if (!existing || booking.booking_date > existing.latestDate) {
-        byClient.set(booking.client_id, { latestDate: booking.booking_date, bookingId: booking.id });
+        byClient.set(booking.client_id, { latestDate: booking.booking_date });
       }
     });
     return Array.from(byClient.entries())
@@ -514,11 +514,6 @@ export function PlansPage() {
             <p className="muted">
               <strong>{user?.role === "trainer" ? "Client" : "Trainer"}:</strong> {counterpartLabel(booking)}
             </p>
-            {user?.role === "trainer" ? (
-              <p className="muted booking-id-line">
-                <strong>Booking Ref:</strong> {booking.id}
-              </p>
-            ) : null}
             <div>
               <button
                 className="secondary-btn"

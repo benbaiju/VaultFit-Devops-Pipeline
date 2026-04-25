@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { ROUTES } from "../lib/navigation";
 import {
   createAvailability,
   createBlockedDate,
@@ -13,9 +15,11 @@ import { getTrainers } from "../services/trainers";
 import { useAuth } from "../state/auth-context";
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+type ServicesSection = "create" | "schedule" | "blocked-dates" | "existing";
 
 export function ServicesPage() {
   const { token, user } = useAuth();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [serviceType, setServiceType] = useState<"session" | "program" | "consultation">("session");
@@ -167,6 +171,13 @@ export function ServicesPage() {
   const services = servicesQuery.data ?? [];
   const activeServicesCount = services.filter((service) => service.is_active).length;
   const pausedServicesCount = services.length - activeServicesCount;
+  const section: ServicesSection = location.pathname.endsWith("/schedule")
+    ? "schedule"
+    : location.pathname.endsWith("/blocked-dates")
+      ? "blocked-dates"
+      : location.pathname.endsWith("/existing")
+        ? "existing"
+        : "create";
 
   function addDraftAvailability() {
     if (draftStartTime >= draftEndTime) {
@@ -195,6 +206,44 @@ export function ServicesPage() {
     <section>
       <h2>Your services</h2>
 
+      <div className="card services-quick-nav">
+        <div className="services-quick-nav-head">
+          <h3>Quick Navigate</h3>
+          <details className="services-quick-nav-mobile">
+            <summary>Menu</summary>
+            <div className="services-quick-nav-mobile-list">
+              <Link className={`secondary-btn services-nav-link ${section === "create" ? "services-nav-link-active" : ""}`} to={ROUTES.trainer.servicesCreate}>
+                Create Service
+              </Link>
+              <Link className={`secondary-btn services-nav-link ${section === "schedule" ? "services-nav-link-active" : ""}`} to={ROUTES.trainer.servicesSchedule}>
+                Schedule
+              </Link>
+              <Link className={`secondary-btn services-nav-link ${section === "blocked-dates" ? "services-nav-link-active" : ""}`} to={ROUTES.trainer.servicesBlockedDates}>
+                Blocked Dates
+              </Link>
+              <Link className={`secondary-btn services-nav-link ${section === "existing" ? "services-nav-link-active" : ""}`} to={ROUTES.trainer.servicesExisting}>
+                Existing Services
+              </Link>
+            </div>
+          </details>
+        </div>
+        <div className="services-quick-nav-buttons">
+          <Link className={`secondary-btn services-nav-link ${section === "create" ? "services-nav-link-active" : ""}`} to={ROUTES.trainer.servicesCreate}>
+            Create Service
+          </Link>
+          <Link className={`secondary-btn services-nav-link ${section === "schedule" ? "services-nav-link-active" : ""}`} to={ROUTES.trainer.servicesSchedule}>
+            Schedule
+          </Link>
+          <Link className={`secondary-btn services-nav-link ${section === "blocked-dates" ? "services-nav-link-active" : ""}`} to={ROUTES.trainer.servicesBlockedDates}>
+            Blocked Dates
+          </Link>
+          <Link className={`secondary-btn services-nav-link ${section === "existing" ? "services-nav-link-active" : ""}`} to={ROUTES.trainer.servicesExisting}>
+            Existing Services
+          </Link>
+        </div>
+      </div>
+
+      {section === "create" ? (
       <div className="card">
         <h3>Create Service</h3>
         <label>Title</label>
@@ -274,7 +323,9 @@ export function ServicesPage() {
         </button>
         {error ? <p className="error">{error}</p> : null}
       </div>
+      ) : null}
 
+      {section === "schedule" ? (
       <div className="card">
         <h3>Manage service schedule</h3>
         <label>Service</label>
@@ -332,7 +383,9 @@ export function ServicesPage() {
           ))}
         </ul>
       </div>
+      ) : null}
 
+      {section === "blocked-dates" ? (
       <div className="card">
         <h3>Blocked dates</h3>
         <p className="muted">Mark one-off dates unavailable (holidays, leave, etc.).</p>
@@ -366,7 +419,9 @@ export function ServicesPage() {
           ))}
         </ul>
       </div>
+      ) : null}
 
+      {section === "existing" ? (
       <div className="card">
         <h3>Existing Services</h3>
         {!servicesQuery.isLoading ? (
@@ -410,6 +465,72 @@ export function ServicesPage() {
           ))}
         </ul>
       </div>
+      ) : null}
+
+      <style>{`
+        .services-quick-nav {
+          position: static;
+          z-index: 8;
+          backdrop-filter: blur(10px);
+          background: rgba(9, 14, 31, 0.92);
+          border: 1px solid var(--border-light);
+          border-radius: 16px;
+          padding: 0.9rem;
+        }
+        .services-quick-nav-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.75rem;
+          margin-bottom: 0.6rem;
+        }
+        .services-quick-nav-head h3 {
+          margin: 0;
+        }
+        .services-quick-nav-buttons {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+        .services-nav-link {
+          text-decoration: none;
+          border-radius: 999px;
+          padding: 0.5rem 1rem;
+          min-height: 36px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .services-nav-link-active {
+          border-color: var(--primary);
+          box-shadow: inset 0 0 0 1px var(--primary);
+          background: linear-gradient(135deg, rgba(79, 70, 229, 0.2), rgba(99, 102, 241, 0.18));
+          color: #fff;
+        }
+        .services-quick-nav-mobile {
+          display: none;
+        }
+        .services-quick-nav-mobile summary {
+          cursor: pointer;
+          user-select: none;
+          color: var(--text-secondary);
+          font-weight: 600;
+        }
+        .services-quick-nav-mobile-list {
+          margin-top: 0.55rem;
+          display: grid;
+          gap: 0.4rem;
+        }
+        @media (max-width: 820px) {
+          .services-quick-nav { padding: 0.75rem; }
+          .services-quick-nav-buttons {
+            display: none;
+          }
+          .services-quick-nav-mobile {
+            display: block;
+          }
+        }
+      `}</style>
     </section>
   );
 }

@@ -5,6 +5,8 @@ export const ROUTES = {
   register: "/register",
   client: {
     root: "/client",
+    trainers: "/client/trainers",
+    profile: "/client/profile",
     book: "/client/book",
     plans: "/client/plans",
     reviews: "/client/reviews",

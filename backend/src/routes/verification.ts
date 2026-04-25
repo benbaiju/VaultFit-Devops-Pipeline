@@ -53,7 +53,7 @@ function ensureVerificationDocs(payload: { credentialRef: string; identityRef: s
   }
 }
 
-verificationRouter.post("/verification-requests", requireAuth, requireRole(["trainer"]), async (req, res) => {
+verificationRouter.post("/verification-requests", requireAuth, requireRole(["trainer", "nutritionist"]), async (req, res) => {
   const payload = submitVerificationSchema.parse(req.body);
   const trainerId = await getTrainerIdOrThrow(req.user!.id, req.user!.role);
   await ensureTrainerNotAlreadyVerified(trainerId);
@@ -92,7 +92,7 @@ verificationRouter.post("/verification-requests", requireAuth, requireRole(["tra
 verificationRouter.post(
   "/verification-requests/upload",
   requireAuth,
-  requireRole(["trainer"]),
+  requireRole(["trainer", "nutritionist"]),
   upload.fields([
     { name: "credentialDocument", maxCount: 1 },
     { name: "identityDocument", maxCount: 1 },
@@ -168,7 +168,7 @@ verificationRouter.post(
   },
 );
 
-verificationRouter.get("/verification-requests/me", requireAuth, requireRole(["trainer"]), async (req, res) => {
+verificationRouter.get("/verification-requests/me", requireAuth, requireRole(["trainer", "nutritionist"]), async (req, res) => {
   const trainerId = await getTrainerIdOrThrow(req.user!.id, req.user!.role);
   const { data, error } = await supabaseAdmin
     .from("verification_requests")

@@ -20,10 +20,10 @@ const updatePlanSchema = z.object({
 
 export const plansRouter = Router();
 
-plansRouter.post("/", requireAuth, requireRole(["trainer", "admin"]), async (req, res) => {
+plansRouter.post("/", requireAuth, requireRole(["trainer", "nutritionist", "admin"]), async (req, res) => {
   const payload = createPlanSchema.parse(req.body);
 
-  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
+  if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
   const trainerId = await resolveTrainerId(req.user!.id, req.user!.role, payload.trainerId);
   if (!trainerId) {
     throw new HttpError(400, "Trainer profile is required to create plans", "TRAINER_PROFILE_MISSING");
@@ -50,7 +50,7 @@ plansRouter.get("/", requireAuth, async (req, res) => {
 
   if (req.user!.role === "client") {
     query = query.eq("client_id", req.user!.id);
-  } else if (req.user!.role === "trainer") {
+  } else if (req.user!.role === "trainer" || req.user!.role === "nutritionist") {
     const trainerId = await resolveTrainerId(req.user!.id, req.user!.role);
     if (!trainerId) throw new HttpError(400, "Trainer profile not found", "TRAINER_PROFILE_MISSING");
     query = query.eq("trainer_id", trainerId);
@@ -69,7 +69,7 @@ plansRouter.get("/:id", requireAuth, async (req, res) => {
   res.json(data);
 });
 
-plansRouter.put("/:id", requireAuth, requireRole(["trainer", "admin"]), async (req, res) => {
+plansRouter.put("/:id", requireAuth, requireRole(["trainer", "nutritionist", "admin"]), async (req, res) => {
   const payload = updatePlanSchema.parse(req.body);
   const { data: existing, error: existingError } = await supabaseAdmin
     .from("plans")
@@ -79,7 +79,7 @@ plansRouter.put("/:id", requireAuth, requireRole(["trainer", "admin"]), async (r
   if (existingError || !existing) throw new HttpError(404, "Plan not found", "PLAN_NOT_FOUND");
 
   await ensurePlanEditAccess(req.user!.id, req.user!.role, existing.trainer_id);
-  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
+  if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
 
   const { data, error } = await supabaseAdmin
     .from("plans")
@@ -96,7 +96,7 @@ plansRouter.put("/:id", requireAuth, requireRole(["trainer", "admin"]), async (r
   res.json(data);
 });
 
-plansRouter.delete("/:id", requireAuth, requireRole(["trainer", "admin"]), async (req, res) => {
+plansRouter.delete("/:id", requireAuth, requireRole(["trainer", "nutritionist", "admin"]), async (req, res) => {
   const { data: existing, error: existingError } = await supabaseAdmin
     .from("plans")
     .select("id, trainer_id")
@@ -105,7 +105,7 @@ plansRouter.delete("/:id", requireAuth, requireRole(["trainer", "admin"]), async
   if (existingError || !existing) throw new HttpError(404, "Plan not found", "PLAN_NOT_FOUND");
 
   await ensurePlanEditAccess(req.user!.id, req.user!.role, existing.trainer_id);
-  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
+  if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
 
   const { error } = await supabaseAdmin.from("plans").delete().eq("id", req.params.id);
   if (error) throw new HttpError(400, error.message, "PLAN_DELETE_FAILED");
@@ -114,7 +114,7 @@ plansRouter.delete("/:id", requireAuth, requireRole(["trainer", "admin"]), async
 
 async function resolveTrainerId(userId: string, role: string | undefined, adminProvidedTrainerId?: string): Promise<string | null> {
   if (role === "admin" && adminProvidedTrainerId) return adminProvidedTrainerId;
-  if (role !== "trainer") return null;
+  if (role !== "trainer" && role !== "nutritionist") return null;
 
   const { data, error } = await supabaseAdmin.from("trainers").select("id").eq("user_id", userId).maybeSingle();
   if (error || !data) return null;
@@ -124,7 +124,7 @@ async function resolveTrainerId(userId: string, role: string | undefined, adminP
 async function ensurePlanAccess(userId: string, role: string | undefined, plan: { client_id: string; trainer_id: string }) {
   if (role === "admin") return;
   if (role === "client" && plan.client_id === userId) return;
-  if (role === "trainer") {
+  if (role === "trainer" || role === "nutritionist") {
     const trainerId = await resolveTrainerId(userId, role);
     if (trainerId && trainerId === plan.trainer_id) return;
   }

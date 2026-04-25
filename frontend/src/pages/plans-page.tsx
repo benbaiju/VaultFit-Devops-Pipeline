@@ -262,7 +262,7 @@ export function PlansPage() {
   const trainersQuery = useQuery({
     queryKey: ["trainers"],
     queryFn: getTrainers,
-    enabled: user?.role === "client" || user?.role === "trainer",
+    enabled: user?.role === "client" || user?.role === "trainer" || user?.role === "nutritionist",
   });
 
   const roleBookings = useMemo(() => bookingsQuery.data ?? [], [bookingsQuery.data]);
@@ -330,7 +330,7 @@ export function PlansPage() {
   }
 
   function counterpartLabel(booking: (typeof roleBookings)[number]): string {
-    if (user?.role === "trainer") {
+    if (user?.role === "trainer" || user?.role === "nutritionist") {
       return "Client";
     }
     return booking.trainer_id ? (trainerNameById.get(booking.trainer_id) ?? "Trainer") : "Trainer";
@@ -491,7 +491,7 @@ export function PlansPage() {
               <p className="booking-item-title">{service?.title ?? "Session"}</p>
               <p className="booking-item-subtitle">
                 {booking.booking_date} | {formatTimeWindow(booking.start_time, booking.end_time)} |{" "}
-                {user?.role === "trainer" ? "Client" : "Trainer"}: {counterpartLabel(booking)}
+                {user?.role === "trainer" || user?.role === "nutritionist" ? "Client" : "Trainer"}: {counterpartLabel(booking)}
               </p>
             </div>
             <div className="booking-item-right">
@@ -512,7 +512,7 @@ export function PlansPage() {
               <strong>Price:</strong> {typeof service?.price === "number" ? `$${service.price}` : "N/A"}
             </p>
             <p className="muted">
-              <strong>{user?.role === "trainer" ? "Client" : "Trainer"}:</strong> {counterpartLabel(booking)}
+              <strong>{user?.role === "trainer" || user?.role === "nutritionist" ? "Client" : "Trainer"}:</strong> {counterpartLabel(booking)}
             </p>
             <div>
               <button
@@ -576,7 +576,7 @@ export function PlansPage() {
     mutationFn: (bookingId: string) => createConversation(token, bookingId),
     onSuccess: (conversation) => {
       setError("");
-      const base = user?.role === "trainer" ? "/trainer/messages" : "/client/messages";
+      const base = user?.role === "trainer" || user?.role === "nutritionist" ? "/trainer/messages" : "/client/messages";
       navigate(`${base}?conversationId=${conversation.id}`);
     },
     onError: (e) => {
@@ -589,7 +589,7 @@ export function PlansPage() {
     <section>
       <h2>{user?.role === "client" ? "My plans" : "Plans"}</h2>
 
-      {user?.role === "trainer" ? (
+      {user?.role === "trainer" || user?.role === "nutritionist" ? (
         <div className="card">
           <h3>Create Plan</h3>
           <p className="muted">Create structured plans for clients.</p>
@@ -775,7 +775,7 @@ export function PlansPage() {
                     })()
                   : null}
               </div>
-              {user?.role === "trainer" ? (
+              {user?.role === "trainer" || user?.role === "nutritionist" ? (
                 <div className="inline-actions">
                   <button
                     className="secondary-btn"
@@ -798,9 +798,9 @@ export function PlansPage() {
         </ul>
       </div>
 
-      {user?.role === "client" || user?.role === "trainer" ? (
+      {user?.role === "client" || user?.role === "trainer" || user?.role === "nutritionist" ? (
         <div className="card">
-          <h3>{user?.role === "trainer" ? "Client service chats" : "Booked services"}</h3>
+          <h3>{user?.role === "trainer" || user?.role === "nutritionist" ? "Client service chats" : "Booked services"}</h3>
           {error ? <p className="error">{error}</p> : null}
           {bookingsQuery.isLoading ? <p>Loading booked services...</p> : null}
           {!bookingsQuery.isLoading && roleBookings.length === 0 ? (

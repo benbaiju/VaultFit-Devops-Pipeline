@@ -5,7 +5,7 @@ type RegisterPayload = {
   fullName: string;
   email: string;
   password: string;
-  role: "client" | "trainer" | "admin";
+  role: "client" | "trainer" | "nutritionist" | "admin";
   phone?: string;
 };
 

@@ -50,7 +50,7 @@ export function ServicesPage() {
   const trainers = trainersQuery.data ?? [];
 
   const effectiveTrainerId = useMemo(() => {
-    if (user?.role !== "trainer") return "";
+    if (user?.role !== "trainer" && user?.role !== "nutritionist") return "";
     const mine = trainers.find((t) => t.user_id === user.id);
     return mine?.id ?? "";
   }, [trainers, user?.id, user?.role]);

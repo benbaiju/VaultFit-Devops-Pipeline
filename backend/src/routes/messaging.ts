@@ -16,7 +16,7 @@ const sendMessageSchema = z.object({
 export const messagingRouter = Router();
 
 messagingRouter.get("/conversations", requireAuth, async (req, res) => {
-  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
+  if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
   const userId = req.user!.id;
   const trainerId = await getTrainerIdForUser(userId);
   const includeClosed = String(req.query.includeClosed ?? "false") === "true";
@@ -44,7 +44,7 @@ messagingRouter.get("/conversations", requireAuth, async (req, res) => {
 
 messagingRouter.post("/conversations", requireAuth, async (req, res) => {
   const payload = createConversationSchema.parse(req.body);
-  if (req.user!.role !== "client" && req.user!.role !== "trainer") {
+  if (req.user!.role !== "client" && req.user!.role !== "trainer" && req.user!.role !== "nutritionist") {
     throw new HttpError(403, "Only clients and trainers can use chat", "FORBIDDEN");
   }
   const booking = await getBookingForConversation(payload.bookingId, req.user!.id, req.user!.role);
@@ -98,7 +98,7 @@ messagingRouter.post("/conversations", requireAuth, async (req, res) => {
 });
 
 messagingRouter.get("/conversations/:id/messages", requireAuth, async (req, res) => {
-  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
+  if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
   const conversationId = String(req.params.id);
   const conversation = await getConversationForUser(conversationId, req.user!.id);
 
@@ -117,7 +117,7 @@ messagingRouter.get("/conversations/:id/messages", requireAuth, async (req, res)
 });
 
 messagingRouter.post("/conversations/:id/messages", requireAuth, async (req, res) => {
-  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
+  if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
   const payload = sendMessageSchema.parse(req.body);
   const conversationId = String(req.params.id);
   const conversation = await getConversationForUser(conversationId, req.user!.id);
@@ -143,7 +143,7 @@ messagingRouter.post("/conversations/:id/messages", requireAuth, async (req, res
 });
 
 messagingRouter.patch("/conversations/:id/messages/read", requireAuth, async (req, res) => {
-  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
+  if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
   const conversationId = String(req.params.id);
   const conversation = await getConversationForUser(conversationId, req.user!.id);
 
@@ -253,7 +253,7 @@ async function getBookingForConversation(
     if (booking.client_id !== userId) throw new HttpError(403, "Only booking owner can start chat", "FORBIDDEN");
     return booking;
   }
-  if (role === "trainer") {
+  if (role === "trainer" || role === "nutritionist") {
     await ensureVerifiedTrainerUser(userId);
     const trainerId = await getTrainerIdForUser(userId);
     if (!trainerId || trainerId !== booking.trainer_id) {

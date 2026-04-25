@@ -1,4 +1,4 @@
-export type AppRole = "client" | "trainer" | "admin";
+export type AppRole = "client" | "trainer" | "nutritionist" | "admin";
 
 export interface AuthUserClaims {
   sub: string;

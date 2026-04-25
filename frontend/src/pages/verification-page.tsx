@@ -14,7 +14,7 @@ export function VerificationPage() {
   const [identityFile, setIdentityFile] = useState<File | null>(null);
   const [notes, setNotes] = useState("");
 
-  const isTrainerRole = user?.role === "trainer";
+  const isTrainerRole = user?.role === "trainer" || user?.role === "nutritionist";
 
   const meQuery = useQuery({
     queryKey: ["trainer-me"],
@@ -51,7 +51,7 @@ export function VerificationPage() {
         <div className="card glass-card empty-state">
           <AlertCircle size={48} className="text-warning mb-4" />
           <h2 className="mb-2">Restricted Access</h2>
-          <p className="muted">Only trainers can access the verification portal.</p>
+          <p className="muted">Only trainers and nutritionists can access the verification portal.</p>
         </div>
       </section>
     );

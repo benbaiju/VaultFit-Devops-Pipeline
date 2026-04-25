@@ -28,7 +28,7 @@ trainersRouter.get("/", async (req, res) => {
   res.json(data);
 });
 
-trainersRouter.get("/me/profile", requireAuth, requireRole(["trainer", "admin"]), async (req, res) => {
+trainersRouter.get("/me/profile", requireAuth, requireRole(["trainer", "nutritionist", "admin"]), async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from("trainers")
     .select("*, profiles:user_id(full_name, avatar_url)")
@@ -48,7 +48,7 @@ trainersRouter.get("/:id", async (req, res) => {
   res.json(data);
 });
 
-trainersRouter.post("/", requireAuth, requireRole(["trainer", "admin"]), async (req, res) => {
+trainersRouter.post("/", requireAuth, requireRole(["trainer", "nutritionist", "admin"]), async (req, res) => {
   const payload = createTrainerSchema.parse(req.body);
   const { data, error } = await supabaseAdmin
     .from("trainers")
@@ -65,7 +65,7 @@ trainersRouter.post("/", requireAuth, requireRole(["trainer", "admin"]), async (
   res.status(201).json(data);
 });
 
-trainersRouter.put("/:id", requireAuth, requireRole(["trainer", "admin"]), async (req, res) => {
+trainersRouter.put("/:id", requireAuth, requireRole(["trainer", "nutritionist", "admin"]), async (req, res) => {
   const payload = updateTrainerSchema.parse(req.body);
 
   const { data: existing, error: existingError } = await supabaseAdmin

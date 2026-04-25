@@ -208,7 +208,10 @@ export function ServicesPage() {
     return (
       <div className="day-menu">
         <button type="button" className="secondary-btn day-menu-trigger" onClick={() => setOpen(!open)}>
-          {DAY_LABELS[value]}
+          <span>{DAY_LABELS[value]}</span>
+          <span className={`day-menu-caret ${open ? "day-menu-caret-open" : ""}`} aria-hidden>
+            ▾
+          </span>
         </button>
         {open ? (
           <div className="day-menu-list">
@@ -300,11 +303,21 @@ export function ServicesPage() {
           </div>
           <div>
             <label>Start time</label>
-            <input type="time" value={draftStartTime} onChange={(e) => setDraftStartTime(e.target.value)} />
+            <div className="time-input-wrap">
+              <input type="time" value={draftStartTime} onChange={(e) => setDraftStartTime(e.target.value)} />
+              <span className="time-input-caret" aria-hidden>
+                ▾
+              </span>
+            </div>
           </div>
-          <div>
-            <label>End time</label>
+        </div>
+        <div>
+          <label>End time</label>
+          <div className="time-input-wrap">
             <input type="time" value={draftEndTime} onChange={(e) => setDraftEndTime(e.target.value)} />
+            <span className="time-input-caret" aria-hidden>
+              ▾
+            </span>
           </div>
         </div>
         <button className="secondary-btn" type="button" onClick={addDraftAvailability}>
@@ -368,11 +381,21 @@ export function ServicesPage() {
           </div>
           <div>
             <label>Start time</label>
-            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            <div className="time-input-wrap">
+              <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+              <span className="time-input-caret" aria-hidden>
+                ▾
+              </span>
+            </div>
           </div>
-          <div>
-            <label>End time</label>
+        </div>
+        <div>
+          <label>End time</label>
+          <div className="time-input-wrap">
             <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+            <span className="time-input-caret" aria-hidden>
+              ▾
+            </span>
           </div>
         </div>
         <button
@@ -531,6 +554,31 @@ export function ServicesPage() {
         .day-menu-trigger {
           width: 100%;
           justify-content: space-between;
+          padding-right: 0.8rem;
+        }
+        .day-menu-caret {
+          color: var(--text-secondary);
+          font-size: 0.8rem;
+          transition: transform 0.2s ease;
+        }
+        .day-menu-caret-open {
+          transform: rotate(180deg);
+        }
+        .time-input-wrap {
+          position: relative;
+        }
+        .time-input-wrap input {
+          padding-right: 2.2rem;
+          margin-bottom: 1.25rem;
+        }
+        .time-input-caret {
+          position: absolute;
+          right: 0.8rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--text-secondary);
+          font-size: 0.78rem;
+          pointer-events: none;
         }
         .day-menu-list {
           position: absolute;

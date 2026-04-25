@@ -8,6 +8,30 @@ import { getServices } from "../services/services";
 import { getTrainers } from "../services/trainers";
 import { useAuth } from "../state/auth-context";
 
+type DraftPlanDay = {
+  dayLabel: string;
+  focus: string;
+  details: string;
+};
+
+type DraftPlanWeek = {
+  goal: string;
+  days: DraftPlanDay[];
+};
+
+type StructuredPlanContent = {
+  summary: string;
+  weeks: Array<{
+    week: number;
+    goal: string;
+    days: Array<{
+      day: string;
+      focus: string;
+      details: string;
+    }>;
+  }>;
+};
+
 export function PlansPage() {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
@@ -16,6 +40,10 @@ export function PlansPage() {
   const [clientId, setClientId] = useState("");
   const [title, setTitle] = useState("");
   const [planType, setPlanType] = useState<"fitness" | "nutrition" | "hybrid">("fitness");
+  const [planSummary, setPlanSummary] = useState("");
+  const [planWeeks, setPlanWeeks] = useState<DraftPlanWeek[]>([
+    { goal: "", days: [{ dayLabel: "Day 1", focus: "", details: "" }] },
+  ]);
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -34,7 +62,7 @@ export function PlansPage() {
     enabled: user?.role === "client" || user?.role === "trainer",
   });
 
-  const roleBookings = bookingsQuery.data ?? [];
+  const roleBookings = useMemo(() => bookingsQuery.data ?? [], [bookingsQuery.data]);
   const clientOptions = useMemo(() => {
     const byClient = new Map<string, { latestDate: string; bookingId: string }>();
     roleBookings.forEach((booking) => {
@@ -105,12 +133,102 @@ export function PlansPage() {
     return booking.trainer_id ? (trainerNameById.get(booking.trainer_id) ?? "Trainer") : "Trainer";
   }
 
-  function buildDefaultPlanContent(kind: "fitness" | "nutrition" | "hybrid", planTitle: string) {
+  function buildPlanContent(kind: "fitness" | "nutrition" | "hybrid", planTitle: string): StructuredPlanContent {
     return {
-      title: planTitle,
-      type: kind,
-      weeks: [{ week: 1, notes: "", days: [] as unknown[] }],
-      notes: "",
+      summary: planSummary.trim() || `${kind} plan for ${planTitle}`,
+      weeks: planWeeks.map((week, weekIdx) => ({
+        week: weekIdx + 1,
+        goal: week.goal.trim() || `Week ${weekIdx + 1} goal`,
+        days: week.days.map((day, dayIdx) => ({
+          day: day.dayLabel.trim() || `Day ${dayIdx + 1}`,
+          focus: day.focus.trim() || "General training",
+          details: day.details.trim() || "No specific notes",
+        })),
+      })),
+    };
+  }
+
+  function addWeek() {
+    setPlanWeeks((prev) => [...prev, { goal: "", days: [{ dayLabel: `Day 1`, focus: "", details: "" }] }]);
+  }
+
+  function removeWeek(weekIndex: number) {
+    setPlanWeeks((prev) => (prev.length <= 1 ? prev : prev.filter((_, idx) => idx !== weekIndex)));
+  }
+
+  function updateWeekGoal(weekIndex: number, goal: string) {
+    setPlanWeeks((prev) =>
+      prev.map((week, idx) => (idx === weekIndex ? { ...week, goal } : week)),
+    );
+  }
+
+  function addDay(weekIndex: number) {
+    setPlanWeeks((prev) =>
+      prev.map((week, idx) =>
+        idx === weekIndex
+          ? {
+              ...week,
+              days: [...week.days, { dayLabel: `Day ${week.days.length + 1}`, focus: "", details: "" }],
+            }
+          : week,
+      ),
+    );
+  }
+
+  function removeDay(weekIndex: number, dayIndex: number) {
+    setPlanWeeks((prev) =>
+      prev.map((week, idx) => {
+        if (idx !== weekIndex) return week;
+        if (week.days.length <= 1) return week;
+        return { ...week, days: week.days.filter((_, dIdx) => dIdx !== dayIndex) };
+      }),
+    );
+  }
+
+  function updateDayField(
+    weekIndex: number,
+    dayIndex: number,
+    field: keyof DraftPlanDay,
+    value: string,
+  ) {
+    setPlanWeeks((prev) =>
+      prev.map((week, wIdx) => {
+        if (wIdx !== weekIndex) return week;
+        return {
+          ...week,
+          days: week.days.map((day, dIdx) =>
+            dIdx === dayIndex ? { ...day, [field]: value } : day,
+          ),
+        };
+      }),
+    );
+  }
+
+  function parsePlanContent(content: unknown): StructuredPlanContent | null {
+    if (!content || typeof content !== "object") return null;
+    const maybe = content as Record<string, unknown>;
+    if (!Array.isArray(maybe.weeks)) return null;
+
+    const weeks = maybe.weeks
+      .filter((week): week is Record<string, unknown> => Boolean(week) && typeof week === "object")
+      .map((week, idx) => {
+        const rawDays = Array.isArray(week.days) ? week.days : [];
+        return {
+          week: typeof week.week === "number" ? week.week : idx + 1,
+          goal: typeof week.goal === "string" ? week.goal : `Week ${idx + 1}`,
+          days: rawDays
+            .filter((day): day is Record<string, unknown> => Boolean(day) && typeof day === "object")
+            .map((day, dIdx) => ({
+              day: typeof day.day === "string" ? day.day : `Day ${dIdx + 1}`,
+              focus: typeof day.focus === "string" ? day.focus : "General",
+              details: typeof day.details === "string" ? day.details : "",
+            })),
+        };
+      });
+
+    return {
+      summary: typeof maybe.summary === "string" ? maybe.summary : "",
+      weeks,
     };
   }
 
@@ -178,12 +296,14 @@ export function PlansPage() {
         clientId,
         title,
         planType,
-        content: buildDefaultPlanContent(planType, title),
+        content: buildPlanContent(planType, title),
       });
     },
     onSuccess: () => {
       setError("");
       setTitle("");
+      setPlanSummary("");
+      setPlanWeeks([{ goal: "", days: [{ dayLabel: "Day 1", focus: "", details: "" }] }]);
       void queryClient.invalidateQueries({ queryKey: ["plans"] });
     },
     onError: (e) => {
@@ -265,7 +385,67 @@ export function PlansPage() {
             <option value="hybrid">hybrid</option>
           </select>
 
-          <p className="muted">Plan details are generated automatically. You can edit the plan later.</p>
+          <label>Plan summary</label>
+          <input
+            value={planSummary}
+            onChange={(e) => setPlanSummary(e.target.value)}
+            placeholder="What should the client achieve in this plan?"
+          />
+
+          <h4>Plan builder</h4>
+          {planWeeks.map((week, weekIdx) => (
+            <div key={`week-${weekIdx}`} className="card" style={{ marginBottom: "0.75rem" }}>
+              <div className="inline-actions" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                <strong>Week {weekIdx + 1}</strong>
+                <button className="secondary-btn" type="button" onClick={() => removeWeek(weekIdx)}>
+                  Remove week
+                </button>
+              </div>
+
+              <label>Week goal</label>
+              <input
+                value={week.goal}
+                onChange={(e) => updateWeekGoal(weekIdx, e.target.value)}
+                placeholder={`Week ${weekIdx + 1} goal`}
+              />
+
+              {week.days.map((day, dayIdx) => (
+                <div key={`week-${weekIdx}-day-${dayIdx}`} className="card" style={{ marginTop: "0.5rem" }}>
+                  <div className="inline-actions" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                    <strong>Day {dayIdx + 1}</strong>
+                    <button className="secondary-btn" type="button" onClick={() => removeDay(weekIdx, dayIdx)}>
+                      Remove day
+                    </button>
+                  </div>
+                  <label>Day label</label>
+                  <input
+                    value={day.dayLabel}
+                    onChange={(e) => updateDayField(weekIdx, dayIdx, "dayLabel", e.target.value)}
+                    placeholder={`Day ${dayIdx + 1}`}
+                  />
+                  <label>Focus</label>
+                  <input
+                    value={day.focus}
+                    onChange={(e) => updateDayField(weekIdx, dayIdx, "focus", e.target.value)}
+                    placeholder="Upper body, meal prep, recovery..."
+                  />
+                  <label>Details</label>
+                  <textarea
+                    rows={3}
+                    value={day.details}
+                    onChange={(e) => updateDayField(weekIdx, dayIdx, "details", e.target.value)}
+                    placeholder="Workout/meal details, sets, reps, notes..."
+                  />
+                </div>
+              ))}
+              <button className="secondary-btn" type="button" onClick={() => addDay(weekIdx)}>
+                Add day
+              </button>
+            </div>
+          ))}
+          <button className="secondary-btn" type="button" onClick={addWeek}>
+            Add week
+          </button>
 
           <button
             className="primary-btn"
@@ -291,9 +471,32 @@ export function PlansPage() {
         <ul className="list">
           {(plansQuery.data ?? []).map((plan) => (
             <li key={plan.id}>
-              <span>
-                <b>{plan.title}</b> ({plan.plan_type})
-              </span>
+              <div>
+                <span>
+                  <b>{plan.title}</b> ({plan.plan_type})
+                </span>
+                {(() => {
+                  const parsed = parsePlanContent(plan.content);
+                  if (!parsed) return <p className="muted">No structured content saved yet.</p>;
+                  return (
+                    <div className="muted" style={{ marginTop: "0.35rem" }}>
+                      {parsed.summary ? <p><strong>Summary:</strong> {parsed.summary}</p> : null}
+                      {parsed.weeks.map((week) => (
+                        <div key={`plan-${plan.id}-week-${week.week}`} style={{ marginBottom: "0.35rem" }}>
+                          <p>
+                            <strong>Week {week.week}:</strong> {week.goal}
+                          </p>
+                          {week.days.map((day, idx) => (
+                            <p key={`plan-${plan.id}-week-${week.week}-day-${idx}`}>
+                              - <strong>{day.day}:</strong> {day.focus} {day.details ? `- ${day.details}` : ""}
+                            </p>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
               {user?.role === "trainer" ? (
                 <div className="inline-actions">
                   <button

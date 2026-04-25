@@ -439,6 +439,137 @@ button:disabled {
   color: #b91c1c;
 }
 
+.chat-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 0.9rem;
+}
+
+.chat-sidebar {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.chat-start h3,
+.chat-conversations h3 {
+  margin-top: 0;
+}
+
+.chat-conversation-list {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.5rem;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.chat-conversation-item {
+  width: 100%;
+  margin: 0;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #dbe2ee;
+}
+
+.chat-conversation-item-active {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.chat-conversation-name {
+  font-weight: 600;
+}
+
+.chat-conversation-meta {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.chat-thread {
+  display: grid;
+  gap: 0.75rem;
+  min-height: 520px;
+}
+
+.chat-thread-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.5rem;
+}
+
+.chat-thread-head h3 {
+  margin: 0;
+}
+
+.chat-messages {
+  display: grid;
+  gap: 0.55rem;
+  align-content: start;
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.chat-message-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.chat-message-row-mine {
+  justify-content: flex-end;
+}
+
+.chat-bubble {
+  max-width: min(74%, 560px);
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 0.5rem 0.7rem;
+}
+
+.chat-bubble-mine {
+  background: #dbeafe;
+  border-color: #bfdbfe;
+}
+
+.chat-bubble p {
+  margin: 0;
+  color: #0f172a;
+}
+
+.chat-bubble span {
+  display: block;
+  margin-top: 0.22rem;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.chat-composer {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.chat-composer input {
+  margin: 0;
+}
+
+.chat-composer button {
+  margin: 0;
+}
+
+@media (max-width: 980px) {
+  .chat-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-tabs {
   display: flex;
   flex-wrap: wrap;

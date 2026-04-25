@@ -1,6 +1,8 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getBookings } from "../services/bookings";
+import { createConversation } from "../services/messaging";
 import { createPlan, deletePlan, getPlans, updatePlan } from "../services/plans";
 import { getServices } from "../services/services";
 import { getTrainers } from "../services/trainers";
@@ -9,6 +11,7 @@ import { useAuth } from "../state/auth-context";
 export function PlansPage() {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [clientId, setClientId] = useState("");
   const [title, setTitle] = useState("");
@@ -29,16 +32,16 @@ export function PlansPage() {
   const trainersQuery = useQuery({
     queryKey: ["trainers"],
     queryFn: getTrainers,
-    enabled: user?.role === "client",
+    enabled: user?.role === "client" || user?.role === "trainer",
   });
 
   const clientIds = Array.from(
     new Set((bookingsQuery.data ?? []).map((b) => b.client_id).filter((id): id is string => Boolean(id))),
   );
-  const clientBookings = (bookingsQuery.data ?? []).filter((b) => b.client_id === user?.id);
+  const roleBookings = bookingsQuery.data ?? [];
   const serviceTrainerIds = useMemo(
-    () => Array.from(new Set(clientBookings.map((b) => b.trainer_id).filter((id): id is string => Boolean(id)))),
-    [clientBookings],
+    () => Array.from(new Set(roleBookings.map((b) => b.trainer_id).filter((id): id is string => Boolean(id)))),
+    [roleBookings],
   );
   const servicesByTrainer = useQueries({
     queries: serviceTrainerIds.map((trainerId) => ({
@@ -71,19 +74,26 @@ export function PlansPage() {
   const upcomingBookings = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return clientBookings.filter((booking) => new Date(`${booking.booking_date}T00:00:00`) >= today);
-  }, [clientBookings]);
+    return roleBookings.filter((booking) => new Date(`${booking.booking_date}T00:00:00`) >= today);
+  }, [roleBookings]);
   const pastBookings = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return clientBookings.filter((booking) => new Date(`${booking.booking_date}T00:00:00`) < today);
-  }, [clientBookings]);
+    return roleBookings.filter((booking) => new Date(`${booking.booking_date}T00:00:00`) < today);
+  }, [roleBookings]);
 
   function formatTimeWindow(start: string, end: string): string {
     return `${start.slice(0, 5)}-${end.slice(0, 5)}`;
   }
 
-  function renderBookingItem(booking: (typeof clientBookings)[number]) {
+  function counterpartLabel(booking: (typeof roleBookings)[number]): string {
+    if (user?.role === "trainer") {
+      return `Client ${booking.client_id?.slice(0, 8) ?? "Unknown"}`;
+    }
+    return booking.trainer_id ? (trainerNameById.get(booking.trainer_id) ?? "Trainer") : "Trainer";
+  }
+
+  function renderBookingItem(booking: (typeof roleBookings)[number]) {
     const service = booking.service_id ? serviceById.get(booking.service_id) : undefined;
     return (
       <li key={booking.id} className="booking-item">
@@ -96,8 +106,8 @@ export function PlansPage() {
             <div>
               <p className="booking-item-title">{service?.title ?? "Session"}</p>
               <p className="booking-item-subtitle">
-                {booking.booking_date} | {formatTimeWindow(booking.start_time, booking.end_time)} | Trainer:{" "}
-                {booking.trainer_id ? (trainerNameById.get(booking.trainer_id) ?? "Trainer") : "Trainer"}
+                {booking.booking_date} | {formatTimeWindow(booking.start_time, booking.end_time)} |{" "}
+                {user?.role === "trainer" ? "Client" : "Trainer"}: {counterpartLabel(booking)}
               </p>
             </div>
             <div className="booking-item-right">
@@ -118,12 +128,23 @@ export function PlansPage() {
               <strong>Price:</strong> {typeof service?.price === "number" ? `$${service.price}` : "N/A"}
             </p>
             <p className="muted">
-              <strong>Trainer:</strong>{" "}
-              {booking.trainer_id ? (trainerNameById.get(booking.trainer_id) ?? "Trainer") : "Trainer"}
+              <strong>{user?.role === "trainer" ? "Client" : "Trainer"}:</strong> {counterpartLabel(booking)}
             </p>
             <p className="muted booking-id-line">
               <strong>Booking Ref:</strong> {booking.id}
             </p>
+            <div>
+              <button
+                className="secondary-btn"
+                disabled={booking.status !== "confirmed" || openChatMutation.isPending}
+                onClick={() => openChatMutation.mutate(booking.id)}
+              >
+                {openChatMutation.isPending ? "Opening chat..." : "Open booking chat"}
+              </button>
+              {booking.status !== "confirmed" ? (
+                <p className="muted">Chat unlocks after payment and closes once service is completed.</p>
+              ) : null}
+            </div>
           </div>
         ) : null}
       </li>
@@ -168,6 +189,18 @@ export function PlansPage() {
       void queryClient.invalidateQueries({ queryKey: ["plans"] });
     },
     onError: (e) => setError((e as Error).message),
+  });
+  const openChatMutation = useMutation({
+    mutationFn: (bookingId: string) => createConversation(token, bookingId),
+    onSuccess: (conversation) => {
+      setError("");
+      const base = user?.role === "trainer" ? "/trainer/messages" : "/client/messages";
+      navigate(`${base}?conversationId=${conversation.id}`);
+    },
+    onError: (e) => {
+      const message = (e as Error).message;
+      setError(message || "Unable to open booking chat right now.");
+    },
   });
 
   return (
@@ -255,11 +288,12 @@ export function PlansPage() {
         </ul>
       </div>
 
-      {user?.role === "client" ? (
+      {user?.role === "client" || user?.role === "trainer" ? (
         <div className="card">
-          <h3>Booked services</h3>
+          <h3>{user?.role === "trainer" ? "Client service chats" : "Booked services"}</h3>
+          {error ? <p className="error">{error}</p> : null}
           {bookingsQuery.isLoading ? <p>Loading booked services...</p> : null}
-          {!bookingsQuery.isLoading && clientBookings.length === 0 ? (
+          {!bookingsQuery.isLoading && roleBookings.length === 0 ? (
             <p className="muted">No booked services yet.</p>
           ) : null}
           {upcomingBookings.length > 0 ? (

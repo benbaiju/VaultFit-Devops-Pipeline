@@ -3,6 +3,7 @@ import { Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "../lib/navigation";
+import { getMyProfile, sendPhoneOtp, updateMyProfile, verifyPhoneOtp } from "../services/profiles";
 import { getTrainerReviews } from "../services/reviews";
 import { createMyTrainerProfile, getMyTrainerProfile, updateMyTrainerProfile } from "../services/trainers";
 import { getMyVerificationRequests } from "../services/verification";
@@ -15,12 +16,20 @@ export function TrainerProfilePage() {
   const [specialty, setSpecialty] = useState("");
   const [experienceYears, setExperienceYears] = useState(0);
   const [hourlyRate, setHourlyRate] = useState(90);
+  const [phone, setPhone] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpPreview, setOtpPreview] = useState("");
+  const [otpStatus, setOtpStatus] = useState("");
   const [error, setError] = useState("");
 
   const meQuery = useQuery({
     queryKey: ["trainer-me"],
     queryFn: () => getMyTrainerProfile(token),
+  });
+  const profileQuery = useQuery({
+    queryKey: ["profile-me"],
+    queryFn: () => getMyProfile(token),
   });
 
   const verificationQuery = useQuery({
@@ -41,6 +50,9 @@ export function TrainerProfilePage() {
     setExperienceYears(me.experience_years ?? 0);
     setHourlyRate(me.hourly_rate ?? 0);
   }, [meQuery.data]);
+  useEffect(() => {
+    setPhone(profileQuery.data?.phone ?? "");
+  }, [profileQuery.data?.phone]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -55,6 +67,38 @@ export function TrainerProfilePage() {
       setIsEditing(false);
       void queryClient.invalidateQueries({ queryKey: ["trainer-me"] });
       void queryClient.invalidateQueries({ queryKey: ["trainers"] });
+    },
+    onError: (e) => setError((e as Error).message),
+  });
+  const profileUpdateMutation = useMutation({
+    mutationFn: () =>
+      updateMyProfile(token, {
+        phone: phone.trim() || undefined,
+      }),
+    onSuccess: () => {
+      setError("");
+      void queryClient.invalidateQueries({ queryKey: ["profile-me"] });
+    },
+    onError: (e) => setError((e as Error).message),
+  });
+  const sendOtpMutation = useMutation({
+    mutationFn: () => sendPhoneOtp(token, phone.trim()),
+    onSuccess: (payload) => {
+      setError("");
+      setOtpStatus("OTP sent to your phone number.");
+      setOtpPreview(payload.otpPreview ?? "");
+      void queryClient.invalidateQueries({ queryKey: ["profile-me"] });
+    },
+    onError: (e) => setError((e as Error).message),
+  });
+  const verifyOtpMutation = useMutation({
+    mutationFn: () => verifyPhoneOtp(token, otpCode.trim()),
+    onSuccess: () => {
+      setError("");
+      setOtpStatus("Phone number verified.");
+      setOtpCode("");
+      setOtpPreview("");
+      void queryClient.invalidateQueries({ queryKey: ["profile-me"] });
     },
     onError: (e) => setError((e as Error).message),
   });
@@ -134,6 +178,17 @@ export function TrainerProfilePage() {
                 <p className="profile-view-label">Hourly rate</p>
                 <p className="profile-view-value">${hourlyRate}</p>
               </article>
+              <article className="profile-view-item">
+                <p className="profile-view-label">Phone</p>
+                <p className="profile-view-value">
+                  {phone || "Not set"}{" "}
+                  {profileQuery.data?.phone_verified ? (
+                    <span className="badge badge-success">Verified</span>
+                  ) : (
+                    <span className="badge badge-muted">Not verified</span>
+                  )}
+                </p>
+              </article>
             </div>
             <p className="muted">
               <b>Bio:</b> {bio || "Not set"}
@@ -152,6 +207,43 @@ export function TrainerProfilePage() {
             <input type="number" min={0} value={experienceYears} onChange={(e) => setExperienceYears(Number(e.target.value || 0))} />
             <label>Hourly rate (AUD)</label>
             <input type="number" min={0} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value || 0))} />
+            <label>Phone</label>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+61..." />
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.4rem" }}>
+              <button
+                className="secondary-btn"
+                type="button"
+                disabled={!phone.trim() || profileUpdateMutation.isPending}
+                onClick={() => profileUpdateMutation.mutate()}
+              >
+                {profileUpdateMutation.isPending ? "Saving phone..." : "Save phone"}
+              </button>
+              <button
+                className="secondary-btn"
+                type="button"
+                disabled={!phone.trim() || sendOtpMutation.isPending}
+                onClick={() => sendOtpMutation.mutate()}
+              >
+                {sendOtpMutation.isPending ? "Sending OTP..." : "Send OTP"}
+              </button>
+              <input
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                placeholder="Enter 6-digit OTP"
+                maxLength={6}
+                style={{ maxWidth: 180 }}
+              />
+              <button
+                className="secondary-btn"
+                type="button"
+                disabled={otpCode.trim().length !== 6 || verifyOtpMutation.isPending}
+                onClick={() => verifyOtpMutation.mutate()}
+              >
+                {verifyOtpMutation.isPending ? "Verifying..." : "Verify OTP"}
+              </button>
+            </div>
+            {otpStatus ? <p className="muted">{otpStatus}</p> : null}
+            {otpPreview ? <p className="muted">Dev OTP: {otpPreview}</p> : null}
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
               <button className="primary-btn" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
                 {saveMutation.isPending ? "Saving..." : meQuery.data ? "Save changes" : "Create profile"}

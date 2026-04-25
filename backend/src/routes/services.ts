@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { supabaseAdmin } from "../lib/supabase.js";
-import { requireAuth, requireRole } from "../middleware/auth.js";
+import { ensureVerifiedTrainerUser, requireAuth, requireRole } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
 
 const createServiceSchema = z.object({
@@ -32,6 +32,7 @@ servicesRouter.post("/:trainerId/services", requireAuth, requireRole(["trainer",
   const trainerId = String(req.params.trainerId);
   const trainer = await getTrainerOrThrow(trainerId);
   ensureTrainerOwnership(req.user!.id, req.user!.role, trainer.user_id);
+  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
 
   const { data, error } = await supabaseAdmin
     .from("services")
@@ -60,6 +61,7 @@ servicesRouter.put(
     const serviceId = String(req.params.serviceId);
     const trainer = await getTrainerOrThrow(trainerId);
     ensureTrainerOwnership(req.user!.id, req.user!.role, trainer.user_id);
+    if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
 
     const { data, error } = await supabaseAdmin
       .from("services")
@@ -89,6 +91,7 @@ servicesRouter.delete(
     const serviceId = String(req.params.serviceId);
     const trainer = await getTrainerOrThrow(trainerId);
     ensureTrainerOwnership(req.user!.id, req.user!.role, trainer.user_id);
+    if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
 
     const { error } = await supabaseAdmin
       .from("services")

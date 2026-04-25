@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { supabaseAdmin } from "../lib/supabase.js";
+import { ensureVerifiedTrainerUser } from "../middleware/auth.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
 
@@ -15,6 +16,7 @@ const sendMessageSchema = z.object({
 export const messagingRouter = Router();
 
 messagingRouter.get("/conversations", requireAuth, async (req, res) => {
+  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
   const userId = req.user!.id;
   const trainerId = await getTrainerIdForUser(userId);
 
@@ -29,6 +31,17 @@ messagingRouter.get("/conversations", requireAuth, async (req, res) => {
 messagingRouter.post("/conversations", requireAuth, async (req, res) => {
   const payload = createConversationSchema.parse(req.body);
   const clientId = req.user!.id;
+  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
+
+  const { data: targetTrainer, error: targetTrainerError } = await supabaseAdmin
+    .from("trainers")
+    .select("id, verified")
+    .eq("id", payload.trainerId)
+    .single();
+  if (targetTrainerError || !targetTrainer) throw new HttpError(404, "Trainer not found", "TRAINER_NOT_FOUND");
+  if (!targetTrainer.verified) {
+    throw new HttpError(409, "Trainer is not verified and cannot receive conversations yet", "TRAINER_NOT_VERIFIED");
+  }
 
   const { data: existing, error: existingError } = await supabaseAdmin
     .from("conversations")
@@ -55,6 +68,7 @@ messagingRouter.post("/conversations", requireAuth, async (req, res) => {
 });
 
 messagingRouter.get("/conversations/:id/messages", requireAuth, async (req, res) => {
+  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
   const conversationId = String(req.params.id);
   const conversation = await getConversationForUser(conversationId, req.user!.id);
 
@@ -73,6 +87,7 @@ messagingRouter.get("/conversations/:id/messages", requireAuth, async (req, res)
 });
 
 messagingRouter.post("/conversations/:id/messages", requireAuth, async (req, res) => {
+  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
   const payload = sendMessageSchema.parse(req.body);
   const conversationId = String(req.params.id);
   const conversation = await getConversationForUser(conversationId, req.user!.id);
@@ -97,6 +112,7 @@ messagingRouter.post("/conversations/:id/messages", requireAuth, async (req, res
 });
 
 messagingRouter.patch("/conversations/:id/messages/read", requireAuth, async (req, res) => {
+  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
   const conversationId = String(req.params.id);
   const conversation = await getConversationForUser(conversationId, req.user!.id);
 

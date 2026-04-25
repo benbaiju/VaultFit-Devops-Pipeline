@@ -45,6 +45,10 @@ export async function getVerificationRequest(token: string, requestId: string): 
   return apiRequest<VerificationRequest>(`/verification-requests/${requestId}`, {}, token);
 }
 
+export async function getMyVerificationRequests(token: string): Promise<VerificationRequest[]> {
+  return apiRequest<VerificationRequest[]>("/verification-requests/me", {}, token);
+}
+
 export async function getVerificationDocumentUrl(token: string, requestId: string): Promise<{ url: string; source: string }> {
   return apiRequest<{ url: string; source: string }>(`/verification-requests/${requestId}/document-url?type=credential`, {}, token);
 }

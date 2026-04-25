@@ -166,6 +166,17 @@ verificationRouter.post(
   },
 );
 
+verificationRouter.get("/verification-requests/me", requireAuth, requireRole(["trainer"]), async (req, res) => {
+  const trainerId = await getTrainerIdOrThrow(req.user!.id, req.user!.role);
+  const { data, error } = await supabaseAdmin
+    .from("verification_requests")
+    .select("*")
+    .eq("trainer_id", trainerId)
+    .order("submitted_at", { ascending: false });
+  if (error) throw new HttpError(400, error.message, "VERIFICATION_LIST_FAILED");
+  res.json(data);
+});
+
 verificationRouter.get("/verification-requests/:id", requireAuth, async (req, res) => {
   const requestId = String(req.params.id);
   const { data, error } = await supabaseAdmin

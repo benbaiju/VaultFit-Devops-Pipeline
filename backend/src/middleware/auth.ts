@@ -56,3 +56,17 @@ export function requireRole(roles: AppRole[]) {
     next();
   };
 }
+
+export async function ensureVerifiedTrainerUser(userId: string): Promise<void> {
+  const { data, error } = await supabaseAdmin
+    .from("trainers")
+    .select("id, verified")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error || !data) {
+    throw new HttpError(403, "Create your trainer profile first", "TRAINER_PROFILE_MISSING");
+  }
+  if (!data.verified) {
+    throw new HttpError(403, "Your profile is not verified yet", "TRAINER_NOT_VERIFIED");
+  }
+}

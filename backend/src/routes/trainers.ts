@@ -28,6 +28,16 @@ trainersRouter.get("/", async (req, res) => {
   res.json(data);
 });
 
+trainersRouter.get("/me/profile", requireAuth, requireRole(["trainer", "admin"]), async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from("trainers")
+    .select("*, profiles:user_id(full_name, avatar_url)")
+    .eq("user_id", req.user!.id)
+    .maybeSingle();
+  if (error) throw new HttpError(400, error.message, "TRAINER_READ_FAILED");
+  res.json(data ?? null);
+});
+
 trainersRouter.get("/:id", async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from("trainers")

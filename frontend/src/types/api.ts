@@ -17,9 +17,10 @@ export interface Trainer {
   user_id?: string;
   bio: string | null;
   specialty: string | null;
+  experience_years?: number;
   hourly_rate: number;
   verified: boolean;
-  profiles?: { full_name?: string; avatar_url?: string };
+  profiles?: { full_name?: string; avatar_url?: string; email?: string };
 }
 
 export interface Service {

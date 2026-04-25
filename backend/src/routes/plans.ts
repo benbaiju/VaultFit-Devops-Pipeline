@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { supabaseAdmin } from "../lib/supabase.js";
-import { requireAuth, requireRole } from "../middleware/auth.js";
+import { ensureVerifiedTrainerUser, requireAuth, requireRole } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
 
 const createPlanSchema = z.object({
@@ -23,6 +23,7 @@ export const plansRouter = Router();
 plansRouter.post("/", requireAuth, requireRole(["trainer", "admin"]), async (req, res) => {
   const payload = createPlanSchema.parse(req.body);
 
+  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
   const trainerId = await resolveTrainerId(req.user!.id, req.user!.role, payload.trainerId);
   if (!trainerId) {
     throw new HttpError(400, "Trainer profile is required to create plans", "TRAINER_PROFILE_MISSING");
@@ -78,6 +79,7 @@ plansRouter.put("/:id", requireAuth, requireRole(["trainer", "admin"]), async (r
   if (existingError || !existing) throw new HttpError(404, "Plan not found", "PLAN_NOT_FOUND");
 
   await ensurePlanEditAccess(req.user!.id, req.user!.role, existing.trainer_id);
+  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
 
   const { data, error } = await supabaseAdmin
     .from("plans")
@@ -103,6 +105,7 @@ plansRouter.delete("/:id", requireAuth, requireRole(["trainer", "admin"]), async
   if (existingError || !existing) throw new HttpError(404, "Plan not found", "PLAN_NOT_FOUND");
 
   await ensurePlanEditAccess(req.user!.id, req.user!.role, existing.trainer_id);
+  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
 
   const { error } = await supabaseAdmin.from("plans").delete().eq("id", req.params.id);
   if (error) throw new HttpError(400, error.message, "PLAN_DELETE_FAILED");

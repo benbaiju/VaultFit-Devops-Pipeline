@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { supabaseAdmin } from "../lib/supabase.js";
+import { ensureVerifiedTrainerUser } from "../middleware/auth.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
 
@@ -93,7 +94,7 @@ bookingsRouter.patch("/:id/status", requireAuth, async (req, res) => {
 
   const { data: trainer } = await supabaseAdmin
     .from("trainers")
-    .select("id")
+    .select("id, user_id, verified")
     .eq("id", booking.trainer_id)
     .eq("user_id", req.user!.id)
     .maybeSingle();
@@ -101,6 +102,7 @@ bookingsRouter.patch("/:id/status", requireAuth, async (req, res) => {
   const isClient = booking.client_id === req.user!.id;
   const isTrainer = Boolean(trainer);
   if (!isClient && !isTrainer) throw new HttpError(403, "Forbidden", "FORBIDDEN");
+  if (isTrainer) await ensureVerifiedTrainerUser(req.user!.id);
 
   const { data, error } = await supabaseAdmin
     .from("bookings")

@@ -22,6 +22,7 @@ export class ApiError extends Error {
 export async function apiRequest<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  const isFormData = options.body instanceof FormData;
 
   let response: Response;
   try {
@@ -29,7 +30,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, tok
       ...options,
       signal: controller.signal,
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.headers ?? {}),
       },

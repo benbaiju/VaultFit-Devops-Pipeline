@@ -4,6 +4,7 @@ import {
   getAdminReviewTimeline,
   getAdminTrainers,
   getAdminUsers,
+  getVerificationDocumentUrlByType,
   getAdminVerificationRequests,
   reviewVerificationRequest,
   setTrainerVerifiedState,
@@ -142,6 +143,24 @@ export function AdminPage() {
     setNotesByRequestId((prev) => ({ ...prev, [id]: value }));
   }
 
+  async function openCredential(requestId: string, type: "credential" | "identity", currentRef: string | null | undefined) {
+    try {
+      const ref = (currentRef ?? "").trim();
+      if (!ref) {
+        throw new Error(`${type} document is not available for this request.`);
+      }
+      const direct = ref.startsWith("http://") || ref.startsWith("https://");
+      if (direct) {
+        window.open(ref, "_blank", "noopener,noreferrer");
+        return;
+      }
+      const doc = await getVerificationDocumentUrlByType(token, requestId, type);
+      window.open(doc.url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   if (user?.role !== "admin") {
     return (
       <section>
@@ -214,6 +233,8 @@ export function AdminPage() {
                 notes={notesByRequestId[request.id] ?? ""}
                 onNotesChange={(v) => setNoteFor(request.id, v)}
                 disabled={reviewMutation.isPending}
+                onOpenCredential={() => void openCredential(request.id, "credential", request.credential_url)}
+                onOpenIdentity={() => void openCredential(request.id, "identity", request.identity_url)}
                 onApprove={() => reviewMutation.mutate({ requestId: request.id, status: "approved" })}
                 onReject={() => reviewMutation.mutate({ requestId: request.id, status: "rejected" })}
               />
@@ -343,6 +364,10 @@ function ReviewTimelineRow({ item }: { item: AdminReviewTimelineItem }) {
   if (d.credential_url) {
     const url = String(d.credential_url);
     lines.push(`Credential: ${url.slice(0, 80)}${url.length > 80 ? "…" : ""}`);
+  }
+  if (d.identity_url) {
+    const url = String(d.identity_url);
+    lines.push(`Identity: ${url.slice(0, 80)}${url.length > 80 ? "…" : ""}`);
   }
   if (d.target_email) lines.push(`User: ${String(d.target_email)}`);
   if (d.target_role) lines.push(`Role: ${String(d.target_role)}`);
@@ -483,6 +508,8 @@ function PendingRequestCard({
   notes,
   onNotesChange,
   disabled,
+  onOpenCredential,
+  onOpenIdentity,
   onApprove,
   onReject,
 }: {
@@ -490,6 +517,8 @@ function PendingRequestCard({
   notes: string;
   onNotesChange: (v: string) => void;
   disabled: boolean;
+  onOpenCredential: () => void;
+  onOpenIdentity: () => void;
   onApprove: () => void;
   onReject: () => void;
 }) {
@@ -502,11 +531,14 @@ function PendingRequestCard({
       <p className="muted small-mono">ID: {request.id}</p>
       <p className="muted">Profile: {request.trainer_id}</p>
       <p className="muted">Submitted: {formatDate(request.submitted_at)}</p>
-      <p>
-        <a href={request.credential_url} target="_blank" rel="noreferrer" className="secondary-link">
+      <div className="inline-actions">
+        <button type="button" className="secondary-btn" onClick={onOpenCredential} disabled={disabled}>
           Open credential
-        </a>
-      </p>
+        </button>
+        <button type="button" className="secondary-btn" onClick={onOpenIdentity} disabled={disabled}>
+          Open identity
+        </button>
+      </div>
       <label htmlFor={`admin-notes-${request.id}`}>Admin notes (this request only)</label>
       <textarea
         id={`admin-notes-${request.id}`}

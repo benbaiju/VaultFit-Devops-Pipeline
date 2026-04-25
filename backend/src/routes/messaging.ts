@@ -1,5 +1,7 @@
 import { Router } from "express";
+import multer from "multer";
 import { z } from "zod";
+import { env } from "../config/env.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { ensureVerifiedTrainerUser } from "../middleware/auth.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -14,6 +16,11 @@ const sendMessageSchema = z.object({
 });
 
 export const messagingRouter = Router();
+let chatMediaBucketEnsured = false;
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
 messagingRouter.get("/conversations", requireAuth, async (req, res) => {
   if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
@@ -113,7 +120,8 @@ messagingRouter.get("/conversations/:id/messages", requireAuth, async (req, res)
     .range(offset, offset + Math.max(1, Math.min(100, limit)) - 1);
 
   if (error) throw new HttpError(400, error.message, "MESSAGES_LIST_FAILED");
-  res.json(data);
+  const hydrated = await Promise.all((data ?? []).map((row) => hydrateMessageImageUrl(row, req.user!.id)));
+  res.json(hydrated);
 });
 
 messagingRouter.post("/conversations/:id/messages", requireAuth, async (req, res) => {
@@ -129,6 +137,8 @@ messagingRouter.post("/conversations/:id/messages", requireAuth, async (req, res
       conversation_id: conversation.id,
       sender_id: req.user!.id,
       message: payload.message,
+      message_type: "text",
+      image_url: null,
       is_read: false,
     })
     .select("*")
@@ -141,6 +151,56 @@ messagingRouter.post("/conversations/:id/messages", requireAuth, async (req, res
 
   res.status(201).json(data);
 });
+
+messagingRouter.post(
+  "/conversations/:id/messages/image",
+  requireAuth,
+  upload.single("image"),
+  async (req, res) => {
+    if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
+    const conversationId = String(req.params.id);
+    const conversation = await getConversationForUser(conversationId, req.user!.id);
+    await ensureConversationMessagingOpen(conversation);
+    const imageFile = req.file;
+    if (!imageFile) {
+      throw new HttpError(400, "Image file is required.", "MESSAGE_IMAGE_REQUIRED");
+    }
+    const allowedMime = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedMime.includes(imageFile.mimetype)) {
+      throw new HttpError(400, "Only JPG, PNG or WEBP images are allowed.", "MESSAGE_IMAGE_INVALID_TYPE");
+    }
+
+    const extension = imageFile.mimetype === "image/png" ? "png" : imageFile.mimetype === "image/webp" ? "webp" : "jpg";
+    const objectPath = `${conversation.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
+    await ensureChatMediaBucketExists();
+    const { error: uploadError } = await supabaseAdmin.storage.from(env.chatMediaBucket).upload(objectPath, imageFile.buffer, {
+      contentType: imageFile.mimetype,
+      upsert: false,
+    });
+    if (uploadError) {
+      throw new HttpError(400, uploadError.message, "MESSAGE_IMAGE_UPLOAD_FAILED");
+    }
+
+    const imageRef = `storage://${env.chatMediaBucket}/${objectPath}`;
+    const { data, error } = await supabaseAdmin
+      .from("messages")
+      .insert({
+        conversation_id: conversation.id,
+        sender_id: req.user!.id,
+        message: "[Image]",
+        message_type: "image",
+        image_url: imageRef,
+        is_read: false,
+      })
+      .select("*")
+      .single();
+    if (error) throw new HttpError(400, error.message, "MESSAGE_SEND_FAILED");
+
+    const recipientId = conversation.client_id === req.user!.id ? conversation.trainer_id : conversation.client_id;
+    await createNotification(recipientId, "New image", "You received an image message.");
+    res.status(201).json(await hydrateMessageImageUrl(data, req.user!.id));
+  },
+);
 
 messagingRouter.patch("/conversations/:id/messages/read", requireAuth, async (req, res) => {
   if (req.user!.role === "trainer" || req.user!.role === "nutritionist") await ensureVerifiedTrainerUser(req.user!.id);
@@ -310,4 +370,51 @@ async function hasActivePaidSession(clientId: string, trainerId: string): Promis
   if (paidError) throw new HttpError(400, paidError.message, "CHAT_ELIGIBILITY_CHECK_FAILED");
 
   return (paidRows ?? []).length > 0;
+}
+
+function parseStorageRef(value: string): { bucket: string; objectPath: string } | null {
+  if (!value.startsWith("storage://")) return null;
+  const withoutPrefix = value.slice("storage://".length);
+  const slashIdx = withoutPrefix.indexOf("/");
+  if (slashIdx <= 0) return null;
+  return {
+    bucket: withoutPrefix.slice(0, slashIdx),
+    objectPath: withoutPrefix.slice(slashIdx + 1),
+  };
+}
+
+async function hydrateMessageImageUrl(row: Record<string, unknown>, userId: string): Promise<Record<string, unknown>> {
+  const imageRef = typeof row.image_url === "string" ? row.image_url : null;
+  if (!imageRef) return row;
+  if (imageRef.startsWith("http://") || imageRef.startsWith("https://")) {
+    return { ...row, image_signed_url: imageRef };
+  }
+  const parsed = parseStorageRef(imageRef);
+  if (!parsed) return row;
+  const { data, error } = await supabaseAdmin.storage.from(parsed.bucket).createSignedUrl(parsed.objectPath, 60 * 60);
+  if (error || !data?.signedUrl) {
+    console.error("Failed to sign chat image URL for user", userId, error?.message);
+    return row;
+  }
+  return { ...row, image_signed_url: data.signedUrl };
+}
+
+async function ensureChatMediaBucketExists(): Promise<void> {
+  if (chatMediaBucketEnsured) return;
+  const { data: buckets, error } = await supabaseAdmin.storage.listBuckets();
+  if (error) {
+    throw new HttpError(500, error.message, "CHAT_BUCKET_LOOKUP_FAILED");
+  }
+  const existing = (buckets ?? []).some((bucket) => bucket.name === env.chatMediaBucket || bucket.id === env.chatMediaBucket);
+  if (!existing) {
+    const { error: createError } = await supabaseAdmin.storage.createBucket(env.chatMediaBucket, {
+      public: false,
+      fileSizeLimit: 5 * 1024 * 1024,
+      allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
+    });
+    if (createError) {
+      throw new HttpError(500, createError.message, "CHAT_BUCKET_CREATE_FAILED");
+    }
+  }
+  chatMediaBucketEnsured = true;
 }

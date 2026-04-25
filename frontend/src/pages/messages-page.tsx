@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { realtimeClient } from "../lib/supabase-realtime";
 import {
@@ -7,6 +7,7 @@ import {
   getMessages,
   markConversationRead,
   sendMessage,
+  sendImageMessage,
 } from "../services/messaging";
 import { getTrainers } from "../services/trainers";
 import { useAuth } from "../state/auth-context";
@@ -20,6 +21,7 @@ export function MessagesPage() {
   const [selectedConversationId, setSelectedConversationId] = useState("");
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const conversationsQuery = useQuery({
     queryKey: ["conversations"],
@@ -87,6 +89,16 @@ export function MessagesPage() {
     onSuccess: () => {
       setError("");
       setDraft("");
+      void queryClient.invalidateQueries({ queryKey: ["messages", selectedConversationId] });
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+    onError: (e) => setError((e as Error).message),
+  });
+  const sendImageMutation = useMutation({
+    mutationFn: (file: File) => sendImageMessage(token, selectedConversationId, file),
+    onSuccess: () => {
+      setError("");
+      if (imageInputRef.current) imageInputRef.current.value = "";
       void queryClient.invalidateQueries({ queryKey: ["messages", selectedConversationId] });
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
@@ -198,10 +210,18 @@ export function MessagesPage() {
                 {messages.length === 0 ? <p className="muted">No messages yet. Say hello.</p> : null}
                 {messages.map((message) => {
                   const mine = message.sender_id === user?.id;
+                  const imageUrl = message.image_signed_url ?? message.image_url ?? null;
+                  const isImage = message.message_type === "image" && Boolean(imageUrl);
                   return (
                     <div key={message.id} className={`chat-message-row ${mine ? "chat-message-row-mine" : ""}`}>
                       <div className={`chat-bubble ${mine ? "chat-bubble-mine" : ""}`}>
-                        <p>{message.message}</p>
+                        {isImage ? (
+                          <a href={imageUrl!} target="_blank" rel="noreferrer">
+                            <img src={imageUrl!} alt="Chat upload" className="chat-image" />
+                          </a>
+                        ) : (
+                          <p>{message.message}</p>
+                        )}
                         <span>{new Date(message.created_at).toLocaleString()}</span>
                       </div>
                     </div>
@@ -211,6 +231,25 @@ export function MessagesPage() {
 
               <div className="chat-composer">
                 <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Type your message..." />
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file || selectedConversation?.chat_open === false) return;
+                    void sendImageMutation.mutate(file);
+                  }}
+                />
+                <button
+                  className="secondary-btn"
+                  type="button"
+                  disabled={sendImageMutation.isPending || selectedConversation?.chat_open === false || messagesQuery.isError}
+                  onClick={() => imageInputRef.current?.click()}
+                >
+                  {sendImageMutation.isPending ? "Uploading..." : "Image"}
+                </button>
                 <button
                   className="primary-btn"
                   disabled={
@@ -228,6 +267,16 @@ export function MessagesPage() {
           )}
         </section>
       </div>
+
+      <style>{`
+        .chat-image {
+          max-width: 220px;
+          max-height: 220px;
+          border-radius: 0.6rem;
+          display: block;
+          border: 1px solid var(--border-light);
+        }
+      `}</style>
 
       {error ? <p className="error">{error}</p> : null}
       {!realtimeClient ? <p className="muted">Realtime disabled: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.</p> : null}

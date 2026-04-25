@@ -115,6 +115,9 @@ export interface Message {
   conversation_id: string;
   sender_id: string;
   message: string;
+  message_type?: "text" | "image";
+  image_url?: string | null;
+  image_signed_url?: string | null;
   is_read: boolean;
   created_at: string;
 }

@@ -21,6 +21,7 @@ export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   paymentsMode: (process.env.PAYMENTS_MODE ?? "mock") as "mock" | "stripe",
   verificationDocsBucket: process.env.VERIFICATION_DOCS_BUCKET ?? "credential-docs",
+  chatMediaBucket: process.env.CHAT_MEDIA_BUCKET ?? "chat-media",
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL as string,
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY as string,

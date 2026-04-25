@@ -32,7 +32,7 @@ export interface Trainer {
   experience_years?: number;
   hourly_rate: number;
   verified: boolean;
-  profiles?: { full_name?: string; avatar_url?: string; email?: string };
+  profiles?: { full_name?: string; avatar_url?: string; email?: string; role?: Role };
 }
 
 export interface Service {

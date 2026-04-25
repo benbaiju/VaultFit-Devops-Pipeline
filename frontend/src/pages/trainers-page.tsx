@@ -9,56 +9,58 @@ function isNutritionSpecialty(value: string | null | undefined): boolean {
   return text.includes("nutri") || text.includes("diet") || text.includes("meal");
 }
 
-export function NutritionistsPage() {
+export function TrainersPage() {
   const [search, setSearch] = useState("");
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["trainers"],
     queryFn: getTrainers,
   });
 
-  const nutritionists = useMemo(
+  const trainerOnly = useMemo(
     () =>
       (data ?? []).filter(
-        (trainer) => trainer.profiles?.role === "nutritionist" || isNutritionSpecialty(trainer.specialty),
+        (trainer) => trainer.profiles?.role !== "nutritionist" && !isNutritionSpecialty(trainer.specialty),
       ),
     [data],
   );
 
-  const filteredNutritionists = useMemo(() => {
+  const filteredTrainers = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return nutritionists;
-    return nutritionists.filter((trainer) => {
+    if (!query) return trainerOnly;
+    return trainerOnly.filter((trainer) => {
       const name = trainer.profiles?.full_name ?? "";
       const specialty = trainer.specialty ?? "";
       const bio = trainer.bio ?? "";
       return [name, specialty, bio].some((field) => field.toLowerCase().includes(query));
     });
-  }, [nutritionists, search]);
+  }, [search, trainerOnly]);
 
-  if (isLoading) return <p>Loading nutritionists...</p>;
+  if (isLoading) return <p>Loading trainers...</p>;
   if (isError) return <p className="error">{(error as Error).message}</p>;
 
   return (
     <section>
       <div className="section-head">
-        <h2>Find nutritionists</h2>
+        <h2>Find trainers</h2>
         <Link className="secondary-link" to={ROUTES.client.book}>
           Book a session
         </Link>
       </div>
+
       <div className="card" style={{ marginBottom: "1rem" }}>
-        <label>Search nutritionists</label>
+        <label>Search trainers</label>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name, specialty, or bio..."
         />
         <p className="muted" style={{ marginBottom: 0 }}>
-          Showing {filteredNutritionists.length} of {nutritionists.length} nutritionists
+          Showing {filteredTrainers.length} of {trainerOnly.length} trainers
         </p>
       </div>
+
       <div className="grid">
-        {filteredNutritionists.map((trainer) => (
+        {filteredTrainers.map((trainer) => (
           <Link
             key={trainer.id}
             className="card trainer-card"
@@ -66,20 +68,18 @@ export function NutritionistsPage() {
             style={{ textDecoration: "none", color: "inherit", display: "block" }}
           >
             <div className="trainer-card-top">
-              <h3>{trainer.profiles?.full_name ?? "Unnamed Nutritionist"}</h3>
+              <h3>{trainer.profiles?.full_name ?? "Unnamed Trainer"}</h3>
               <span className={trainer.verified ? "badge badge-success" : "badge badge-muted"}>
                 {trainer.verified ? "Verified" : "Unverified"}
               </span>
             </div>
-            <p className="muted">Specialty: {trainer.specialty ?? "nutrition"}</p>
+            <p className="muted">Specialty: {trainer.specialty ?? "general"}</p>
             <p className="muted">Rate: ${trainer.hourly_rate}/hour</p>
             <p>{trainer.bio ?? "No bio yet."}</p>
             <p className="muted">Click to view full profile</p>
           </Link>
         ))}
-        {filteredNutritionists.length === 0 ? (
-          <p className="muted">No nutritionists match your search right now.</p>
-        ) : null}
+        {filteredTrainers.length === 0 ? <p className="muted">No trainers match your search.</p> : null}
       </div>
     </section>
   );

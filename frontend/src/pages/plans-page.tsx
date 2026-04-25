@@ -16,7 +16,6 @@ export function PlansPage() {
   const [clientId, setClientId] = useState("");
   const [title, setTitle] = useState("");
   const [planType, setPlanType] = useState<"fitness" | "nutrition" | "hybrid">("fitness");
-  const [contentText, setContentText] = useState('{"weeks":[{"week":1,"days":[]}]}');
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -35,10 +34,23 @@ export function PlansPage() {
     enabled: user?.role === "client" || user?.role === "trainer",
   });
 
-  const clientIds = Array.from(
-    new Set((bookingsQuery.data ?? []).map((b) => b.client_id).filter((id): id is string => Boolean(id))),
-  );
   const roleBookings = bookingsQuery.data ?? [];
+  const clientOptions = useMemo(() => {
+    const byClient = new Map<string, { latestDate: string; bookingId: string }>();
+    roleBookings.forEach((booking) => {
+      if (!booking.client_id) return;
+      const existing = byClient.get(booking.client_id);
+      if (!existing || booking.booking_date > existing.latestDate) {
+        byClient.set(booking.client_id, { latestDate: booking.booking_date, bookingId: booking.id });
+      }
+    });
+    return Array.from(byClient.entries())
+      .map(([id, details]) => ({
+        id,
+        label: `Client ${id.slice(0, 8)} - latest booking ${details.latestDate}`,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [roleBookings]);
   const serviceTrainerIds = useMemo(
     () => Array.from(new Set(roleBookings.map((b) => b.trainer_id).filter((id): id is string => Boolean(id)))),
     [roleBookings],
@@ -91,6 +103,15 @@ export function PlansPage() {
       return `Client ${booking.client_id?.slice(0, 8) ?? "Unknown"}`;
     }
     return booking.trainer_id ? (trainerNameById.get(booking.trainer_id) ?? "Trainer") : "Trainer";
+  }
+
+  function buildDefaultPlanContent(kind: "fitness" | "nutrition" | "hybrid", planTitle: string) {
+    return {
+      title: planTitle,
+      type: kind,
+      weeks: [{ week: 1, notes: "", days: [] as unknown[] }],
+      notes: "",
+    };
   }
 
   function renderBookingItem(booking: (typeof roleBookings)[number]) {
@@ -153,13 +174,12 @@ export function PlansPage() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      let content: unknown;
-      try {
-        content = JSON.parse(contentText);
-      } catch {
-        throw new Error("Plan content must be valid JSON");
-      }
-      return createPlan(token, { clientId, title, planType, content });
+      return createPlan(token, {
+        clientId,
+        title,
+        planType,
+        content: buildDefaultPlanContent(planType, title),
+      });
     },
     onSuccess: () => {
       setError("");
@@ -212,17 +232,27 @@ export function PlansPage() {
           <h3>Create Plan</h3>
           <p className="muted">Create structured plans for clients.</p>
 
-          <label>Client ID</label>
-          <input value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="Client profile UUID" />
-          {clientIds.length > 0 ? (
+          <label>Client</label>
+          {clientOptions.length > 0 ? (
             <select onChange={(e) => setClientId(e.target.value)} value={clientId}>
               <option value="">Select client from your bookings</option>
-              {clientIds.map((id) => (
-                <option key={id} value={id}>
-                  {id}
+              {clientOptions.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.label}
                 </option>
               ))}
             </select>
+          ) : (
+            <p className="muted">No clients found yet. Confirm at least one booking first.</p>
+          )}
+
+          {clientOptions.length > 0 && clientId ? (
+            <p className="muted">
+              Selected client:{" "}
+              {
+                clientOptions.find((client) => client.id === clientId)?.label
+              }
+            </p>
           ) : null}
 
           <label>Title</label>
@@ -235,8 +265,7 @@ export function PlansPage() {
             <option value="hybrid">hybrid</option>
           </select>
 
-          <label>Content JSON</label>
-          <textarea value={contentText} onChange={(e) => setContentText(e.target.value)} rows={6} />
+          <p className="muted">Plan details are generated automatically. You can edit the plan later.</p>
 
           <button
             className="primary-btn"

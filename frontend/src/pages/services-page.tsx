@@ -38,6 +38,8 @@ export function ServicesPage() {
   const [endTime, setEndTime] = useState("17:00");
   const [blockedDate, setBlockedDate] = useState("");
   const [blockedReason, setBlockedReason] = useState("");
+  const [isDraftDayMenuOpen, setIsDraftDayMenuOpen] = useState(false);
+  const [isManageDayMenuOpen, setIsManageDayMenuOpen] = useState(false);
   const [error, setError] = useState("");
 
   const trainersQuery = useQuery({
@@ -202,6 +204,33 @@ export function ServicesPage() {
     setDraftBlockedReason("");
   }
 
+  function renderDayMenu(value: number, onSelect: (next: number) => void, open: boolean, setOpen: (next: boolean) => void) {
+    return (
+      <div className="day-menu">
+        <button type="button" className="secondary-btn day-menu-trigger" onClick={() => setOpen(!open)}>
+          {DAY_LABELS[value]}
+        </button>
+        {open ? (
+          <div className="day-menu-list">
+            {DAY_LABELS.map((label, idx) => (
+              <button
+                key={label}
+                type="button"
+                className={`day-menu-item ${idx === value ? "day-menu-item-active" : ""}`}
+                onClick={() => {
+                  onSelect(idx);
+                  setOpen(false);
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <section>
       <h2>Your services</h2>
@@ -267,13 +296,7 @@ export function ServicesPage() {
         <div className="row-grid">
           <div>
             <label>Day</label>
-            <select value={draftDayOfWeek} onChange={(e) => setDraftDayOfWeek(Number(e.target.value))}>
-              {DAY_LABELS.map((label, idx) => (
-                <option key={label} value={idx}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            {renderDayMenu(draftDayOfWeek, setDraftDayOfWeek, isDraftDayMenuOpen, setIsDraftDayMenuOpen)}
           </div>
           <div>
             <label>Start time</label>
@@ -341,13 +364,7 @@ export function ServicesPage() {
         <div className="row-grid">
           <div>
             <label>Day</label>
-            <select value={dayOfWeek} onChange={(e) => setDayOfWeek(Number(e.target.value))}>
-              {DAY_LABELS.map((label, idx) => (
-                <option key={label} value={idx}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            {renderDayMenu(dayOfWeek, setDayOfWeek, isManageDayMenuOpen, setIsManageDayMenuOpen)}
           </div>
           <div>
             <label>Start time</label>
@@ -505,6 +522,46 @@ export function ServicesPage() {
           border-color: var(--primary);
           box-shadow: inset 0 0 0 1px var(--primary);
           background: linear-gradient(135deg, rgba(79, 70, 229, 0.2), rgba(99, 102, 241, 0.18));
+          color: #fff;
+        }
+        .day-menu {
+          position: relative;
+          margin-bottom: 1.25rem;
+        }
+        .day-menu-trigger {
+          width: 100%;
+          justify-content: space-between;
+        }
+        .day-menu-list {
+          position: absolute;
+          top: calc(100% + 0.35rem);
+          left: 0;
+          right: 0;
+          border: 1px solid var(--border-light);
+          border-radius: var(--radius-md);
+          background: rgba(8, 12, 26, 0.98);
+          backdrop-filter: blur(8px);
+          box-shadow: var(--shadow-lg);
+          padding: 0.4rem;
+          z-index: 20;
+          display: grid;
+          gap: 0.25rem;
+        }
+        .day-menu-item {
+          border: 1px solid transparent;
+          background: transparent;
+          color: var(--text-primary);
+          border-radius: var(--radius-sm);
+          justify-content: flex-start;
+          padding: 0.55rem 0.7rem;
+        }
+        .day-menu-item:hover {
+          background: rgba(255, 255, 255, 0.05);
+          border-color: var(--border-light);
+        }
+        .day-menu-item-active {
+          background: rgba(79, 70, 229, 0.16);
+          border-color: rgba(99, 102, 241, 0.45);
           color: #fff;
         }
         .services-quick-nav-mobile {

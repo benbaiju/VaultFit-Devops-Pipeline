@@ -1,18 +1,20 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { ROUTES } from "../lib/navigation";
 import { getMyTrainerProfile } from "../services/trainers";
 import { useAuth } from "../state/auth-context";
 import { 
   Dumbbell, LayoutDashboard, User, CalendarDays, ClipboardCheck, 
   MessageSquare, Bell, LogOut, Settings, ShieldCheck, Home, 
-  Search, Bookmark, Activity 
+  Search, Bookmark, Activity, Menu 
 } from "lucide-react";
 
 type ShellVariant = "client" | "trainer" | "admin";
 
 export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
   const { user, token, logout } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   
   const trainerMeQuery = useQuery({
     queryKey: ["trainer-me"],
@@ -23,14 +25,18 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
   const trainerVerified = trainerMeQuery.data?.verified === true;
 
   const NavItem = ({ to, icon, label, end }: { to: string, icon: React.ReactNode, label: string, end?: boolean }) => (
-    <NavLink to={to} end={end} className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+    >
       {icon}
       <span>{label}</span>
     </NavLink>
   );
 
   return (
-    <div className="dashboard-layout">
+    <div className={`dashboard-layout ${sidebarOpen ? "" : "sidebar-hidden"}`}>
       {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-header">
@@ -38,7 +44,9 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
             <Dumbbell className="sidebar-logo-icon" />
             <span className="sidebar-logo-text">VaultFit Pro</span>
           </div>
-          <span className="sidebar-role-badge">{user?.role ?? variant}</span>
+          <div className="sidebar-header-controls">
+            <span className="sidebar-role-badge">{user?.role ?? variant}</span>
+          </div>
         </div>
         
         <div className="sidebar-scroll">
@@ -111,6 +119,15 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
       {/* MAIN CONTENT AREA */}
       <main className="dashboard-main">
         <header className="dashboard-header">
+          <button
+            className="dashboard-menu-btn"
+            type="button"
+            onClick={() => setSidebarOpen((prev) => !prev)}
+            aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+            aria-expanded={sidebarOpen}
+          >
+            <Menu size={18} />
+          </button>
           <div className="dashboard-header-title">
             <h2>
               {variant === "trainer" && user?.role === "nutritionist"
@@ -132,17 +149,21 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
           height: 100vh;
           width: 100vw;
           background: var(--bg-main);
+          overflow: hidden;
         }
         
         /* SIDEBAR STYLES */
         .sidebar {
           width: 280px;
+          min-width: 280px;
           background: rgba(16, 21, 36, 0.75);
           backdrop-filter: blur(20px);
           border-right: 1px solid var(--border-color);
           display: flex;
           flex-direction: column;
           z-index: 100;
+          transition: width 0.24s ease, min-width 0.24s ease, border-color 0.24s ease;
+          overflow: hidden;
         }
         .sidebar-header {
           padding: 1.5rem;
@@ -150,6 +171,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
           justify-content: space-between;
           align-items: center;
           border-bottom: 1px solid var(--border-light);
+          position: relative;
         }
         .sidebar-logo {
           display: flex;
@@ -168,7 +190,11 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
           border-radius: 999px;
           font-weight: 800;
         }
-        
+        .sidebar-header-controls {
+          display: flex;
+          align-items: center;
+          gap: 0.45rem;
+        }
         .sidebar-scroll {
           flex: 1;
           overflow-y: auto;
@@ -290,9 +316,28 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
           border-bottom: 1px solid var(--border-light);
           display: flex;
           align-items: center;
-          padding: 0 2rem;
+          gap: 0.85rem;
+          padding: 0 1.5rem;
           backdrop-filter: blur(10px);
           z-index: 10;
+        }
+        .dashboard-menu-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          border: 1px solid var(--border-light);
+          background: rgba(255, 255, 255, 0.03);
+          color: var(--text-secondary);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          flex-shrink: 0;
+        }
+        .dashboard-menu-btn:hover {
+          color: #fff;
+          border-color: var(--border-color);
+          background: rgba(255, 255, 255, 0.08);
         }
         .dashboard-header h2 { margin: 0; font-size: 1.1rem; }
         
@@ -303,6 +348,15 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
           max-width: 1200px;
           margin: 0 auto;
           width: 100%;
+        }
+        .dashboard-layout.sidebar-hidden .sidebar {
+          width: 0;
+          min-width: 0;
+          border-right-color: transparent;
+        }
+        .dashboard-layout.sidebar-hidden .sidebar > * {
+          opacity: 0;
+          pointer-events: none;
         }
       `}</style>
     </div>

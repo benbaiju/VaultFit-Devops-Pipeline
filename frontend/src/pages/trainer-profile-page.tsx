@@ -69,33 +69,23 @@ export function TrainerProfilePage() {
 
   return (
     <section>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+      <div className="profile-hero">
         {avatarUrl ? (
           <img
             src={avatarUrl}
             alt={profileDisplayName}
-            style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--border-light)" }}
+            className="profile-hero-avatar"
           />
         ) : (
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "linear-gradient(135deg, var(--primary), var(--accent))",
-              color: "#fff",
-              fontWeight: 700,
-            }}
-          >
-            {avatarInitial}
-          </div>
+          <div className="profile-hero-avatar profile-hero-avatar-fallback">{avatarInitial}</div>
         )}
-        <h2 style={{ margin: 0 }}>{`Hi, ${profileDisplayName}`}</h2>
+        <div>
+          <h2 style={{ margin: 0 }}>{`Hi, ${profileDisplayName}`}</h2>
+          <p className="muted" style={{ margin: "0.25rem 0 0" }}>
+            {roleLabel}
+          </p>
+        </div>
       </div>
-      <p className="muted">{roleLabel}</p>
       <p className="muted">Complete your trainer or nutritionist profile and submit verification to unlock platform features.</p>
 
       <div className="card">
@@ -123,19 +113,28 @@ export function TrainerProfilePage() {
         </Link>
       </div>
 
-      <div className="card">
+      <div className="card profile-details-card">
         <h3>{meQuery.data ? "Profile details" : "Create profile"}</h3>
         {!isEditing && meQuery.data ? (
           <>
-            <p className="muted">
-              <b>Specialty:</b> {specialty || "Not set"}
-            </p>
-            <p className="muted">
-              <b>Experience:</b> {experienceYears} years
-            </p>
-            <p className="muted">
-              <b>Hourly rate:</b> ${hourlyRate}
-            </p>
+            <div className="profile-view-grid">
+              <article className="profile-view-item">
+                <p className="profile-view-label">Role</p>
+                <p className="profile-view-value">{roleLabel}</p>
+              </article>
+              <article className="profile-view-item">
+                <p className="profile-view-label">Specialty</p>
+                <p className="profile-view-value">{specialty || "Not set"}</p>
+              </article>
+              <article className="profile-view-item">
+                <p className="profile-view-label">Experience</p>
+                <p className="profile-view-value">{experienceYears} years</p>
+              </article>
+              <article className="profile-view-item">
+                <p className="profile-view-label">Hourly rate</p>
+                <p className="profile-view-value">${hourlyRate}</p>
+              </article>
+            </div>
             <p className="muted">
               <b>Bio:</b> {bio || "Not set"}
             </p>
@@ -206,6 +205,64 @@ export function TrainerProfilePage() {
           ))}
         </ul>
       </div>
+
+      <style>{`
+        .profile-hero {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 0.35rem;
+        }
+        .profile-hero-avatar {
+          width: 84px;
+          height: 84px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid var(--border-light);
+        }
+        .profile-hero-avatar-fallback {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, var(--primary), var(--accent));
+          color: #fff;
+          font-weight: 800;
+          font-size: 1.65rem;
+        }
+        .profile-hero h2 {
+          font-size: 2rem;
+          line-height: 1.1;
+        }
+        .profile-details-card {
+          padding: 1.35rem;
+        }
+        .profile-view-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 0.85rem;
+          margin-bottom: 1rem;
+        }
+        .profile-view-item {
+          border: 1px solid var(--border-light);
+          border-radius: var(--radius-md);
+          padding: 0.95rem 1rem;
+          background: rgba(255, 255, 255, 0.02);
+        }
+        .profile-view-label {
+          margin: 0 0 0.35rem;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: var(--text-muted);
+          font-weight: 700;
+        }
+        .profile-view-value {
+          margin: 0;
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+      `}</style>
     </section>
   );
 }

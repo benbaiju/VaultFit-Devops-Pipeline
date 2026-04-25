@@ -32,6 +32,70 @@ type StructuredPlanContent = {
   }>;
 };
 
+function escapePdfText(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+}
+
+function createSimplePdfBlob(lines: string[]): Blob {
+  const linesPerPage = 45;
+  const chunks: string[][] = [];
+  for (let i = 0; i < lines.length; i += linesPerPage) {
+    chunks.push(lines.slice(i, i + linesPerPage));
+  }
+  const pages = chunks.length > 0 ? chunks : [[" "]];
+
+  const objects: string[] = [];
+  const pageObjectIds: number[] = [];
+  let nextObjectId = 3;
+
+  pages.forEach((pageLines) => {
+    const pageId = nextObjectId++;
+    const contentId = nextObjectId++;
+    pageObjectIds.push(pageId);
+
+    const streamLines = [
+      "BT",
+      "/F1 11 Tf",
+      "50 790 Td",
+      "14 TL",
+      ...pageLines.map((line, idx) => (idx === 0 ? `(${escapePdfText(line)}) Tj` : `T* (${escapePdfText(line)}) Tj`)),
+      "ET",
+    ];
+    const stream = streamLines.join("\n");
+
+    objects[pageId] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents ${contentId} 0 R >>`;
+    objects[contentId] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
+  });
+
+  const kids = pageObjectIds.map((id) => `${id} 0 R`).join(" ");
+  objects[1] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+  objects[2] = `<< /Type /Pages /Kids [${kids}] /Count ${pageObjectIds.length} >>`;
+
+  const catalogId = nextObjectId++;
+  objects[catalogId] = "<< /Type /Catalog /Pages 2 0 R >>";
+
+  const header = "%PDF-1.4\n";
+  let body = "";
+  const offsets: number[] = [0];
+  for (let id = 1; id < objects.length; id += 1) {
+    if (!objects[id]) continue;
+    offsets[id] = header.length + body.length;
+    body += `${id} 0 obj\n${objects[id]}\nendobj\n`;
+  }
+
+  const xrefStart = header.length + body.length;
+  const objectCount = objects.length;
+  let xref = `xref\n0 ${objectCount}\n0000000000 65535 f \n`;
+  for (let id = 1; id < objectCount; id += 1) {
+    const offset = offsets[id] ?? 0;
+    xref += `${offset.toString().padStart(10, "0")} 00000 n \n`;
+  }
+
+  const trailer = `trailer\n<< /Size ${objectCount} /Root ${catalogId} 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+  const pdf = `${header}${body}${xref}${trailer}`;
+  return new Blob([pdf], { type: "application/pdf" });
+}
+
 export function PlansPage() {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
@@ -231,6 +295,44 @@ export function PlansPage() {
       summary: typeof maybe.summary === "string" ? maybe.summary : "",
       weeks,
     };
+  }
+
+  function downloadPlanPdf(planTitle: string, planTypeValue: string, parsed: StructuredPlanContent | null) {
+    const normalizedTitle = planTitle.trim() || "plan";
+    const safeFilename = normalizedTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+    const lines: string[] = [
+      `Plan: ${normalizedTitle}`,
+      `Type: ${planTypeValue}`,
+      "",
+    ];
+
+    if (!parsed) {
+      lines.push("No structured content saved yet.");
+    } else {
+      if (parsed.summary) {
+        lines.push(`Summary: ${parsed.summary}`);
+        lines.push("");
+      }
+      parsed.weeks.forEach((week) => {
+        lines.push(`Week ${week.week}: ${week.goal}`);
+        week.days.forEach((day) => {
+          lines.push(`  - ${day.day}: ${day.focus}`);
+          if (day.details) lines.push(`    Details: ${day.details}`);
+        });
+        lines.push("");
+      });
+    }
+
+    const pdfBlob = createSimplePdfBlob(lines);
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = `${safeFilename || "plan"}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
   }
 
   function renderBookingItem(booking: (typeof roleBookings)[number]) {
@@ -489,7 +591,20 @@ export function PlansPage() {
                 {expandedPlanId === plan.id
                   ? (() => {
                       const parsed = parsePlanContent(plan.content);
-                      if (!parsed) return <p className="muted">No structured content saved yet.</p>;
+                      if (!parsed) {
+                        return (
+                          <>
+                            <p className="muted">No structured content saved yet.</p>
+                            <button
+                              className="secondary-btn"
+                              type="button"
+                              onClick={() => downloadPlanPdf(plan.title, plan.plan_type, parsed)}
+                            >
+                              Download PDF
+                            </button>
+                          </>
+                        );
+                      }
                       return (
                         <div className="muted" style={{ marginTop: "0.35rem" }}>
                           {parsed.summary ? (
@@ -509,6 +624,13 @@ export function PlansPage() {
                               ))}
                             </div>
                           ))}
+                          <button
+                            className="secondary-btn"
+                            type="button"
+                            onClick={() => downloadPlanPdf(plan.title, plan.plan_type, parsed)}
+                          >
+                            Download PDF
+                          </button>
                         </div>
                       );
                     })()

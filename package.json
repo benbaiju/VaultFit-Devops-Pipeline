@@ -12,5 +12,8 @@
   "description": "",
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "jspdf": "^4.2.1"
   }
 }

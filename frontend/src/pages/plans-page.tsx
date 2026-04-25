@@ -1,6 +1,8 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getBookings } from "../services/bookings";
+import { createConversation } from "../services/messaging";
 import { createPlan, deletePlan, getPlans, updatePlan } from "../services/plans";
 import { getServices } from "../services/services";
 import { getTrainers } from "../services/trainers";
@@ -9,6 +11,7 @@ import { useAuth } from "../state/auth-context";
 export function PlansPage() {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [clientId, setClientId] = useState("");
   const [title, setTitle] = useState("");
@@ -124,6 +127,18 @@ export function PlansPage() {
             <p className="muted booking-id-line">
               <strong>Booking Ref:</strong> {booking.id}
             </p>
+            <div>
+              <button
+                className="secondary-btn"
+                disabled={booking.status !== "confirmed" || openChatMutation.isPending}
+                onClick={() => openChatMutation.mutate(booking.id)}
+              >
+                {openChatMutation.isPending ? "Opening chat..." : "Open booking chat"}
+              </button>
+              {booking.status !== "confirmed" ? (
+                <p className="muted">Chat unlocks after payment and closes once service is completed.</p>
+              ) : null}
+            </div>
           </div>
         ) : null}
       </li>
@@ -166,6 +181,14 @@ export function PlansPage() {
     onSuccess: () => {
       setError("");
       void queryClient.invalidateQueries({ queryKey: ["plans"] });
+    },
+    onError: (e) => setError((e as Error).message),
+  });
+  const openChatMutation = useMutation({
+    mutationFn: (bookingId: string) => createConversation(token, bookingId),
+    onSuccess: (conversation) => {
+      setError("");
+      navigate(`/client/messages?conversationId=${conversation.id}`);
     },
     onError: (e) => setError((e as Error).message),
   });

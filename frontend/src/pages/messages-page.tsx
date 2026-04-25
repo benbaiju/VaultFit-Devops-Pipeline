@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { realtimeClient } from "../lib/supabase-realtime";
 import {
-  createConversation,
   getConversations,
   getMessages,
   markConversationRead,
@@ -14,9 +14,10 @@ import { useAuth } from "../state/auth-context";
 export function MessagesPage() {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const initialConversationId = searchParams.get("conversationId") ?? "";
 
   const [selectedConversationId, setSelectedConversationId] = useState("");
-  const [selectedTrainerId, setSelectedTrainerId] = useState("");
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
 
@@ -74,15 +75,11 @@ export function MessagesPage() {
     }
   }, [conversationsQuery.data, selectedConversationId]);
 
-  const createConversationMutation = useMutation({
-    mutationFn: () => createConversation(token, selectedTrainerId),
-    onSuccess: (conversation) => {
-      setError("");
-      setSelectedConversationId(conversation.id);
-      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-    },
-    onError: (e) => setError((e as Error).message),
-  });
+  useEffect(() => {
+    if (initialConversationId) {
+      setSelectedConversationId(initialConversationId);
+    }
+  }, [initialConversationId]);
 
   const sendMessageMutation = useMutation({
     mutationFn: () => sendMessage(token, selectedConversationId, draft),
@@ -126,28 +123,6 @@ export function MessagesPage() {
       <h2>Messages</h2>
       <div className="chat-layout">
         <aside className="card chat-sidebar">
-          {user?.role === "client" ? (
-            <div className="chat-start">
-              <h3>Start chat</h3>
-              <label>Trainer</label>
-              <select value={selectedTrainerId} onChange={(e) => setSelectedTrainerId(e.target.value)}>
-                <option value="">Select trainer</option>
-                {trainers.map((trainer) => (
-                  <option key={trainer.id} value={trainer.id}>
-                    {trainer.profiles?.full_name ?? trainer.id}
-                  </option>
-                ))}
-              </select>
-              <button
-                className="primary-btn"
-                disabled={!selectedTrainerId || createConversationMutation.isPending}
-                onClick={() => createConversationMutation.mutate()}
-              >
-                {createConversationMutation.isPending ? "Starting..." : "Start chat"}
-              </button>
-            </div>
-          ) : null}
-
           <div className="chat-conversations">
             <h3>Conversations</h3>
             {conversationsQuery.isLoading ? <p className="muted">Loading conversations...</p> : null}

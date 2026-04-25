@@ -5,12 +5,12 @@ export async function getConversations(token: string): Promise<Conversation[]> {
   return apiRequest<Conversation[]>("/conversations", {}, token);
 }
 
-export async function createConversation(token: string, trainerId: string): Promise<Conversation> {
+export async function createConversation(token: string, bookingId: string): Promise<Conversation> {
   return apiRequest<Conversation>(
     "/conversations",
     {
       method: "POST",
-      body: JSON.stringify({ trainerId }),
+      body: JSON.stringify({ bookingId }),
     },
     token,
   );

@@ -6,7 +6,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
 
 const createConversationSchema = z.object({
-  trainerId: z.uuid(),
+  bookingId: z.uuid(),
 });
 
 const sendMessageSchema = z.object({
@@ -28,7 +28,9 @@ messagingRouter.get("/conversations", requireAuth, async (req, res) => {
 
   const activeConversations = [];
   for (const conversation of data ?? []) {
-    const allowed = await hasActivePaidSession(conversation.client_id, conversation.trainer_id);
+    const allowed = conversation.booking_id
+      ? await isBookingChatOpen(conversation.booking_id)
+      : await hasActivePaidSession(conversation.client_id, conversation.trainer_id);
     if (allowed) activeConversations.push(conversation);
   }
   res.json(activeConversations);
@@ -36,32 +38,16 @@ messagingRouter.get("/conversations", requireAuth, async (req, res) => {
 
 messagingRouter.post("/conversations", requireAuth, async (req, res) => {
   const payload = createConversationSchema.parse(req.body);
-  const clientId = req.user!.id;
-  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
-
-  const { data: targetTrainer, error: targetTrainerError } = await supabaseAdmin
-    .from("trainers")
-    .select("id, verified")
-    .eq("id", payload.trainerId)
-    .single();
-  if (targetTrainerError || !targetTrainer) throw new HttpError(404, "Trainer not found", "TRAINER_NOT_FOUND");
-  if (!targetTrainer.verified) {
-    throw new HttpError(409, "Trainer is not verified and cannot receive conversations yet", "TRAINER_NOT_VERIFIED");
+  if (req.user!.role !== "client" && req.user!.role !== "trainer") {
+    throw new HttpError(403, "Only clients and trainers can use chat", "FORBIDDEN");
   }
-  const hasPaidActiveSession = await hasActivePaidSession(clientId, payload.trainerId);
-  if (!hasPaidActiveSession) {
-    throw new HttpError(
-      409,
-      "Chat unlocks only after payment is completed for an active booking, and closes once service is completed.",
-      "CHAT_NOT_AVAILABLE",
-    );
-  }
+  const booking = await getBookingForConversation(payload.bookingId, req.user!.id, req.user!.role);
+  await ensureBookingChatOpen(booking.id);
 
   const { data: existing, error: existingError } = await supabaseAdmin
     .from("conversations")
     .select("*")
-    .eq("client_id", clientId)
-    .eq("trainer_id", payload.trainerId)
+    .eq("booking_id", booking.id)
     .maybeSingle();
   if (existingError) throw new HttpError(400, existingError.message, "CONVERSATION_CREATE_FAILED");
   if (existing) {
@@ -71,13 +57,19 @@ messagingRouter.post("/conversations", requireAuth, async (req, res) => {
 
   const { data, error } = await supabaseAdmin
     .from("conversations")
-    .insert({ client_id: clientId, trainer_id: payload.trainerId })
+    .insert({
+      client_id: booking.client_id,
+      trainer_id: booking.trainer_id,
+      booking_id: booking.id,
+      service_id: booking.service_id,
+    })
     .select("*")
     .single();
 
   if (error) throw new HttpError(400, error.message, "CONVERSATION_CREATE_FAILED");
 
-  await createNotification(payload.trainerId, "New conversation", "A client started a conversation with you.");
+  const recipientProfileId = booking.client_id === req.user!.id ? booking.trainer_id : booking.client_id;
+  await createNotification(recipientProfileId, "New conversation", "A conversation opened for your booked service.");
   res.status(201).json(data);
 });
 
@@ -85,7 +77,7 @@ messagingRouter.get("/conversations/:id/messages", requireAuth, async (req, res)
   if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
   const conversationId = String(req.params.id);
   const conversation = await getConversationForUser(conversationId, req.user!.id);
-  await ensureConversationMessagingOpen(conversation.client_id, conversation.trainer_id);
+  await ensureConversationMessagingOpen(conversation);
 
   const limit = Number(req.query.limit ?? 50);
   const offset = Number(req.query.offset ?? 0);
@@ -106,7 +98,7 @@ messagingRouter.post("/conversations/:id/messages", requireAuth, async (req, res
   const payload = sendMessageSchema.parse(req.body);
   const conversationId = String(req.params.id);
   const conversation = await getConversationForUser(conversationId, req.user!.id);
-  await ensureConversationMessagingOpen(conversation.client_id, conversation.trainer_id);
+  await ensureConversationMessagingOpen(conversation);
 
   const { data, error } = await supabaseAdmin
     .from("messages")
@@ -131,7 +123,7 @@ messagingRouter.patch("/conversations/:id/messages/read", requireAuth, async (re
   if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
   const conversationId = String(req.params.id);
   const conversation = await getConversationForUser(conversationId, req.user!.id);
-  await ensureConversationMessagingOpen(conversation.client_id, conversation.trainer_id);
+  await ensureConversationMessagingOpen(conversation);
 
   const { error } = await supabaseAdmin
     .from("messages")
@@ -208,15 +200,72 @@ async function createNotification(userId: string, title: string, body: string): 
   }
 }
 
-async function ensureConversationMessagingOpen(clientId: string, trainerId: string): Promise<void> {
-  const allowed = await hasActivePaidSession(clientId, trainerId);
-  if (!allowed) {
-    throw new HttpError(
-      409,
-      "Chat is closed for this client-trainer pair. Payment must be completed and at least one booking must still be active.",
-      "CHAT_CLOSED",
-    );
+async function ensureConversationMessagingOpen(conversation: {
+  booking_id?: string | null;
+  client_id: string;
+  trainer_id: string;
+}): Promise<void> {
+  if (conversation.booking_id) {
+    await ensureBookingChatOpen(conversation.booking_id);
+    return;
   }
+  const allowed = await hasActivePaidSession(conversation.client_id, conversation.trainer_id);
+  if (!allowed) {
+    throw new HttpError(409, "Chat is closed for this conversation.", "CHAT_CLOSED");
+  }
+}
+
+async function getBookingForConversation(
+  bookingId: string,
+  userId: string,
+  role: string | undefined,
+): Promise<{ id: string; client_id: string; trainer_id: string; service_id: string | null; status: string }> {
+  const { data: booking, error } = await supabaseAdmin
+    .from("bookings")
+    .select("id, client_id, trainer_id, service_id, status")
+    .eq("id", bookingId)
+    .single();
+  if (error || !booking) throw new HttpError(404, "Booking not found", "BOOKING_NOT_FOUND");
+
+  if (role === "client") {
+    if (booking.client_id !== userId) throw new HttpError(403, "Only booking owner can start chat", "FORBIDDEN");
+    return booking;
+  }
+  if (role === "trainer") {
+    await ensureVerifiedTrainerUser(userId);
+    const trainerId = await getTrainerIdForUser(userId);
+    if (!trainerId || trainerId !== booking.trainer_id) {
+      throw new HttpError(403, "Only assigned trainer can open this chat", "FORBIDDEN");
+    }
+    return booking;
+  }
+  throw new HttpError(403, "Forbidden", "FORBIDDEN");
+}
+
+async function ensureBookingChatOpen(bookingId: string): Promise<void> {
+  const open = await isBookingChatOpen(bookingId);
+  if (!open) {
+    throw new HttpError(409, "Chat opens only for paid, confirmed bookings", "CHAT_NOT_AVAILABLE");
+  }
+}
+
+async function isBookingChatOpen(bookingId: string): Promise<boolean> {
+  const { data: booking, error: bookingError } = await supabaseAdmin
+    .from("bookings")
+    .select("id, status")
+    .eq("id", bookingId)
+    .single();
+  if (bookingError || !booking) return false;
+  if (booking.status !== "confirmed") return false;
+
+  const { data: payment, error: paymentError } = await supabaseAdmin
+    .from("payments")
+    .select("id, status")
+    .eq("booking_id", bookingId)
+    .eq("status", "paid")
+    .maybeSingle();
+  if (paymentError) throw new HttpError(400, paymentError.message, "CHAT_ELIGIBILITY_CHECK_FAILED");
+  return Boolean(payment);
 }
 
 async function hasActivePaidSession(clientId: string, trainerId: string): Promise<boolean> {

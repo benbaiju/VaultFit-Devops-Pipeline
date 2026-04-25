@@ -15,6 +15,7 @@ export function TrainerProfilePage() {
   const [specialty, setSpecialty] = useState("");
   const [experienceYears, setExperienceYears] = useState(0);
   const [hourlyRate, setHourlyRate] = useState(90);
+  const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState("");
 
   const meQuery = useQuery({
@@ -51,6 +52,7 @@ export function TrainerProfilePage() {
     },
     onSuccess: () => {
       setError("");
+      setIsEditing(false);
       void queryClient.invalidateQueries({ queryKey: ["trainer-me"] });
       void queryClient.invalidateQueries({ queryKey: ["trainers"] });
     },
@@ -122,18 +124,58 @@ export function TrainerProfilePage() {
       </div>
 
       <div className="card">
-        <h3>{meQuery.data ? "Edit profile" : "Create profile"}</h3>
-        <label>Specialty</label>
-        <input value={specialty} onChange={(e) => setSpecialty(e.target.value)} placeholder="strength, nutritionist, rehab..." />
-        <label>Bio</label>
-        <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4} placeholder="Describe your experience and approach" />
-        <label>Experience years</label>
-        <input type="number" min={0} value={experienceYears} onChange={(e) => setExperienceYears(Number(e.target.value || 0))} />
-        <label>Hourly rate (AUD)</label>
-        <input type="number" min={0} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value || 0))} />
-        <button className="primary-btn" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-          {saveMutation.isPending ? "Saving..." : meQuery.data ? "Update profile" : "Create profile"}
-        </button>
+        <h3>{meQuery.data ? "Profile details" : "Create profile"}</h3>
+        {!isEditing && meQuery.data ? (
+          <>
+            <p className="muted">
+              <b>Specialty:</b> {specialty || "Not set"}
+            </p>
+            <p className="muted">
+              <b>Experience:</b> {experienceYears} years
+            </p>
+            <p className="muted">
+              <b>Hourly rate:</b> ${hourlyRate}
+            </p>
+            <p className="muted">
+              <b>Bio:</b> {bio || "Not set"}
+            </p>
+            <button className="primary-btn" onClick={() => setIsEditing(true)}>
+              Edit profile
+            </button>
+          </>
+        ) : (
+          <>
+            <label>Specialty</label>
+            <input value={specialty} onChange={(e) => setSpecialty(e.target.value)} placeholder="strength, nutritionist, rehab..." />
+            <label>Bio</label>
+            <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4} placeholder="Describe your experience and approach" />
+            <label>Experience years</label>
+            <input type="number" min={0} value={experienceYears} onChange={(e) => setExperienceYears(Number(e.target.value || 0))} />
+            <label>Hourly rate (AUD)</label>
+            <input type="number" min={0} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value || 0))} />
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button className="primary-btn" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+                {saveMutation.isPending ? "Saving..." : meQuery.data ? "Save changes" : "Create profile"}
+              </button>
+              {meQuery.data ? (
+                <button
+                  className="secondary-btn"
+                  type="button"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setError("");
+                    setBio(meQuery.data.bio ?? "");
+                    setSpecialty(meQuery.data.specialty ?? "");
+                    setExperienceYears(meQuery.data.experience_years ?? 0);
+                    setHourlyRate(meQuery.data.hourly_rate ?? 0);
+                  }}
+                >
+                  Cancel
+                </button>
+              ) : null}
+            </div>
+          </>
+        )}
         {error ? <p className="error">{error}</p> : null}
       </div>
 

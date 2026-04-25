@@ -34,6 +34,7 @@ export function ClientProfilePage() {
   const [avatarOffsetX, setAvatarOffsetX] = useState(0);
   const [avatarOffsetY, setAvatarOffsetY] = useState(0);
   const [isDraggingAvatar, setIsDraggingAvatar] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState("");
   const avatarFileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -172,6 +173,7 @@ export function ClientProfilePage() {
       }),
     onSuccess: () => {
       setError("");
+      setIsEditing(false);
       void queryClient.invalidateQueries({ queryKey: ["profile-me"] });
     },
     onError: (e) => setError((e as Error).message),
@@ -217,140 +219,182 @@ export function ClientProfilePage() {
           </p>
         ) : null}
 
-        <label>Full name</label>
-        <input
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          placeholder="Your full name"
-          disabled={nameLocked}
-        />
-        {nameLocked ? <p className="muted">Name is locked after initial setup for client accounts.</p> : null}
+        {!isEditing ? (
+          <>
+            <p className="muted">
+              <b>Name:</b> {fullName || "Not set"}
+            </p>
+            <p className="muted">
+              <b>Phone:</b> {phone || "Not set"}
+            </p>
+            <p className="muted">
+              <b>Timezone:</b> {timezone || "Not set"}
+            </p>
+            <button className="primary-btn" onClick={() => setIsEditing(true)}>
+              Edit profile
+            </button>
+          </>
+        ) : (
+          <>
+            <label>Full name</label>
+            <input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Your full name"
+              disabled={nameLocked}
+            />
+            {nameLocked ? <p className="muted">Name is locked after initial setup for client accounts.</p> : null}
 
-        <label>Phone</label>
-        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+61..." />
+            <label>Phone</label>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+61..." />
 
-        <label>Timezone</label>
-        <input value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="Australia/Melbourne" />
+            <label>Timezone</label>
+            <input value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="Australia/Melbourne" />
 
-        <label>Avatar URL</label>
-        <input
-          value={avatarUrl}
-          onChange={(e) => setAvatarUrl(e.target.value)}
-          placeholder="Paste an image URL or drop a file below"
-        />
-        <div style={{ marginTop: "0.5rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-          <button
-            className="secondary-btn"
-            type="button"
-            onClick={() => {
-              if (!avatarUrl.trim()) return;
-              setAvatarEditorSrc(avatarUrl.trim());
-              setAvatarZoom(1);
-              setAvatarOffsetX(0);
-              setAvatarOffsetY(0);
-            }}
-          >
-            Load URL for editing
-          </button>
-          <button className="secondary-btn" type="button" onClick={() => avatarFileInputRef.current?.click()}>
-            Upload image
-          </button>
-        </div>
-        <input
-          ref={avatarFileInputRef}
-          type="file"
-          accept="image/*"
-          style={{ display: "none" }}
-          onChange={(e) => handleAvatarFiles(e.target.files)}
-        />
-        <div
-          onDragOver={(e) => {
-            e.preventDefault();
-            setIsDraggingAvatar(true);
-          }}
-          onDragLeave={() => setIsDraggingAvatar(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setIsDraggingAvatar(false);
-            handleAvatarFiles(e.dataTransfer.files);
-          }}
-          style={{
-            marginTop: "0.6rem",
-            border: `1px dashed ${isDraggingAvatar ? "#818cf8" : "var(--border-light)"}`,
-            borderRadius: "0.75rem",
-            padding: "0.9rem",
-            background: isDraggingAvatar ? "rgba(79, 70, 229, 0.08)" : "rgba(255,255,255,0.02)",
-          }}
-        >
-          <p className="muted" style={{ margin: 0 }}>
-            Drag and drop an image here, then adjust before saving.
-          </p>
-        </div>
-
-        {avatarEditorSrc ? (
-          <div style={{ marginTop: "0.75rem" }}>
+            <label>Avatar URL</label>
+            <input
+              value={avatarUrl}
+              onChange={(e) => setAvatarUrl(e.target.value)}
+              placeholder="Paste an image URL or drop a file below"
+            />
+            <div style={{ marginTop: "0.5rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button
+                className="secondary-btn"
+                type="button"
+                onClick={() => {
+                  if (!avatarUrl.trim()) return;
+                  setAvatarEditorSrc(avatarUrl.trim());
+                  setAvatarZoom(1);
+                  setAvatarOffsetX(0);
+                  setAvatarOffsetY(0);
+                }}
+              >
+                Load URL for editing
+              </button>
+              <button className="secondary-btn" type="button" onClick={() => avatarFileInputRef.current?.click()}>
+                Upload image
+              </button>
+            </div>
+            <input
+              ref={avatarFileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => handleAvatarFiles(e.target.files)}
+            />
             <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDraggingAvatar(true);
+              }}
+              onDragLeave={() => setIsDraggingAvatar(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDraggingAvatar(false);
+                handleAvatarFiles(e.dataTransfer.files);
+              }}
               style={{
-                width: 220,
-                height: 220,
-                borderRadius: "9999px",
-                overflow: "hidden",
-                border: "2px solid var(--border-light)",
-                marginBottom: "0.75rem",
-                position: "relative",
-                background: "#0b1220",
+                marginTop: "0.6rem",
+                border: `1px dashed ${isDraggingAvatar ? "#818cf8" : "var(--border-light)"}`,
+                borderRadius: "0.75rem",
+                padding: "0.9rem",
+                background: isDraggingAvatar ? "rgba(79, 70, 229, 0.08)" : "rgba(255,255,255,0.02)",
               }}
             >
-              <img
-                src={avatarEditorSrc}
-                alt="Avatar preview"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: `calc(50% + ${avatarOffsetX}px) calc(50% + ${avatarOffsetY}px)`,
-                  transform: `scale(${avatarZoom})`,
-                  transformOrigin: "center",
-                  display: "block",
-                }}
-              />
+              <p className="muted" style={{ margin: 0 }}>
+                Drag and drop an image here, then adjust before saving.
+              </p>
             </div>
-            <label>Zoom</label>
-            <input
-              type="range"
-              min={1}
-              max={3}
-              step={0.05}
-              value={avatarZoom}
-              onChange={(e) => setAvatarZoom(Number(e.target.value))}
-            />
-            <label>Horizontal adjust</label>
-            <input
-              type="range"
-              min={-80}
-              max={80}
-              step={1}
-              value={avatarOffsetX}
-              onChange={(e) => setAvatarOffsetX(Number(e.target.value))}
-            />
-            <label>Vertical adjust</label>
-            <input
-              type="range"
-              min={-80}
-              max={80}
-              step={1}
-              value={avatarOffsetY}
-              onChange={(e) => setAvatarOffsetY(Number(e.target.value))}
-            />
-            <button className="secondary-btn" type="button" onClick={() => void applyAvatarCrop()}>
-              Apply avatar crop
-            </button>
-          </div>
-        ) : null}
 
-        <button className="primary-btn" disabled={updateMutation.isPending} onClick={() => updateMutation.mutate()}>
-          {updateMutation.isPending ? "Saving..." : "Update profile"}
-        </button>
+            {avatarEditorSrc ? (
+              <div style={{ marginTop: "0.75rem" }}>
+                <div
+                  style={{
+                    width: 220,
+                    height: 220,
+                    borderRadius: "9999px",
+                    overflow: "hidden",
+                    border: "2px solid var(--border-light)",
+                    marginBottom: "0.75rem",
+                    position: "relative",
+                    background: "#0b1220",
+                  }}
+                >
+                  <img
+                    src={avatarEditorSrc}
+                    alt="Avatar preview"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      objectPosition: `calc(50% + ${avatarOffsetX}px) calc(50% + ${avatarOffsetY}px)`,
+                      transform: `scale(${avatarZoom})`,
+                      transformOrigin: "center",
+                      display: "block",
+                    }}
+                  />
+                </div>
+                <label>Zoom</label>
+                <input
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.05}
+                  value={avatarZoom}
+                  onChange={(e) => setAvatarZoom(Number(e.target.value))}
+                />
+                <label>Horizontal adjust</label>
+                <input
+                  type="range"
+                  min={-80}
+                  max={80}
+                  step={1}
+                  value={avatarOffsetX}
+                  onChange={(e) => setAvatarOffsetX(Number(e.target.value))}
+                />
+                <label>Vertical adjust</label>
+                <input
+                  type="range"
+                  min={-80}
+                  max={80}
+                  step={1}
+                  value={avatarOffsetY}
+                  onChange={(e) => setAvatarOffsetY(Number(e.target.value))}
+                />
+                <button className="secondary-btn" type="button" onClick={() => void applyAvatarCrop()}>
+                  Apply avatar crop
+                </button>
+              </div>
+            ) : null}
+
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button className="primary-btn" disabled={updateMutation.isPending} onClick={() => updateMutation.mutate()}>
+                {updateMutation.isPending ? "Saving..." : "Save changes"}
+              </button>
+              <button
+                className="secondary-btn"
+                type="button"
+                onClick={() => {
+                  setIsEditing(false);
+                  setError("");
+                  const profile = profileQuery.data;
+                  if (!profile) return;
+                  setFullName(profile.full_name ?? "");
+                  setPhone(profile.phone ?? "");
+                  setTimezone(profile.timezone ?? "");
+                  const savedAvatar = profile.avatar_url ?? "";
+                  setAvatarUrl(savedAvatar);
+                  setAvatarEditorSrc(savedAvatar || null);
+                  setAvatarZoom(1);
+                  setAvatarOffsetX(0);
+                  setAvatarOffsetY(0);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
         {error ? <p className="error">{error}</p> : null}
       </div>
 

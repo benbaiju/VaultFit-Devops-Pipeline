@@ -106,6 +106,31 @@ export function TrainerPublicProfilePage() {
         </article>
       </div>
 
+      <div className="card" style={{ marginTop: "1rem" }}>
+        <h3>Client reviews</h3>
+        {reviewsQuery.isLoading ? <p>Loading reviews...</p> : null}
+        {!reviewsQuery.isLoading && trainerReviews.length === 0 ? <p className="muted">No reviews yet.</p> : null}
+        <ul className="list">
+          {trainerReviews.map((review) => (
+            <li key={review.id}>
+              <span>
+                <span style={{ display: "inline-flex", gap: "0.1rem", verticalAlign: "middle", marginRight: "0.3rem" }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={14}
+                      fill={star <= review.rating ? "currentColor" : "none"}
+                      style={{ color: star <= review.rating ? "#f59e0b" : "#64748b" }}
+                    />
+                  ))}
+                </span>
+                ({review.rating}/5) - {review.comment ?? "No comment"}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
       <style>{`
         .trainer-profile-hero {
           display: grid;

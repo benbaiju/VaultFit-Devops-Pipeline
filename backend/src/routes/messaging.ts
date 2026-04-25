@@ -49,7 +49,16 @@ messagingRouter.post("/conversations", requireAuth, async (req, res) => {
     .select("*")
     .eq("booking_id", booking.id)
     .maybeSingle();
-  if (existingError) throw new HttpError(400, existingError.message, "CONVERSATION_CREATE_FAILED");
+  if (existingError) {
+    if (existingError.message?.includes("booking_id") || existingError.message?.includes("service_id")) {
+      throw new HttpError(
+        500,
+        "Database schema is outdated for booking chat. Apply backend/supabase/migrations/20260425222000_conversations_booking_link.sql",
+        "SCHEMA_OUTDATED",
+      );
+    }
+    throw new HttpError(400, existingError.message, "CONVERSATION_CREATE_FAILED");
+  }
   if (existing) {
     res.status(200).json(existing);
     return;
@@ -66,7 +75,16 @@ messagingRouter.post("/conversations", requireAuth, async (req, res) => {
     .select("*")
     .single();
 
-  if (error) throw new HttpError(400, error.message, "CONVERSATION_CREATE_FAILED");
+  if (error) {
+    if (error.message?.includes("booking_id") || error.message?.includes("service_id")) {
+      throw new HttpError(
+        500,
+        "Database schema is outdated for booking chat. Apply backend/supabase/migrations/20260425222000_conversations_booking_link.sql",
+        "SCHEMA_OUTDATED",
+      );
+    }
+    throw new HttpError(400, error.message, "CONVERSATION_CREATE_FAILED");
+  }
 
   const recipientProfileId = booking.client_id === req.user!.id ? booking.trainer_id : booking.client_id;
   await createNotification(recipientProfileId, "New conversation", "A conversation opened for your booked service.");

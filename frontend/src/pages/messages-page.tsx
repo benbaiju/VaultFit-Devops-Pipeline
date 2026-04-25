@@ -117,6 +117,11 @@ export function MessagesPage() {
     () => conversations.find((c) => c.id === selectedConversationId),
     [conversations, selectedConversationId],
   );
+  const selectedConversationLabel = selectedConversation
+    ? conversationLabel(selectedConversation.id)
+    : selectedConversationId
+      ? `Conversation ${selectedConversationId.slice(0, 8)}`
+      : "Conversation";
 
   return (
     <section>
@@ -151,12 +156,12 @@ export function MessagesPage() {
         </aside>
 
         <section className="card chat-thread">
-          {!selectedConversation ? (
+          {!selectedConversationId ? (
             <p className="muted">Select a conversation to start messaging.</p>
           ) : (
             <>
               <div className="chat-thread-head">
-                <h3>{conversationLabel(selectedConversation.id)}</h3>
+                <h3>{selectedConversationLabel}</h3>
                 <p className="muted">Live thread</p>
               </div>
 

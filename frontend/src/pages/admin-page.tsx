@@ -246,19 +246,46 @@ export function AdminPage() {
       {tab === "history" ? (
         <div className="admin-tab-panel" role="tabpanel">
           <p className="muted">
-            Chronological log of verification decisions, manual verified badge changes, and user access blocks. New events require the{" "}
-            <code className="small-mono">admin_audit_events</code> table (see repo migration).
+            Chronological log of verification decisions, manual verified badge changes, and user access blocks.
           </p>
           {reviewTimelineQuery.data?.warning ? <p className="error">{reviewTimelineQuery.data.warning}</p> : null}
           {reviewTimelineQuery.isLoading ? <p>Loading…</p> : null}
           {reviewTimelineQuery.isError ? (
             <p className="error">{(reviewTimelineQuery.error as Error).message}</p>
           ) : null}
-          <ul className="list">
-            {(reviewTimelineQuery.data?.items ?? []).map((row) => (
-              <ReviewTimelineRow key={row.id} item={row} />
-            ))}
-          </ul>
+          
+          <div className="data-table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Target</th>
+                  <th>Actor</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(reviewTimelineQuery.data?.items ?? []).map((row) => {
+                  const actor = row.actor?.email ?? row.actor?.full_name ?? "System";
+                  return (
+                    <tr key={row.id}>
+                      <td>
+                        <span className="font-medium">{timelineActionLabel(row.action)}</span>
+                        {row.detail.admin_notes && <span className="block text-xs muted mt-1">{String(row.detail.admin_notes)}</span>}
+                      </td>
+                      <td>
+                        <div className="small-mono">{row.target_type}</div>
+                        <div className="text-xs muted">{row.target_id}</div>
+                      </td>
+                      <td>{actor}</td>
+                      <td className="muted text-sm">{formatDate(row.at)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          
           {!reviewTimelineQuery.isLoading &&
           !reviewTimelineQuery.isError &&
           (reviewTimelineQuery.data?.items ?? []).length === 0 ? (
@@ -334,17 +361,67 @@ export function AdminPage() {
           </p>
           {usersQuery.isLoading ? <p>Loading users…</p> : null}
           {usersQuery.isError ? <p className="error">{(usersQuery.error as Error).message}</p> : null}
-          <ul className="list">
-            {(usersQuery.data ?? []).map((u) => (
-              <UserRow
-                key={u.id}
-                user={u}
-                currentUserId={user.id}
-                busy={accessMutation.isPending}
-                onSetSuspended={(suspended) => accessMutation.mutate({ userId: u.id, suspended })}
-              />
-            ))}
-          </ul>
+          <div className="data-table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Role & Details</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(usersQuery.data ?? []).map((u) => {
+                  const isSelf = u.id === user.id;
+                  const isAdmin = u.role === "admin";
+                  const suspended = u.access_suspended === true;
+                  return (
+                    <tr key={u.id}>
+                      <td>
+                        <div className="font-medium">{u.full_name ?? "Unnamed"}</div>
+                        <div className="text-xs muted">{u.email}</div>
+                      </td>
+                      <td>
+                        <div className="badge badge-muted mb-1">{u.role}</div>
+                        <div className="small-mono">{u.id}</div>
+                      </td>
+                      <td>
+                        {suspended ? <span className="badge badge-danger">Blocked</span> : <span className="badge badge-success">Active</span>}
+                      </td>
+                      <td>
+                        {isSelf || isAdmin ? (
+                          <span className="muted text-sm">{isSelf ? "You" : "Admin"}</span>
+                        ) : (
+                          suspended ? (
+                            <button
+                              type="button"
+                              className="primary-btn"
+                              style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                              disabled={accessMutation.isPending}
+                              onClick={() => accessMutation.mutate({ userId: u.id, suspended: false })}
+                            >
+                              Restore
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="secondary-btn"
+                              style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                              disabled={accessMutation.isPending}
+                              onClick={() => accessMutation.mutate({ userId: u.id, suspended: true })}
+                            >
+                              Block
+                            </button>
+                          )
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           {!usersQuery.isLoading && !usersQuery.isError && (usersQuery.data ?? []).length === 0 ? (
             <p className="muted">No users found.</p>
           ) : null}
@@ -354,109 +431,7 @@ export function AdminPage() {
   );
 }
 
-function ReviewTimelineRow({ item }: { item: AdminReviewTimelineItem }) {
-  const d = item.detail;
-  const actor = item.actor?.email ?? item.actor?.full_name ?? "System";
-  const lines: string[] = [];
-  if (d.outcome != null) lines.push(`Outcome: ${String(d.outcome)}`);
-  if (d.trainer_id != null) lines.push(`Trainer profile: ${String(d.trainer_id)}`);
-  if (d.admin_notes) lines.push(`Admin notes: ${String(d.admin_notes)}`);
-  if (d.credential_url) {
-    const url = String(d.credential_url);
-    lines.push(`Credential: ${url.slice(0, 80)}${url.length > 80 ? "…" : ""}`);
-  }
-  if (d.identity_url) {
-    const url = String(d.identity_url);
-    lines.push(`Identity: ${url.slice(0, 80)}${url.length > 80 ? "…" : ""}`);
-  }
-  if (d.target_email) lines.push(`User: ${String(d.target_email)}`);
-  if (d.target_role) lines.push(`Role: ${String(d.target_role)}`);
-  if (typeof d.access_suspended === "boolean") lines.push(`Access suspended: ${d.access_suspended ? "yes" : "no"}`);
-  if (d.profile_email) lines.push(`Profile email: ${String(d.profile_email)}`);
-  if (typeof d.verified === "boolean") lines.push(`Verified flag: ${d.verified ? "on" : "off"}`);
-  if (d.note) lines.push(String(d.note));
 
-  return (
-    <li className="admin-history-row">
-      <div>
-        <div className="admin-history-meta">
-          <b>{timelineActionLabel(item.action)}</b>
-          <span className="muted"> · {formatDate(item.at)}</span>
-        </div>
-        <p className="muted small-mono">
-          {item.source === "legacy_verification" ? "Legacy" : "Audit"} · {item.target_type} · {item.target_id}
-        </p>
-        <p className="muted">By {actor}</p>
-        {lines.length > 0 ? (
-          <ul className="admin-timeline-detail">
-            {lines.map((line, i) => (
-              <li key={i}>{line}</li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
-    </li>
-  );
-}
-
-function UserRow({
-  user,
-  currentUserId,
-  busy,
-  onSetSuspended,
-}: {
-  user: { id: string; email: string; full_name: string | null; role: string; created_at: string; access_suspended?: boolean };
-  currentUserId: string;
-  busy: boolean;
-  onSetSuspended: (suspended: boolean) => void;
-}) {
-  const isSelf = user.id === currentUserId;
-  const isAdmin = user.role === "admin";
-  const suspended = user.access_suspended === true;
-  return (
-    <li className="admin-history-row">
-      <div className="admin-user-main">
-        <div>
-          <b>{user.role}</b> — {user.full_name ?? "Unnamed"} <span className="muted">({user.email})</span>
-        </div>
-        <p className="muted small-mono" style={{ margin: "0.2rem 0" }}>
-          {user.id} · {formatDate(user.created_at)}
-        </p>
-        {suspended ? <span className="badge" style={{ background: "#fee2e2", color: "#991b1b" }}>Access blocked</span> : null}
-      </div>
-      <div className="admin-user-actions">
-        {isSelf || isAdmin ? (
-          <span className="muted" style={{ fontSize: "0.85rem" }}>
-            {isSelf ? "You" : "Admin accounts"}
-          </span>
-        ) : (
-          <div className="inline-actions">
-            {suspended ? (
-              <button
-                type="button"
-                className="primary-btn"
-                disabled={busy}
-                onClick={() => onSetSuspended(false)}
-              >
-                Restore access
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="secondary-btn"
-                style={{ color: "#991b1b", borderColor: "#fecaca" }}
-                disabled={busy}
-                onClick={() => onSetSuspended(true)}
-              >
-                Block access
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    </li>
-  );
-}
 
 function TrainerRow({
   trainer,

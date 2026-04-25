@@ -164,6 +164,9 @@ export function ServicesPage() {
     },
     onError: (e) => setError((e as Error).message),
   });
+  const services = servicesQuery.data ?? [];
+  const activeServicesCount = services.filter((service) => service.is_active).length;
+  const pausedServicesCount = services.length - activeServicesCount;
 
   function addDraftAvailability() {
     if (draftStartTime >= draftEndTime) {
@@ -366,14 +369,25 @@ export function ServicesPage() {
 
       <div className="card">
         <h3>Existing Services</h3>
+        {!servicesQuery.isLoading ? (
+          <p className="muted">
+            Total {services.length} | Live {activeServicesCount} | Paused {pausedServicesCount}
+          </p>
+        ) : null}
         {servicesQuery.isLoading ? <p>Loading services...</p> : null}
         <ul className="list">
-          {(servicesQuery.data ?? []).map((service) => (
-            <li key={service.id}>
-              <span>
-                <b>{service.title}</b> ({service.service_type}) - {service.duration_minutes}m - ${service.price}
-                <span className={`badge ${service.is_active ? "badge-success" : "badge-muted"}`}>
-                  {service.is_active ? "Active" : "Inactive"}
+          {services.map((service) => (
+            <li key={service.id} className="service-list-item">
+              <span className="service-list-main">
+                <b>{service.title}</b>
+                <span className="muted service-list-meta">
+                  {service.service_type} · {service.duration_minutes} min · ${service.price}
+                </span>
+                <span className={`badge service-status-badge ${service.is_active ? "service-status-live" : "service-status-paused"}`}>
+                  {service.is_active ? "Live" : "Paused"}
+                </span>
+                <span className="muted service-status-copy">
+                  {service.is_active ? "Visible to clients and bookable" : "Hidden from client booking"}
                 </span>
               </span>
               <div className="inline-actions">

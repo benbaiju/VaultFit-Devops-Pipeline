@@ -97,11 +97,15 @@ availabilityRouter.get("/:trainerId/open-slots", async (req, res) => {
   const blockedSet = new Set((blockedDates ?? []).map((b) => String(b.blocked_date)));
   const openSlots: Array<{ date: string; startTime: string; endTime: string }> = [];
 
-  for (let d = new Date(`${query.from}T00:00:00`); d <= new Date(`${query.to}T00:00:00`); d.setDate(d.getDate() + 1)) {
+  for (
+    let d = new Date(`${query.from}T00:00:00.000Z`);
+    d <= new Date(`${query.to}T00:00:00.000Z`);
+    d.setUTCDate(d.getUTCDate() + 1)
+  ) {
     const dateStr = d.toISOString().slice(0, 10);
     if (blockedSet.has(dateStr)) continue;
 
-    const jsDay = d.getDay();
+    const jsDay = d.getUTCDay();
     const dayOfWeek = (jsDay + 6) % 7;
     const dayAvailability = (serviceAvailabilityRows ?? []).filter((slot) => slot.day_of_week === dayOfWeek);
     if (dayAvailability.length === 0) continue;

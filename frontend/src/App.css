@@ -133,6 +133,14 @@ button:disabled {
 .inline-actions {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.inline-actions button {
+  width: auto;
+  display: inline-block;
+  margin: 0.4rem 0 0;
 }
 
 .row-grid {
@@ -236,4 +244,138 @@ button:disabled {
 
 .status-completed {
   color: #1d4ed8;
+}
+
+.status-approved {
+  color: #166534;
+}
+
+.status-rejected {
+  color: #b91c1c;
+}
+
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.5rem;
+}
+
+.admin-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 10px 10px 0 0;
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+  border: 1px solid transparent;
+  margin: 0;
+  width: auto;
+  cursor: pointer;
+}
+
+.admin-tab:hover {
+  background: #e2e8f0;
+}
+
+.admin-tab.active {
+  background: #fff;
+  color: #0f172a;
+  border-color: #e2e8f0;
+  border-bottom-color: #fff;
+  margin-bottom: -1px;
+}
+
+.admin-tab-count {
+  font-size: 0.75rem;
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.admin-tab-amp {
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.admin-trainer-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+
+.admin-tab-panel {
+  min-height: 120px;
+}
+
+.admin-verification-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-pending-card .admin-card-title {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.admin-pending-card textarea {
+  max-width: 100%;
+  font-family: inherit;
+}
+
+.admin-history-row {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.list li.admin-history-row:has(.admin-user-actions) {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .list li.admin-history-row:has(.admin-user-actions) {
+    flex-direction: column;
+  }
+}
+
+.admin-user-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-user-actions {
+  flex-shrink: 0;
+}
+
+.admin-history-meta {
+  margin-bottom: 0.25rem;
+}
+
+.admin-notes-readonly {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.admin-timeline-detail {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #334155;
+}
+
+.small-mono {
+  font-size: 0.8rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }

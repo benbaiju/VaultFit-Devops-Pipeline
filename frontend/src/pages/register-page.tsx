@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { postLoginPath } from "../lib/navigation";
 import { useAuth } from "../state/auth-context";
-import type { Role } from "../types/api";
+
+type SignupRole = "client" | "trainer";
 
 export function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<Role>("client");
+  const [role, setRole] = useState<SignupRole>("client");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -19,8 +21,10 @@ export function RegisterPage() {
     setError("");
     setLoading(true);
     try {
-      await register({ fullName, role, email, password });
-      navigate("/", { replace: true });
+      const user = await register({ fullName, role, email, password });
+      queueMicrotask(() => {
+        navigate(postLoginPath(user.role), { replace: true });
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Register failed");
     } finally {
@@ -36,11 +40,10 @@ export function RegisterPage() {
         <p className="muted">Create your VaultFit account in under a minute.</p>
         <label>Full name</label>
         <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Jane Doe" required />
-        <label>Role</label>
-        <select value={role} onChange={(e) => setRole(e.target.value as Role)}>
-          <option value="client">client</option>
-          <option value="trainer">trainer</option>
-          <option value="admin">admin</option>
+        <label>I am signing up as</label>
+        <select value={role} onChange={(e) => setRole(e.target.value as SignupRole)}>
+          <option value="client">Client — book sessions with trainers</option>
+          <option value="trainer">Trainer — list services and take bookings</option>
         </select>
         <label>Email</label>
         <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />

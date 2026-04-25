@@ -7,7 +7,6 @@ import { useAuth } from "../state/auth-context";
 export function ServicesPage() {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedTrainerId, setSelectedTrainerId] = useState("");
   const [title, setTitle] = useState("");
   const [serviceType, setServiceType] = useState<"session" | "program" | "consultation">("session");
   const [durationMinutes, setDurationMinutes] = useState(60);
@@ -22,12 +21,10 @@ export function ServicesPage() {
   const trainers = trainersQuery.data ?? [];
 
   const effectiveTrainerId = useMemo(() => {
-    if (user?.role === "trainer") {
-      const mine = trainers.find((t) => t.user_id === user.id);
-      return mine?.id ?? "";
-    }
-    return selectedTrainerId;
-  }, [selectedTrainerId, trainers, user?.id, user?.role]);
+    if (user?.role !== "trainer") return "";
+    const mine = trainers.find((t) => t.user_id === user.id);
+    return mine?.id ?? "";
+  }, [trainers, user?.id, user?.role]);
 
   const servicesQuery = useQuery({
     queryKey: ["services", effectiveTrainerId],
@@ -73,20 +70,7 @@ export function ServicesPage() {
 
   return (
     <section>
-      <h2>Services</h2>
-      {user?.role === "admin" ? (
-        <div className="card">
-          <label>Trainer</label>
-          <select value={selectedTrainerId} onChange={(e) => setSelectedTrainerId(e.target.value)}>
-            <option value="">Select trainer</option>
-            {trainers.map((trainer) => (
-              <option key={trainer.id} value={trainer.id}>
-                {trainer.profiles?.full_name ?? trainer.id}
-              </option>
-            ))}
-          </select>
-        </div>
-      ) : null}
+      <h2>Your services</h2>
 
       <div className="card">
         <h3>Create Service</h3>

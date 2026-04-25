@@ -1,7 +1,8 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { AdminPage } from "./pages/admin-page.tsx";
-import { AppLayout } from "./components/app-layout.tsx";
-import { ProtectedRoute } from "./components/protected-route.tsx";
+import { AuthHomeRedirect } from "./components/root-redirect.tsx";
+import { ProtectedRoute, RoleRoute } from "./components/protected-route.tsx";
+import { RoleShellLayout } from "./components/role-shell-layout.tsx";
 import { BookingPage } from "./pages/booking-page.tsx";
 import { HomePage } from "./pages/home-page.tsx";
 import { LoginPage } from "./pages/login-page.tsx";
@@ -11,6 +12,8 @@ import { PlansPage } from "./pages/plans-page.tsx";
 import { RegisterPage } from "./pages/register-page.tsx";
 import { ReviewsPage } from "./pages/reviews-page.tsx";
 import { ServicesPage } from "./pages/services-page.tsx";
+import { TrainerBookingsPage } from "./pages/trainer-bookings-page.tsx";
+import { TrainerDashboardPage } from "./pages/trainer-dashboard-page.tsx";
 import { VerificationPage } from "./pages/verification-page.tsx";
 import "./App.css";
 
@@ -19,25 +22,55 @@ function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/" element={<AuthHomeRedirect />} />
       <Route
-        path="/"
+        path="/client"
         element={
           <ProtectedRoute>
-            <AppLayout />
+            <RoleRoute allowedRoles={["client"]}>
+              <RoleShellLayout variant="client" />
+            </RoleRoute>
           </ProtectedRoute>
         }
       >
         <Route index element={<HomePage />} />
-        <Route path="bookings" element={<BookingPage />} />
+        <Route path="book" element={<BookingPage />} />
+        <Route path="plans" element={<PlansPage />} />
         <Route path="reviews" element={<ReviewsPage />} />
+        <Route path="messages" element={<MessagesPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+      </Route>
+      <Route
+        path="/trainer"
+        element={
+          <ProtectedRoute>
+            <RoleRoute allowedRoles={["trainer"]}>
+              <RoleShellLayout variant="trainer" />
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<TrainerDashboardPage />} />
         <Route path="services" element={<ServicesPage />} />
+        <Route path="bookings" element={<TrainerBookingsPage />} />
         <Route path="plans" element={<PlansPage />} />
         <Route path="messages" element={<MessagesPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="verification" element={<VerificationPage />} />
-        <Route path="admin" element={<AdminPage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <RoleRoute allowedRoles={["admin"]}>
+              <RoleShellLayout variant="admin" />
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<AdminPage />} />
+      </Route>
+      <Route path="*" element={<AuthHomeRedirect />} />
     </Routes>
   );
 }

@@ -16,6 +16,27 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
     throw new HttpError(401, "Invalid or expired token", "UNAUTHORIZED");
   }
 
+  const { data: accessRow, error: accessError } = await supabaseAdmin
+    .from("profiles")
+    .select("access_suspended")
+    .eq("id", data.user.id)
+    .maybeSingle();
+
+  if (accessError) {
+    if (accessError.message?.includes("access_suspended") || accessError.message?.includes("column")) {
+      throw new HttpError(
+        500,
+        "Database is missing the access_suspended column. Apply backend/supabase/migrations/20260225000000_profiles_access_suspended.sql",
+        "SCHEMA_OUTDATED",
+      );
+    }
+    throw new HttpError(500, accessError.message, "PROFILE_CHECK_FAILED");
+  }
+
+  if (accessRow?.access_suspended) {
+    throw new HttpError(403, "Account access has been suspended", "ACCOUNT_SUSPENDED");
+  }
+
   req.user = {
     id: data.user.id,
     email: data.user.email,

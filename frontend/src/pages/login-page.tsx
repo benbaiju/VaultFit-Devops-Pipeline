@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { postLoginPath } from "../lib/navigation";
 import { useAuth } from "../state/auth-context";
 
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string } | undefined)?.from ?? "/";
+  const from = (location.state as { from?: string } | undefined)?.from;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,8 +19,11 @@ export function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await login(email, password);
-      navigate(from, { replace: true });
+      const signedIn = await login(email, password);
+      // Run after auth state is committed (flushSync in login); avoids ProtectedRoute seeing an empty token.
+      queueMicrotask(() => {
+        navigate(postLoginPath(signedIn.role, from), { replace: true });
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

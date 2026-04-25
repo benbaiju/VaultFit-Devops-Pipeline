@@ -16,6 +16,8 @@ for (const key of required) {
 
 export const env = {
   port: Number(process.env.PORT ?? 4000),
+  /** Default binds all interfaces; use 127.0.0.1 to listen on loopback only. */
+  host: process.env.HOST ?? "0.0.0.0",
   nodeEnv: process.env.NODE_ENV ?? "development",
   paymentsMode: (process.env.PAYMENTS_MODE ?? "mock") as "mock" | "stripe",
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL as string,

@@ -70,10 +70,10 @@ export function BookingPage() {
 
   return (
     <section>
-      <h2>Bookings</h2>
+      <h2>Book a session</h2>
       <div className="card">
-        <h3>Create Booking</h3>
-        <p className="muted">Select a trainer and create a session booking.</p>
+        <h3>Pick a time</h3>
+        <p className="muted">Choose a trainer, then an open slot from their calendar.</p>
         <label>Trainer</label>
         <select value={trainerId} onChange={(e) => setTrainerId(e.target.value)}>
           <option value="">Select trainer</option>
@@ -124,7 +124,7 @@ export function BookingPage() {
       </div>
 
       <div className="card">
-        <h3>Your bookings</h3>
+        <h3>Your sessions</h3>
         {bookingsQuery.isLoading ? <p>Loading bookings...</p> : null}
         <ul className="list">
           {bookings.map((booking) => (

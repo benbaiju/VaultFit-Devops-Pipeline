@@ -93,6 +93,7 @@ export function ClientProfilePage() {
   const profileDisplayName = profileQuery.data?.full_name?.trim() || user?.full_name || user?.email || "Client";
   const roleLabel = profileQuery.data?.role ? `${profileQuery.data.role.charAt(0).toUpperCase()}${profileQuery.data.role.slice(1)}` : "Client";
   const nameLocked = Boolean(profileQuery.data?.full_name?.trim());
+  const avatarInitial = profileDisplayName.charAt(0).toUpperCase();
 
   useEffect(() => {
     if (!profileQuery.data) return;
@@ -178,7 +179,32 @@ export function ClientProfilePage() {
 
   return (
     <section>
-      <h2>{`Hi, ${profileDisplayName}`}</h2>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={profileDisplayName}
+            style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--border-light)" }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "linear-gradient(135deg, var(--primary), var(--accent))",
+              color: "#fff",
+              fontWeight: 700,
+            }}
+          >
+            {avatarInitial}
+          </div>
+        )}
+        <h2 style={{ margin: 0 }}>{`Hi, ${profileDisplayName}`}</h2>
+      </div>
       <p className="muted">{roleLabel}</p>
       <p className="muted">View and update your account profile details.</p>
 

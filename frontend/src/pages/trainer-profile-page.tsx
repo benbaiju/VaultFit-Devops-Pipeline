@@ -62,10 +62,37 @@ export function TrainerProfilePage() {
   const profileDisplayName = meQuery.data?.profiles?.full_name?.trim() || "My profile";
   const roleLabel =
     (meQuery.data?.specialty ?? "").toLowerCase().includes("nutri") ? "Nutritionist" : "Trainer";
+  const avatarUrl = meQuery.data?.profiles?.avatar_url ?? "";
+  const avatarInitial = profileDisplayName.charAt(0).toUpperCase();
 
   return (
     <section>
-      <h2>{`Hi, ${profileDisplayName}`}</h2>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={profileDisplayName}
+            style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--border-light)" }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "linear-gradient(135deg, var(--primary), var(--accent))",
+              color: "#fff",
+              fontWeight: 700,
+            }}
+          >
+            {avatarInitial}
+          </div>
+        )}
+        <h2 style={{ margin: 0 }}>{`Hi, ${profileDisplayName}`}</h2>
+      </div>
       <p className="muted">{roleLabel}</p>
       <p className="muted">Complete your trainer or nutritionist profile and submit verification to unlock platform features.</p>
 

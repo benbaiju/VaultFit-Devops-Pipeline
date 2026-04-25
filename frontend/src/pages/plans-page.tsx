@@ -8,6 +8,232 @@ import { getServices } from "../services/services";
 import { getTrainers } from "../services/trainers";
 import { useAuth } from "../state/auth-context";
 
+type DraftPlanDay = {
+  dayLabel: string;
+  focus: string;
+  details: string;
+};
+
+type DraftPlanWeek = {
+  goal: string;
+  days: DraftPlanDay[];
+};
+
+type StructuredPlanContent = {
+  summary: string;
+  weeks: Array<{
+    week: number;
+    goal: string;
+    days: Array<{
+      day: string;
+      focus: string;
+      details: string;
+    }>;
+  }>;
+};
+
+function escapePdfText(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+}
+
+function wrapText(text: string, maxCharsPerLine: number): string[] {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return [""];
+  const words = normalized.split(" ");
+  const lines: string[] = [];
+  let current = "";
+  words.forEach((word) => {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length > maxCharsPerLine) {
+      if (current) lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  });
+  if (current) lines.push(current);
+  return lines;
+}
+
+type PdfLine = { text: string; kind: "title" | "meta" | "section" | "body" | "spacer" | "summary" | "divider" };
+
+function createStyledPlanPdfBlob(lines: PdfLine[]): Blob {
+  const pageWidth = 595;
+  const pageHeight = 842;
+  const marginX = 42;
+  const headerHeight = 94;
+  const startY = pageHeight - headerHeight - 22;
+  const bottomY = 68;
+
+  const pages: string[][] = [];
+  let commands: string[] = [];
+  let y = startY;
+
+  const pushPage = () => {
+    const headerCommands = [
+      "q",
+      "0.04 0.07 0.2 rg",
+      `0 ${pageHeight - headerHeight} ${pageWidth} ${headerHeight} re`,
+      "f",
+      "Q",
+      "BT",
+      "/F2 18 Tf",
+      "1 1 1 rg",
+      `${marginX} ${pageHeight - 48} Td`,
+      "(VaultFit Plan) Tj",
+      "ET",
+      "BT",
+      "/F1 10 Tf",
+      "0.62 0.71 1 rg",
+      `${marginX} ${pageHeight - 68} Td`,
+      "(Generated from trainer plan builder) Tj",
+      "ET",
+    ];
+    pages.push([...headerCommands, ...commands]);
+    commands = [];
+    y = startY;
+  };
+
+  const lineHeightForKind = (kind: PdfLine["kind"]) => {
+    if (kind === "title") return 18;
+    if (kind === "section") return 18;
+    if (kind === "meta") return 14;
+    if (kind === "spacer") return 14;
+    if (kind === "summary") return 13;
+    return 14;
+  };
+
+  const styleForKind = (kind: PdfLine["kind"]) => {
+    if (kind === "title") return { font: "F2", size: 15, color: "0.06 0.11 0.28" };
+    if (kind === "section") return { font: "F2", size: 13, color: "0.12 0.2 0.47" };
+    if (kind === "meta") return { font: "F1", size: 10, color: "0.3 0.35 0.45" };
+    if (kind === "summary") return { font: "F1", size: 10, color: "0.1 0.12 0.2" };
+    return { font: "F1", size: 10, color: "0.12 0.14 0.2" };
+  };
+
+  lines.forEach((line) => {
+    if (line.kind === "spacer") {
+      y -= lineHeightForKind("spacer");
+      if (y < bottomY) pushPage();
+      return;
+    }
+    if (line.kind === "divider") {
+      if (y < bottomY + 20) pushPage();
+      commands.push("q");
+      commands.push("0.82 0.86 0.95 RG");
+      commands.push("1.1 w");
+      commands.push(`${marginX} ${y - 2} m`);
+      commands.push(`${pageWidth - marginX} ${y - 2} l`);
+      commands.push("S");
+      commands.push("Q");
+      y -= 12;
+      return;
+    }
+    if (line.kind === "summary") {
+      const summaryLines = wrapText(line.text, 74);
+      const summaryLineHeight = lineHeightForKind("summary");
+      const boxPadding = 8;
+      const boxHeight = summaryLines.length * summaryLineHeight + boxPadding * 2;
+      if (y - boxHeight < bottomY) pushPage();
+      const boxTop = y;
+      const boxBottom = y - boxHeight;
+      commands.push("q");
+      commands.push("0.93 0.95 1 rg");
+      commands.push("0.7 0.78 1 RG");
+      commands.push("0.8 w");
+      commands.push(`${marginX} ${boxBottom} ${pageWidth - marginX * 2} ${boxHeight} re`);
+      commands.push("B");
+      commands.push("Q");
+      let summaryY = boxTop - boxPadding - 11;
+      summaryLines.forEach((wrappedLine) => {
+        const style = styleForKind("summary");
+        commands.push("BT");
+        commands.push(`/${style.font} ${style.size} Tf`);
+        commands.push(`${style.color} rg`);
+        commands.push(`${marginX + 10} ${summaryY} Td`);
+        commands.push(`(${escapePdfText(wrappedLine)}) Tj`);
+        commands.push("ET");
+        summaryY -= summaryLineHeight;
+      });
+      y -= boxHeight + 6;
+      return;
+    }
+
+    const style = styleForKind(line.kind);
+    const wrapAt = line.kind === "body" ? 86 : 78;
+    const wrapped = wrapText(line.text, wrapAt);
+
+    wrapped.forEach((wrappedLine) => {
+      const lh = lineHeightForKind(line.kind);
+      if (y < bottomY + lh) pushPage();
+      commands.push("BT");
+      commands.push(`/${style.font} ${style.size} Tf`);
+      commands.push(`${style.color} rg`);
+      commands.push(`${marginX} ${y} Td`);
+      commands.push(`(${escapePdfText(wrappedLine)}) Tj`);
+      commands.push("ET");
+      y -= lh;
+    });
+  });
+
+  pushPage();
+
+  const objects: string[] = [];
+  const pageObjectIds: number[] = [];
+  let nextObjectId = 4;
+
+  pages.forEach((pageCommands, index) => {
+    const pageId = nextObjectId++;
+    const contentId = nextObjectId++;
+    pageObjectIds.push(pageId);
+    const footerCommands = [
+      "BT",
+      "/F1 9 Tf",
+      "0.34 0.37 0.45 rg",
+      `${marginX} 28 Td`,
+      "(Generated by VaultFit) Tj",
+      "ET",
+      "BT",
+      "/F1 9 Tf",
+      "0.34 0.37 0.45 rg",
+      `${pageWidth - marginX - 64} 28 Td`,
+      `(${escapePdfText(`Page ${index + 1} of ${pages.length}`)}) Tj`,
+      "ET",
+    ];
+    const stream = [...pageCommands, ...footerCommands].join("\n");
+    objects[pageId] =
+      `<< /Type /Page /Parent 3 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents ${contentId} 0 R >>`;
+    objects[contentId] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
+  });
+
+  objects[1] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+  objects[2] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>";
+  objects[3] = `<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageObjectIds.length} >>`;
+  const catalogId = nextObjectId++;
+  objects[catalogId] = "<< /Type /Catalog /Pages 3 0 R >>";
+
+  const header = "%PDF-1.4\n";
+  let body = "";
+  const offsets: number[] = [0];
+  for (let id = 1; id < objects.length; id += 1) {
+    if (!objects[id]) continue;
+    offsets[id] = header.length + body.length;
+    body += `${id} 0 obj\n${objects[id]}\nendobj\n`;
+  }
+
+  const xrefStart = header.length + body.length;
+  const objectCount = objects.length;
+  let xref = `xref\n0 ${objectCount}\n0000000000 65535 f \n`;
+  for (let id = 1; id < objectCount; id += 1) {
+    const offset = offsets[id] ?? 0;
+    xref += `${offset.toString().padStart(10, "0")} 00000 n \n`;
+  }
+
+  const trailer = `trailer\n<< /Size ${objectCount} /Root ${catalogId} 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+  const pdf = `${header}${body}${xref}${trailer}`;
+  return new Blob([pdf], { type: "application/pdf" });
+}
+
 export function PlansPage() {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
@@ -16,7 +242,11 @@ export function PlansPage() {
   const [clientId, setClientId] = useState("");
   const [title, setTitle] = useState("");
   const [planType, setPlanType] = useState<"fitness" | "nutrition" | "hybrid">("fitness");
-  const [contentText, setContentText] = useState('{"weeks":[{"week":1,"days":[]}]}');
+  const [planSummary, setPlanSummary] = useState("");
+  const [planWeeks, setPlanWeeks] = useState<DraftPlanWeek[]>([
+    { goal: "", days: [{ dayLabel: "Day 1", focus: "", details: "" }] },
+  ]);
+  const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -35,10 +265,23 @@ export function PlansPage() {
     enabled: user?.role === "client" || user?.role === "trainer",
   });
 
-  const clientIds = Array.from(
-    new Set((bookingsQuery.data ?? []).map((b) => b.client_id).filter((id): id is string => Boolean(id))),
-  );
-  const roleBookings = bookingsQuery.data ?? [];
+  const roleBookings = useMemo(() => bookingsQuery.data ?? [], [bookingsQuery.data]);
+  const clientOptions = useMemo(() => {
+    const byClient = new Map<string, { latestDate: string; bookingId: string }>();
+    roleBookings.forEach((booking) => {
+      if (!booking.client_id) return;
+      const existing = byClient.get(booking.client_id);
+      if (!existing || booking.booking_date > existing.latestDate) {
+        byClient.set(booking.client_id, { latestDate: booking.booking_date, bookingId: booking.id });
+      }
+    });
+    return Array.from(byClient.entries())
+      .map(([id, details]) => ({
+        id,
+        label: `Client ${id.slice(0, 8)} - latest booking ${details.latestDate}`,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [roleBookings]);
   const serviceTrainerIds = useMemo(
     () => Array.from(new Set(roleBookings.map((b) => b.trainer_id).filter((id): id is string => Boolean(id)))),
     [roleBookings],
@@ -91,6 +334,147 @@ export function PlansPage() {
       return `Client ${booking.client_id?.slice(0, 8) ?? "Unknown"}`;
     }
     return booking.trainer_id ? (trainerNameById.get(booking.trainer_id) ?? "Trainer") : "Trainer";
+  }
+
+  function buildPlanContent(kind: "fitness" | "nutrition" | "hybrid", planTitle: string): StructuredPlanContent {
+    return {
+      summary: planSummary.trim() || `${kind} plan for ${planTitle}`,
+      weeks: planWeeks.map((week, weekIdx) => ({
+        week: weekIdx + 1,
+        goal: week.goal.trim() || `Week ${weekIdx + 1} goal`,
+        days: week.days.map((day, dayIdx) => ({
+          day: day.dayLabel.trim() || `Day ${dayIdx + 1}`,
+          focus: day.focus.trim() || "General training",
+          details: day.details.trim() || "No specific notes",
+        })),
+      })),
+    };
+  }
+
+  function addWeek() {
+    setPlanWeeks((prev) => [...prev, { goal: "", days: [{ dayLabel: `Day 1`, focus: "", details: "" }] }]);
+  }
+
+  function removeWeek(weekIndex: number) {
+    setPlanWeeks((prev) => (prev.length <= 1 ? prev : prev.filter((_, idx) => idx !== weekIndex)));
+  }
+
+  function updateWeekGoal(weekIndex: number, goal: string) {
+    setPlanWeeks((prev) =>
+      prev.map((week, idx) => (idx === weekIndex ? { ...week, goal } : week)),
+    );
+  }
+
+  function addDay(weekIndex: number) {
+    setPlanWeeks((prev) =>
+      prev.map((week, idx) =>
+        idx === weekIndex
+          ? {
+              ...week,
+              days: [...week.days, { dayLabel: `Day ${week.days.length + 1}`, focus: "", details: "" }],
+            }
+          : week,
+      ),
+    );
+  }
+
+  function removeDay(weekIndex: number, dayIndex: number) {
+    setPlanWeeks((prev) =>
+      prev.map((week, idx) => {
+        if (idx !== weekIndex) return week;
+        if (week.days.length <= 1) return week;
+        return { ...week, days: week.days.filter((_, dIdx) => dIdx !== dayIndex) };
+      }),
+    );
+  }
+
+  function updateDayField(
+    weekIndex: number,
+    dayIndex: number,
+    field: keyof DraftPlanDay,
+    value: string,
+  ) {
+    setPlanWeeks((prev) =>
+      prev.map((week, wIdx) => {
+        if (wIdx !== weekIndex) return week;
+        return {
+          ...week,
+          days: week.days.map((day, dIdx) =>
+            dIdx === dayIndex ? { ...day, [field]: value } : day,
+          ),
+        };
+      }),
+    );
+  }
+
+  function parsePlanContent(content: unknown): StructuredPlanContent | null {
+    if (!content || typeof content !== "object") return null;
+    const maybe = content as Record<string, unknown>;
+    if (!Array.isArray(maybe.weeks)) return null;
+
+    const weeks = maybe.weeks
+      .filter((week): week is Record<string, unknown> => Boolean(week) && typeof week === "object")
+      .map((week, idx) => {
+        const rawDays = Array.isArray(week.days) ? week.days : [];
+        return {
+          week: typeof week.week === "number" ? week.week : idx + 1,
+          goal: typeof week.goal === "string" ? week.goal : `Week ${idx + 1}`,
+          days: rawDays
+            .filter((day): day is Record<string, unknown> => Boolean(day) && typeof day === "object")
+            .map((day, dIdx) => ({
+              day: typeof day.day === "string" ? day.day : `Day ${dIdx + 1}`,
+              focus: typeof day.focus === "string" ? day.focus : "General",
+              details: typeof day.details === "string" ? day.details : "",
+            })),
+        };
+      });
+
+    return {
+      summary: typeof maybe.summary === "string" ? maybe.summary : "",
+      weeks,
+    };
+  }
+
+  function downloadPlanPdf(planTitle: string, planTypeValue: string, parsed: StructuredPlanContent | null) {
+    const normalizedTitle = planTitle.trim() || "plan";
+    const safeFilename = normalizedTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+    const lines: PdfLine[] = [
+      { text: normalizedTitle, kind: "title" },
+      { text: `Type: ${planTypeValue}`, kind: "meta" },
+      { text: "", kind: "spacer" },
+    ];
+
+    if (!parsed) {
+      lines.push({ text: "No structured content saved yet.", kind: "body" });
+    } else {
+      if (parsed.summary) {
+        lines.push({ text: "Summary", kind: "section" });
+        lines.push({ text: parsed.summary, kind: "summary" });
+        lines.push({ text: "", kind: "spacer" });
+      }
+      parsed.weeks.forEach((week) => {
+        lines.push({ text: `Week ${week.week}`, kind: "section" });
+        lines.push({ text: `Goal: ${week.goal}`, kind: "body" });
+        week.days.forEach((day) => {
+          lines.push({ text: `${day.day} - ${day.focus}`, kind: "body" });
+          if (day.details) lines.push({ text: day.details, kind: "meta" });
+        });
+        lines.push({ text: "", kind: "spacer" });
+        lines.push({ text: "", kind: "divider" });
+        lines.push({ text: "", kind: "spacer" });
+      });
+    }
+
+    const pdfBlob = createStyledPlanPdfBlob(lines);
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = `${safeFilename || "plan"}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
   }
 
   function renderBookingItem(booking: (typeof roleBookings)[number]) {
@@ -153,17 +537,18 @@ export function PlansPage() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      let content: unknown;
-      try {
-        content = JSON.parse(contentText);
-      } catch {
-        throw new Error("Plan content must be valid JSON");
-      }
-      return createPlan(token, { clientId, title, planType, content });
+      return createPlan(token, {
+        clientId,
+        title,
+        planType,
+        content: buildPlanContent(planType, title),
+      });
     },
     onSuccess: () => {
       setError("");
       setTitle("");
+      setPlanSummary("");
+      setPlanWeeks([{ goal: "", days: [{ dayLabel: "Day 1", focus: "", details: "" }] }]);
       void queryClient.invalidateQueries({ queryKey: ["plans"] });
     },
     onError: (e) => {
@@ -212,17 +597,27 @@ export function PlansPage() {
           <h3>Create Plan</h3>
           <p className="muted">Create structured plans for clients.</p>
 
-          <label>Client ID</label>
-          <input value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="Client profile UUID" />
-          {clientIds.length > 0 ? (
+          <label>Client</label>
+          {clientOptions.length > 0 ? (
             <select onChange={(e) => setClientId(e.target.value)} value={clientId}>
               <option value="">Select client from your bookings</option>
-              {clientIds.map((id) => (
-                <option key={id} value={id}>
-                  {id}
+              {clientOptions.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.label}
                 </option>
               ))}
             </select>
+          ) : (
+            <p className="muted">No clients found yet. Confirm at least one booking first.</p>
+          )}
+
+          {clientOptions.length > 0 && clientId ? (
+            <p className="muted">
+              Selected client:{" "}
+              {
+                clientOptions.find((client) => client.id === clientId)?.label
+              }
+            </p>
           ) : null}
 
           <label>Title</label>
@@ -235,8 +630,67 @@ export function PlansPage() {
             <option value="hybrid">hybrid</option>
           </select>
 
-          <label>Content JSON</label>
-          <textarea value={contentText} onChange={(e) => setContentText(e.target.value)} rows={6} />
+          <label>Plan summary</label>
+          <input
+            value={planSummary}
+            onChange={(e) => setPlanSummary(e.target.value)}
+            placeholder="What should the client achieve in this plan?"
+          />
+
+          <h4>Plan builder</h4>
+          {planWeeks.map((week, weekIdx) => (
+            <div key={`week-${weekIdx}`} className="card" style={{ marginBottom: "0.75rem" }}>
+              <div className="inline-actions" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                <strong>Week {weekIdx + 1}</strong>
+                <button className="secondary-btn" type="button" onClick={() => removeWeek(weekIdx)}>
+                  Remove week
+                </button>
+              </div>
+
+              <label>Week goal</label>
+              <input
+                value={week.goal}
+                onChange={(e) => updateWeekGoal(weekIdx, e.target.value)}
+                placeholder={`Week ${weekIdx + 1} goal`}
+              />
+
+              {week.days.map((day, dayIdx) => (
+                <div key={`week-${weekIdx}-day-${dayIdx}`} className="card" style={{ marginTop: "0.5rem" }}>
+                  <div className="inline-actions" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                    <strong>Day {dayIdx + 1}</strong>
+                    <button className="secondary-btn" type="button" onClick={() => removeDay(weekIdx, dayIdx)}>
+                      Remove day
+                    </button>
+                  </div>
+                  <label>Day label</label>
+                  <input
+                    value={day.dayLabel}
+                    onChange={(e) => updateDayField(weekIdx, dayIdx, "dayLabel", e.target.value)}
+                    placeholder={`Day ${dayIdx + 1}`}
+                  />
+                  <label>Focus</label>
+                  <input
+                    value={day.focus}
+                    onChange={(e) => updateDayField(weekIdx, dayIdx, "focus", e.target.value)}
+                    placeholder="Upper body, meal prep, recovery..."
+                  />
+                  <label>Details</label>
+                  <textarea
+                    rows={3}
+                    value={day.details}
+                    onChange={(e) => updateDayField(weekIdx, dayIdx, "details", e.target.value)}
+                    placeholder="Workout/meal details, sets, reps, notes..."
+                  />
+                </div>
+              ))}
+              <button className="secondary-btn" type="button" onClick={() => addDay(weekIdx)}>
+                Add day
+              </button>
+            </div>
+          ))}
+          <button className="secondary-btn" type="button" onClick={addWeek}>
+            Add week
+          </button>
 
           <button
             className="primary-btn"
@@ -262,9 +716,68 @@ export function PlansPage() {
         <ul className="list">
           {(plansQuery.data ?? []).map((plan) => (
             <li key={plan.id}>
-              <span>
-                <b>{plan.title}</b> ({plan.plan_type})
-              </span>
+              <div>
+                <span>
+                  <b>{plan.title}</b> ({plan.plan_type})
+                </span>
+                <p className="muted" style={{ marginTop: "0.35rem" }}>
+                  {expandedPlanId === plan.id ? "Click to hide full plan" : "Click to view full plan"}
+                </p>
+                <button
+                  className="secondary-btn"
+                  type="button"
+                  onClick={() => setExpandedPlanId((prev) => (prev === plan.id ? null : plan.id))}
+                >
+                  {expandedPlanId === plan.id ? "Hide plan details" : "View plan details"}
+                </button>
+                {expandedPlanId === plan.id
+                  ? (() => {
+                      const parsed = parsePlanContent(plan.content);
+                      if (!parsed) {
+                        return (
+                          <>
+                            <p className="muted">No structured content saved yet.</p>
+                            <button
+                              className="secondary-btn"
+                              type="button"
+                              onClick={() => downloadPlanPdf(plan.title, plan.plan_type, parsed)}
+                            >
+                              Download PDF
+                            </button>
+                          </>
+                        );
+                      }
+                      return (
+                        <div className="muted" style={{ marginTop: "0.35rem" }}>
+                          {parsed.summary ? (
+                            <p>
+                              <strong>Summary:</strong> {parsed.summary}
+                            </p>
+                          ) : null}
+                          {parsed.weeks.map((week) => (
+                            <div key={`plan-${plan.id}-week-${week.week}`} style={{ marginBottom: "0.35rem" }}>
+                              <p>
+                                <strong>Week {week.week}:</strong> {week.goal}
+                              </p>
+                              {week.days.map((day, idx) => (
+                                <p key={`plan-${plan.id}-week-${week.week}-day-${idx}`}>
+                                  - <strong>{day.day}:</strong> {day.focus} {day.details ? `- ${day.details}` : ""}
+                                </p>
+                              ))}
+                            </div>
+                          ))}
+                          <button
+                            className="secondary-btn"
+                            type="button"
+                            onClick={() => downloadPlanPdf(plan.title, plan.plan_type, parsed)}
+                          >
+                            Download PDF
+                          </button>
+                        </div>
+                      );
+                    })()
+                  : null}
+              </div>
               {user?.role === "trainer" ? (
                 <div className="inline-actions">
                   <button

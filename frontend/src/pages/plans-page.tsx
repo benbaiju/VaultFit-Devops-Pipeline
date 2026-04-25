@@ -70,9 +70,9 @@ export function PlansPage() {
 
   return (
     <section>
-      <h2>Plans</h2>
+      <h2>{user?.role === "client" ? "My plans" : "Plans"}</h2>
 
-      {user?.role === "trainer" || user?.role === "admin" ? (
+      {user?.role === "trainer" ? (
         <div className="card">
           <h3>Create Plan</h3>
           <p className="muted">Create structured plans for clients.</p>
@@ -123,7 +123,7 @@ export function PlansPage() {
               <span>
                 <b>{plan.title}</b> ({plan.plan_type})
               </span>
-              {user?.role === "trainer" || user?.role === "admin" ? (
+              {user?.role === "trainer" ? (
                 <div className="inline-actions">
                   <button
                     className="secondary-btn"

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { recordAdminAudit } from "../lib/admin-audit.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
@@ -95,6 +96,19 @@ verificationRouter.patch("/admin/verification-requests/:id", requireAuth, requir
     .single();
   if (error) throw new HttpError(400, error.message, "VERIFICATION_REVIEW_FAILED");
 
+  const action = payload.status === "approved" ? "verification_approved" : "verification_rejected";
+  void recordAdminAudit({
+    actorUserId: req.user!.id,
+    action,
+    targetType: "verification_request",
+    targetId: requestId,
+    detail: {
+      trainer_id: requestData.trainer_id,
+      outcome: payload.status,
+      admin_notes: payload.adminNotes ?? null,
+    },
+  });
+
   await supabaseAdmin
     .from("trainers")
     .update({ verified: payload.status === "approved" })
@@ -121,7 +135,7 @@ verificationRouter.patch("/admin/verification-requests/:id", requireAuth, requir
 verificationRouter.get("/admin/users", requireAuth, requireRole(["admin"]), async (_req, res) => {
   const { data, error } = await supabaseAdmin
     .from("profiles")
-    .select("id, email, full_name, role, created_at")
+    .select("id, email, full_name, role, created_at, access_suspended")
     .order("created_at", { ascending: false });
   if (error) throw new HttpError(400, error.message, "USERS_LIST_FAILED");
   res.json(data);

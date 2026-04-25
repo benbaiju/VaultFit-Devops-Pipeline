@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
+import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
 import { availabilityRouter } from "./routes/availability.js";
 import { bookingsRouter } from "./routes/bookings.js";
@@ -39,5 +40,6 @@ app.use("/plans", plansRouter);
 app.use("/", reviewsRouter);
 app.use("/", messagingRouter);
 app.use("/", verificationRouter);
+app.use("/", adminRouter);
 
 app.use(errorHandler);

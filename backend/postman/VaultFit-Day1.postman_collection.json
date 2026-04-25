@@ -6,37 +6,125 @@
     "description": "Complete API tests for all currently implemented VaultFit backend routes."
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:4000" },
-    { "key": "clientEmail", "value": "client@example.com" },
-    { "key": "clientPassword", "value": "Password123!" },
-    { "key": "trainerEmail", "value": "trainer@example.com" },
-    { "key": "trainerPassword", "value": "Password123!" },
-    { "key": "adminEmail", "value": "admin@example.com" },
-    { "key": "adminPassword", "value": "Password123!" },
-    { "key": "clientUserId", "value": "" },
-    { "key": "trainerUserId", "value": "" },
-    { "key": "trainerProfileId", "value": "" },
-    { "key": "clientToken", "value": "" },
-    { "key": "trainerToken", "value": "" },
-    { "key": "bookingId", "value": "" },
-    { "key": "paymentId", "value": "" },
-    { "key": "reviewId", "value": "" },
-    { "key": "planId", "value": "" },
-    { "key": "conversationId", "value": "" },
-    { "key": "messageId", "value": "" },
-    { "key": "notificationId", "value": "" },
-    { "key": "adminToken", "value": "" },
-    { "key": "serviceId", "value": "" },
-    { "key": "verificationRequestId", "value": "" },
-    { "key": "availabilitySlotId", "value": "" },
-    { "key": "blockedDateId", "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000"
+    },
+    {
+      "key": "clientEmail",
+      "value": "client@example.com"
+    },
+    {
+      "key": "clientPassword",
+      "value": "Password123!"
+    },
+    {
+      "key": "trainerEmail",
+      "value": "trainer@example.com"
+    },
+    {
+      "key": "trainerPassword",
+      "value": "Password123!"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@example.com"
+    },
+    {
+      "key": "adminPassword",
+      "value": "Password123!"
+    },
+    {
+      "key": "clientUserId",
+      "value": ""
+    },
+    {
+      "key": "trainerUserId",
+      "value": ""
+    },
+    {
+      "key": "trainerProfileId",
+      "value": ""
+    },
+    {
+      "key": "clientToken",
+      "value": ""
+    },
+    {
+      "key": "trainerToken",
+      "value": ""
+    },
+    {
+      "key": "bookingId",
+      "value": ""
+    },
+    {
+      "key": "paymentId",
+      "value": ""
+    },
+    {
+      "key": "reviewId",
+      "value": ""
+    },
+    {
+      "key": "planId",
+      "value": ""
+    },
+    {
+      "key": "conversationId",
+      "value": ""
+    },
+    {
+      "key": "messageId",
+      "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "serviceId",
+      "value": ""
+    },
+    {
+      "key": "verificationRequestId",
+      "value": ""
+    },
+    {
+      "key": "availabilitySlotId",
+      "value": ""
+    },
+    {
+      "key": "blockedDateId",
+      "value": ""
+    },
+    {
+      "key": "nutritionistEmail",
+      "value": "nutritionist@example.com"
+    },
+    {
+      "key": "nutritionistPassword",
+      "value": "Password123!"
+    },
+    {
+      "key": "nutritionistUserId",
+      "value": ""
+    },
+    {
+      "key": "nutritionistToken",
+      "value": ""
+    }
   ],
   "item": [
     {
       "name": "01 Health",
       "item": [
         {
-          "name": "GET /health",
+          "name": "GET /health (liveness, fast)",
           "event": [
             {
               "listen": "test",
@@ -54,6 +142,26 @@
             "method": "GET",
             "url": "{{baseUrl}}/health"
           }
+        },
+        {
+          "name": "GET /health/ready (Supabase, may be slow)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200, 503, or 504', function () {",
+                  "  pm.expect([200, 503, 504]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health/ready"
+          }
         }
       ]
     },
@@ -64,7 +172,12 @@
           "name": "POST /auth/register (client)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"fullName\": \"Client User\",\n  \"email\": \"{{clientEmail}}\",\n  \"password\": \"{{clientPassword}}\",\n  \"role\": \"client\",\n  \"phone\": \"0400000001\"\n}"
@@ -92,7 +205,12 @@
           "name": "POST /auth/register (trainer)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"fullName\": \"Trainer User\",\n  \"email\": \"{{trainerEmail}}\",\n  \"password\": \"{{trainerPassword}}\",\n  \"role\": \"trainer\",\n  \"phone\": \"0400000002\"\n}"
@@ -117,10 +235,48 @@
           ]
         },
         {
+          "name": "POST /auth/register (nutritionist)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Nutritionist User\",\n  \"email\": \"{{nutritionistEmail}}\",\n  \"password\": \"{{nutritionistPassword}}\",\n  \"role\": \"trainer\",\n  \"phone\": \"0400000004\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Register nutritionist returns 201 or 409', function () { pm.expect([201,409]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  pm.collectionVariables.set('nutritionistToken', body.token);",
+                  "  pm.collectionVariables.set('nutritionistUserId', body.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
           "name": "POST /auth/login (client)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{clientEmail}}\",\n  \"password\": \"{{clientPassword}}\"\n}"
@@ -146,7 +302,12 @@
           "name": "POST /auth/login (trainer)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{trainerEmail}}\",\n  \"password\": \"{{trainerPassword}}\"\n}"
@@ -169,10 +330,46 @@
           ]
         },
         {
+          "name": "POST /auth/login (nutritionist)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{nutritionistEmail}}\",\n  \"password\": \"{{nutritionistPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Nutritionist login status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('nutritionistToken', body.token);",
+                  "pm.collectionVariables.set('nutritionistUserId', body.user.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
           "name": "POST /auth/register (admin)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"fullName\": \"Admin User\",\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"role\": \"admin\",\n  \"phone\": \"0400000003\"\n}"
@@ -199,7 +396,12 @@
           "name": "POST /auth/login (admin)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
@@ -229,7 +431,12 @@
           "name": "GET /profiles/me (trainer)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/profiles/me"
           },
           "event": [
@@ -252,8 +459,14 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -283,8 +496,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -357,8 +576,14 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -388,8 +613,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -435,7 +666,12 @@
           "name": "DELETE /trainers/:id/availability/:slotId",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/trainers/{{trainerProfileId}}/availability/{{availabilitySlotId}}"
           },
           "event": [
@@ -455,8 +691,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -502,7 +744,12 @@
           "name": "DELETE /trainers/:id/blocked-dates/:blockedDateId",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/trainers/{{trainerProfileId}}/blocked-dates/{{blockedDateId}}"
           },
           "event": [
@@ -527,8 +774,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -554,7 +807,12 @@
           "name": "GET /bookings (client)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/bookings"
           },
           "event": [
@@ -576,8 +834,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -607,8 +871,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -635,7 +905,12 @@
           "name": "GET /bookings (trainer view confirmed)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/bookings"
           },
           "event": [
@@ -663,8 +938,14 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -691,8 +972,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -744,7 +1031,12 @@
           "name": "DELETE /reviews/:id",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/reviews/{{reviewId}}"
           },
           "event": [
@@ -769,8 +1061,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -796,7 +1094,12 @@
           "name": "GET /plans (trainer)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/plans"
           },
           "event": [
@@ -815,7 +1118,12 @@
           "name": "GET /plans/:id",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/plans/{{planId}}"
           },
           "event": [
@@ -835,8 +1143,14 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -860,7 +1174,12 @@
           "name": "DELETE /plans/:id",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/plans/{{planId}}"
           },
           "event": [
@@ -885,8 +1204,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -912,7 +1237,12 @@
           "name": "GET /conversations (client)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/conversations"
           },
           "event": [
@@ -932,8 +1262,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -959,7 +1295,12 @@
           "name": "GET /conversations/:id/messages (trainer)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/conversations/{{conversationId}}/messages?limit=20&offset=0"
           },
           "event": [
@@ -978,7 +1319,12 @@
           "name": "PATCH /conversations/:id/messages/read (trainer)",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/conversations/{{conversationId}}/messages/read"
           },
           "event": [
@@ -997,7 +1343,12 @@
           "name": "GET /notifications (trainer)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/notifications"
           },
           "event": [
@@ -1020,7 +1371,12 @@
           "name": "PATCH /notifications/:id/read (trainer)",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/notifications/{{notificationId}}/read"
           },
           "event": [
@@ -1039,7 +1395,12 @@
           "name": "PATCH /notifications/read-all (trainer)",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/notifications/read-all"
           },
           "event": [
@@ -1064,8 +1425,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1110,8 +1477,14 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1153,7 +1526,12 @@
           "name": "DELETE /trainers/:id/services/:serviceId",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/trainers/{{trainerProfileId}}/services/{{serviceId}}"
           },
           "event": [
@@ -1178,8 +1556,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{trainerToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1207,7 +1591,12 @@
           "name": "GET /admin/verification-requests",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/admin/verification-requests"
           },
           "event": [
@@ -1231,8 +1620,14 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1256,7 +1651,12 @@
           "name": "GET /verification-requests/:id (trainer)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{trainerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{trainerToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/verification-requests/{{verificationRequestId}}"
           },
           "event": [
@@ -1275,7 +1675,12 @@
           "name": "GET /admin/users",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/admin/users"
           },
           "event": [

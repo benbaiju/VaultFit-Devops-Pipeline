@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useState } from "react";
-import { apiRequest } from "../lib/api-client";
+import { flushSync } from "react-dom";
+import { apiRequest, ApiError } from "../lib/api-client";
 import { clearSession, getStoredToken, getStoredUser, saveSession } from "../lib/storage";
 import type { AuthResponse, Role, User } from "../types/api";
 
@@ -7,8 +8,8 @@ type AuthContextValue = {
   token: string;
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (input: { fullName: string; email: string; password: string; role: Role }) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
+  register: (input: { fullName: string; email: string; password: string; role: Role }) => Promise<User>;
   logout: () => void;
 };
 
@@ -27,24 +28,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState(getStoredToken());
   const [user, setUser] = useState<User | null>(parseUser(getStoredUser()));
 
-  async function login(email: string, password: string): Promise<void> {
+  async function login(email: string, password: string): Promise<User> {
     const response = await apiRequest<AuthResponse>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
-    setToken(response.token);
-    setUser(response.user);
+    if (!response.token || !response.user) {
+      throw new ApiError("Login succeeded but the response was incomplete. Check the API /auth/login payload.", 500);
+    }
+    flushSync(() => {
+      setToken(response.token);
+      setUser(response.user);
+    });
     saveSession(response.token, JSON.stringify(response.user));
+    return response.user;
   }
 
-  async function register(input: { fullName: string; email: string; password: string; role: Role }): Promise<void> {
+  async function register(input: { fullName: string; email: string; password: string; role: Role }): Promise<User> {
     const response = await apiRequest<AuthResponse>("/auth/register", {
       method: "POST",
       body: JSON.stringify(input),
     });
-    setToken(response.token);
-    setUser(response.user);
+    if (!response.token || !response.user) {
+      throw new ApiError("Registration succeeded but the response was incomplete.", 500);
+    }
+    flushSync(() => {
+      setToken(response.token);
+      setUser(response.user);
+    });
     saveSession(response.token, JSON.stringify(response.user));
+    return response.user;
   }
 
   function logout(): void {

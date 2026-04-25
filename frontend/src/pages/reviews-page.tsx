@@ -68,10 +68,10 @@ export function ReviewsPage() {
 
   return (
     <section>
-      <h2>Reviews</h2>
+      <h2>My reviews</h2>
 
       <div className="card">
-        <h3>Create Review</h3>
+        <h3>Leave a review</h3>
         <p className="muted">You can review only completed bookings.</p>
 
         <label>Completed booking</label>

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { ROUTES } from "../lib/navigation";
 import { getTrainers } from "../services/trainers";
 
 export function HomePage() {
@@ -14,9 +15,9 @@ export function HomePage() {
   return (
     <section>
       <div className="section-head">
-        <h2>Find Trainers</h2>
-        <Link className="secondary-link" to="/bookings">
-          Go to Bookings
+        <h2>Find trainers</h2>
+        <Link className="secondary-link" to={ROUTES.client.book}>
+          Book a session
         </Link>
       </div>
       <div className="grid">

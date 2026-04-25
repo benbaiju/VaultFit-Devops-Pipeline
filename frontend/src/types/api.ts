@@ -110,4 +110,33 @@ export interface AdminUser {
   full_name: string | null;
   role: Role;
   created_at: string;
+  /** When true, API login and all authenticated API calls are rejected for this user. */
+  access_suspended?: boolean;
+}
+
+export interface AdminTrainer {
+  id: string;
+  user_id: string;
+  verified: boolean;
+  specialty: string | null;
+  hourly_rate: number;
+  bio: string | null;
+  created_at?: string;
+  profiles?: { email?: string; full_name?: string | null; role?: Role } | null;
+}
+
+export interface AdminReviewTimelineItem {
+  source: "audit" | "legacy_verification";
+  id: string;
+  at: string;
+  action: string;
+  target_type: string;
+  target_id: string;
+  detail: Record<string, unknown>;
+  actor?: { id?: string; email?: string; full_name?: string | null };
+}
+
+export interface AdminReviewTimelineResponse {
+  items: AdminReviewTimelineItem[];
+  warning?: string;
 }

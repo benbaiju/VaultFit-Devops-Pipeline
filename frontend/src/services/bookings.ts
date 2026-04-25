@@ -43,3 +43,18 @@ export async function payBooking(token: string, bookingId: string, amount = 90):
     token,
   );
 }
+
+export async function updateBookingStatus(
+  token: string,
+  bookingId: string,
+  status: Booking["status"],
+): Promise<Booking> {
+  return apiRequest<Booking>(
+    `/bookings/${bookingId}/status`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    },
+    token,
+  );
+}

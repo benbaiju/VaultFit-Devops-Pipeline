@@ -5,6 +5,10 @@ export async function getTrainers(): Promise<Trainer[]> {
   return apiRequest<Trainer[]>("/trainers");
 }
 
+export async function getTrainerById(trainerId: string): Promise<Trainer> {
+  return apiRequest<Trainer>(`/trainers/${trainerId}`);
+}
+
 export async function getMyTrainerProfile(token: string): Promise<Trainer | null> {
   return apiRequest<Trainer | null>("/trainers/me/profile", {}, token);
 }

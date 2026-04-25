@@ -22,7 +22,12 @@ export function HomePage() {
       </div>
       <div className="grid">
         {(data ?? []).map((trainer) => (
-          <article className="card trainer-card" key={trainer.id}>
+          <Link
+            key={trainer.id}
+            className="card trainer-card"
+            to={`${ROUTES.client.trainers}/${trainer.id}`}
+            style={{ textDecoration: "none", color: "inherit", display: "block" }}
+          >
             <div className="trainer-card-top">
               <h3>{trainer.profiles?.full_name ?? "Unnamed Trainer"}</h3>
               <span className={trainer.verified ? "badge badge-success" : "badge badge-muted"}>
@@ -33,7 +38,8 @@ export function HomePage() {
             <p className="muted">Rate: ${trainer.hourly_rate}/hour</p>
             <p>{trainer.bio ?? "No bio yet."}</p>
             <p className="muted">ID: {trainer.id}</p>
-          </article>
+            <p className="muted">Click to view full profile</p>
+          </Link>
         ))}
       </div>
     </section>

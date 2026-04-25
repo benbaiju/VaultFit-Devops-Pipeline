@@ -44,6 +44,7 @@ export function PlansPage() {
   const [planWeeks, setPlanWeeks] = useState<DraftPlanWeek[]>([
     { goal: "", days: [{ dayLabel: "Day 1", focus: "", details: "" }] },
   ]);
+  const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -475,27 +476,43 @@ export function PlansPage() {
                 <span>
                   <b>{plan.title}</b> ({plan.plan_type})
                 </span>
-                {(() => {
-                  const parsed = parsePlanContent(plan.content);
-                  if (!parsed) return <p className="muted">No structured content saved yet.</p>;
-                  return (
-                    <div className="muted" style={{ marginTop: "0.35rem" }}>
-                      {parsed.summary ? <p><strong>Summary:</strong> {parsed.summary}</p> : null}
-                      {parsed.weeks.map((week) => (
-                        <div key={`plan-${plan.id}-week-${week.week}`} style={{ marginBottom: "0.35rem" }}>
-                          <p>
-                            <strong>Week {week.week}:</strong> {week.goal}
-                          </p>
-                          {week.days.map((day, idx) => (
-                            <p key={`plan-${plan.id}-week-${week.week}-day-${idx}`}>
-                              - <strong>{day.day}:</strong> {day.focus} {day.details ? `- ${day.details}` : ""}
+                <p className="muted" style={{ marginTop: "0.35rem" }}>
+                  {expandedPlanId === plan.id ? "Click to hide full plan" : "Click to view full plan"}
+                </p>
+                <button
+                  className="secondary-btn"
+                  type="button"
+                  onClick={() => setExpandedPlanId((prev) => (prev === plan.id ? null : plan.id))}
+                >
+                  {expandedPlanId === plan.id ? "Hide plan details" : "View plan details"}
+                </button>
+                {expandedPlanId === plan.id
+                  ? (() => {
+                      const parsed = parsePlanContent(plan.content);
+                      if (!parsed) return <p className="muted">No structured content saved yet.</p>;
+                      return (
+                        <div className="muted" style={{ marginTop: "0.35rem" }}>
+                          {parsed.summary ? (
+                            <p>
+                              <strong>Summary:</strong> {parsed.summary}
                             </p>
+                          ) : null}
+                          {parsed.weeks.map((week) => (
+                            <div key={`plan-${plan.id}-week-${week.week}`} style={{ marginBottom: "0.35rem" }}>
+                              <p>
+                                <strong>Week {week.week}:</strong> {week.goal}
+                              </p>
+                              {week.days.map((day, idx) => (
+                                <p key={`plan-${plan.id}-week-${week.week}-day-${idx}`}>
+                                  - <strong>{day.day}:</strong> {day.focus} {day.details ? `- ${day.details}` : ""}
+                                </p>
+                              ))}
+                            </div>
                           ))}
                         </div>
-                      ))}
-                    </div>
-                  );
-                })()}
+                      );
+                    })()
+                  : null}
               </div>
               {user?.role === "trainer" ? (
                 <div className="inline-actions">

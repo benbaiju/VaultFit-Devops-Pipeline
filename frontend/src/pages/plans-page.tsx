@@ -36,43 +36,124 @@ function escapePdfText(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }
 
-function createSimplePdfBlob(lines: string[]): Blob {
-  const linesPerPage = 45;
-  const chunks: string[][] = [];
-  for (let i = 0; i < lines.length; i += linesPerPage) {
-    chunks.push(lines.slice(i, i + linesPerPage));
-  }
-  const pages = chunks.length > 0 ? chunks : [[" "]];
+function wrapText(text: string, maxCharsPerLine: number): string[] {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return [""];
+  const words = normalized.split(" ");
+  const lines: string[] = [];
+  let current = "";
+  words.forEach((word) => {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length > maxCharsPerLine) {
+      if (current) lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  });
+  if (current) lines.push(current);
+  return lines;
+}
+
+type PdfLine = { text: string; kind: "title" | "meta" | "section" | "body" | "spacer" };
+
+function createStyledPlanPdfBlob(lines: PdfLine[]): Blob {
+  const pageWidth = 595;
+  const pageHeight = 842;
+  const marginX = 42;
+  const headerHeight = 94;
+  const startY = pageHeight - headerHeight - 22;
+  const bottomY = 46;
+
+  const pages: string[][] = [];
+  let commands: string[] = [];
+  let y = startY;
+
+  const pushPage = () => {
+    const headerCommands = [
+      "q",
+      "0.04 0.07 0.2 rg",
+      `0 ${pageHeight - headerHeight} ${pageWidth} ${headerHeight} re`,
+      "f",
+      "Q",
+      "BT",
+      "/F2 18 Tf",
+      "1 1 1 rg",
+      `${marginX} ${pageHeight - 48} Td`,
+      "(VaultFit Plan) Tj",
+      "ET",
+      "BT",
+      "/F1 10 Tf",
+      "0.62 0.71 1 rg",
+      `${marginX} ${pageHeight - 68} Td`,
+      "(Generated from trainer plan builder) Tj",
+      "ET",
+    ];
+    pages.push([...headerCommands, ...commands]);
+    commands = [];
+    y = startY;
+  };
+
+  const lineHeightForKind = (kind: PdfLine["kind"]) => {
+    if (kind === "title") return 18;
+    if (kind === "section") return 15;
+    if (kind === "meta") return 14;
+    if (kind === "spacer") return 8;
+    return 13;
+  };
+
+  const styleForKind = (kind: PdfLine["kind"]) => {
+    if (kind === "title") return { font: "F2", size: 15, color: "0.06 0.11 0.28" };
+    if (kind === "section") return { font: "F2", size: 12, color: "0.12 0.2 0.47" };
+    if (kind === "meta") return { font: "F1", size: 10, color: "0.3 0.35 0.45" };
+    return { font: "F1", size: 10, color: "0.12 0.14 0.2" };
+  };
+
+  lines.forEach((line) => {
+    if (line.kind === "spacer") {
+      y -= lineHeightForKind("spacer");
+      if (y < bottomY) pushPage();
+      return;
+    }
+
+    const style = styleForKind(line.kind);
+    const wrapAt = line.kind === "body" ? 86 : 78;
+    const wrapped = wrapText(line.text, wrapAt);
+
+    wrapped.forEach((wrappedLine) => {
+      const lh = lineHeightForKind(line.kind);
+      if (y < bottomY + lh) pushPage();
+      commands.push("BT");
+      commands.push(`/${style.font} ${style.size} Tf`);
+      commands.push(`${style.color} rg`);
+      commands.push(`${marginX} ${y} Td`);
+      commands.push(`(${escapePdfText(wrappedLine)}) Tj`);
+      commands.push("ET");
+      y -= lh;
+    });
+  });
+
+  pushPage();
 
   const objects: string[] = [];
   const pageObjectIds: number[] = [];
-  let nextObjectId = 3;
+  let nextObjectId = 4;
 
-  pages.forEach((pageLines) => {
+  pages.forEach((pageCommands) => {
     const pageId = nextObjectId++;
     const contentId = nextObjectId++;
     pageObjectIds.push(pageId);
-
-    const streamLines = [
-      "BT",
-      "/F1 11 Tf",
-      "50 790 Td",
-      "14 TL",
-      ...pageLines.map((line, idx) => (idx === 0 ? `(${escapePdfText(line)}) Tj` : `T* (${escapePdfText(line)}) Tj`)),
-      "ET",
-    ];
-    const stream = streamLines.join("\n");
-
-    objects[pageId] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents ${contentId} 0 R >>`;
+    const stream = pageCommands.join("\n");
+    objects[pageId] =
+      `<< /Type /Page /Parent 3 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents ${contentId} 0 R >>`;
     objects[contentId] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
   });
 
-  const kids = pageObjectIds.map((id) => `${id} 0 R`).join(" ");
   objects[1] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
-  objects[2] = `<< /Type /Pages /Kids [${kids}] /Count ${pageObjectIds.length} >>`;
-
+  objects[2] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>";
+  objects[3] = `<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageObjectIds.length} >>`;
   const catalogId = nextObjectId++;
-  objects[catalogId] = "<< /Type /Catalog /Pages 2 0 R >>";
+  objects[catalogId] = "<< /Type /Catalog /Pages 3 0 R >>";
 
   const header = "%PDF-1.4\n";
   let body = "";
@@ -301,30 +382,32 @@ export function PlansPage() {
     const normalizedTitle = planTitle.trim() || "plan";
     const safeFilename = normalizedTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
-    const lines: string[] = [
-      `Plan: ${normalizedTitle}`,
-      `Type: ${planTypeValue}`,
-      "",
+    const lines: PdfLine[] = [
+      { text: normalizedTitle, kind: "title" },
+      { text: `Type: ${planTypeValue}`, kind: "meta" },
+      { text: "", kind: "spacer" },
     ];
 
     if (!parsed) {
-      lines.push("No structured content saved yet.");
+      lines.push({ text: "No structured content saved yet.", kind: "body" });
     } else {
       if (parsed.summary) {
-        lines.push(`Summary: ${parsed.summary}`);
-        lines.push("");
+        lines.push({ text: "Summary", kind: "section" });
+        lines.push({ text: parsed.summary, kind: "body" });
+        lines.push({ text: "", kind: "spacer" });
       }
       parsed.weeks.forEach((week) => {
-        lines.push(`Week ${week.week}: ${week.goal}`);
+        lines.push({ text: `Week ${week.week}`, kind: "section" });
+        lines.push({ text: `Goal: ${week.goal}`, kind: "body" });
         week.days.forEach((day) => {
-          lines.push(`  - ${day.day}: ${day.focus}`);
-          if (day.details) lines.push(`    Details: ${day.details}`);
+          lines.push({ text: `${day.day} - ${day.focus}`, kind: "body" });
+          if (day.details) lines.push({ text: `Details: ${day.details}`, kind: "meta" });
         });
-        lines.push("");
+        lines.push({ text: "", kind: "spacer" });
       });
     }
 
-    const pdfBlob = createSimplePdfBlob(lines);
+    const pdfBlob = createStyledPlanPdfBlob(lines);
     const blobUrl = URL.createObjectURL(pdfBlob);
     const link = document.createElement("a");
     link.href = blobUrl;

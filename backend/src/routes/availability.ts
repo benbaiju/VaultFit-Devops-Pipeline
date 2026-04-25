@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { supabaseAdmin } from "../lib/supabase.js";
-import { requireAuth, requireRole } from "../middleware/auth.js";
+import { ensureVerifiedTrainerUser, requireAuth, requireRole } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
 
 const availabilitySchema = z.object({
@@ -119,6 +119,7 @@ availabilityRouter.post("/:trainerId/availability", requireAuth, requireRole(["t
   if (req.user!.role !== "admin" && trainer.user_id !== req.user!.id) {
     throw new HttpError(403, "Can only manage your own availability", "FORBIDDEN");
   }
+  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
 
   const { data, error } = await supabaseAdmin
     .from("trainer_availability")
@@ -151,6 +152,7 @@ availabilityRouter.delete(
     if (req.user!.role !== "admin" && trainer.user_id !== req.user!.id) {
       throw new HttpError(403, "Can only manage your own availability", "FORBIDDEN");
     }
+    if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
 
     const { error } = await supabaseAdmin
       .from("trainer_availability")
@@ -223,6 +225,7 @@ availabilityRouter.post("/:trainerId/blocked-dates", requireAuth, requireRole(["
   if (req.user!.role !== "admin" && trainer.user_id !== req.user!.id) {
     throw new HttpError(403, "Can only manage your own blocked dates", "FORBIDDEN");
   }
+  if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
 
   const { data, error } = await supabaseAdmin
     .from("blocked_dates")
@@ -253,6 +256,7 @@ availabilityRouter.delete(
     if (req.user!.role !== "admin" && trainer.user_id !== req.user!.id) {
       throw new HttpError(403, "Can only manage your own blocked dates", "FORBIDDEN");
     }
+    if (req.user!.role === "trainer") await ensureVerifiedTrainerUser(req.user!.id);
 
     const { error } = await supabaseAdmin
       .from("blocked_dates")

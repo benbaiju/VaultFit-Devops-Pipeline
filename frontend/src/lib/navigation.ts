@@ -13,6 +13,7 @@ export const ROUTES = {
   },
   trainer: {
     root: "/trainer",
+    profile: "/trainer/profile",
     services: "/trainer/services",
     bookings: "/trainer/bookings",
     plans: "/trainer/plans",

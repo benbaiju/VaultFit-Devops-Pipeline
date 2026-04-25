@@ -4,6 +4,7 @@ import { AuthHomeRedirect } from "./components/root-redirect.tsx";
 import { ProtectedRoute, RoleRoute, TrainerVerifiedRoute } from "./components/protected-route.tsx";
 import { RoleShellLayout } from "./components/role-shell-layout.tsx";
 import { BookingPage } from "./pages/booking-page.tsx";
+import { ClientProfilePage } from "./pages/client-profile-page.tsx";
 import { HomePage } from "./pages/home-page.tsx";
 import { LoginPage } from "./pages/login-page.tsx";
 import { MessagesPage } from "./pages/messages-page.tsx";
@@ -35,6 +36,7 @@ function App() {
         }
       >
         <Route index element={<HomePage />} />
+        <Route path="profile" element={<ClientProfilePage />} />
         <Route path="book" element={<BookingPage />} />
         <Route path="plans" element={<PlansPage />} />
         <Route path="reviews" element={<ReviewsPage />} />

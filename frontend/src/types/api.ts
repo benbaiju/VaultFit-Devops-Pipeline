@@ -12,6 +12,16 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface Profile {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  timezone: string | null;
+  role: Role;
+  created_at?: string;
+}
+
 export interface Trainer {
   id: string;
   user_id?: string;

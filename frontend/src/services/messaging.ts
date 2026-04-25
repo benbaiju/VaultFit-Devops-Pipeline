@@ -34,6 +34,19 @@ export async function sendMessage(token: string, conversationId: string, message
   );
 }
 
+export async function sendImageMessage(token: string, conversationId: string, file: File): Promise<Message> {
+  const form = new FormData();
+  form.append("image", file);
+  return apiRequest<Message>(
+    `/conversations/${conversationId}/messages/image`,
+    {
+      method: "POST",
+      body: form,
+    },
+    token,
+  );
+}
+
 export async function markConversationRead(token: string, conversationId: string): Promise<void> {
   await apiRequest(`/conversations/${conversationId}/messages/read`, { method: "PATCH" }, token);
 }

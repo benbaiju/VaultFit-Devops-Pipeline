@@ -86,6 +86,7 @@ export function ClientProfilePage() {
   }, [reviewsByCompletedTrainer, trainerNameById, user?.id]);
   const profileDisplayName = profileQuery.data?.full_name?.trim() || user?.full_name || user?.email || "Client";
   const roleLabel = profileQuery.data?.role ? `${profileQuery.data.role.charAt(0).toUpperCase()}${profileQuery.data.role.slice(1)}` : "Client";
+  const nameLocked = Boolean(profileQuery.data?.full_name?.trim());
 
   useEffect(() => {
     if (!profileQuery.data) return;
@@ -98,7 +99,7 @@ export function ClientProfilePage() {
   const updateMutation = useMutation({
     mutationFn: () =>
       updateMyProfile(token, {
-        fullName: fullName.trim() || undefined,
+        fullName: nameLocked ? undefined : fullName.trim() || undefined,
         phone: phone.trim() || undefined,
         timezone: timezone.trim() || undefined,
         avatarUrl: avatarUrl.trim() || undefined,
@@ -126,7 +127,13 @@ export function ClientProfilePage() {
         ) : null}
 
         <label>Full name</label>
-        <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your full name" />
+        <input
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          placeholder="Your full name"
+          disabled={nameLocked}
+        />
+        {nameLocked ? <p className="muted">Name is locked after initial setup for client accounts.</p> : null}
 
         <label>Phone</label>
         <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+61..." />

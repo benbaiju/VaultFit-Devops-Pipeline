@@ -299,6 +299,104 @@ button:disabled {
   color: #b91c1c;
 }
 
+.booking-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.55rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.booking-item-toggle {
+  width: 100%;
+  margin: 0;
+  padding: 0.15rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+}
+
+.booking-item-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.booking-item-title {
+  margin: 0;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.booking-item-subtitle {
+  margin: 0.18rem 0 0;
+  font-size: 0.88rem;
+  color: #64748b;
+}
+
+.booking-item-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.booking-item-link {
+  font-size: 0.84rem;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.booking-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.45rem 0.85rem;
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 0.6rem;
+}
+
+.booking-details-grid p {
+  margin: 0;
+}
+
+.booking-id-line {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.82rem;
+}
+
+.booking-section-title {
+  margin: 0.2rem 0 0.45rem;
+  font-size: 0.82rem;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.booking-status-badge {
+  text-transform: capitalize;
+  font-size: 0.72rem;
+}
+
+.booking-status-confirmed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.booking-status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.booking-status-completed {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.booking-status-cancelled {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 .admin-tabs {
   display: flex;
   flex-wrap: wrap;

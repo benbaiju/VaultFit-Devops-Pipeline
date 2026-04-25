@@ -8,6 +8,7 @@ import { ClientProfilePage } from "./pages/client-profile-page.tsx";
 import { HomePage } from "./pages/home-page.tsx";
 import { LoginPage } from "./pages/login-page.tsx";
 import { MessagesPage } from "./pages/messages-page.tsx";
+import { NutritionistsPage } from "./pages/nutritionists-page.tsx";
 import { NotificationsPage } from "./pages/notifications-page.tsx";
 import { PlansPage } from "./pages/plans-page.tsx";
 import { RegisterPage } from "./pages/register-page.tsx";
@@ -38,6 +39,7 @@ function App() {
       >
         <Route index element={<HomePage />} />
         <Route path="trainers" element={<HomePage />} />
+        <Route path="nutritionists" element={<NutritionistsPage />} />
         <Route path="trainers/:trainerId" element={<TrainerPublicProfilePage />} />
         <Route path="profile" element={<ClientProfilePage />} />
         <Route path="book" element={<BookingPage />} />

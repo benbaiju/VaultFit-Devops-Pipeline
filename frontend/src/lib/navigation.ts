@@ -6,6 +6,7 @@ export const ROUTES = {
   client: {
     root: "/client",
     trainers: "/client/trainers",
+    nutritionists: "/client/nutritionists",
     profile: "/client/profile",
     book: "/client/book",
     plans: "/client/plans",

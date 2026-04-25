@@ -1,5 +1,5 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { createBooking, getBookings, getOpenSlots, payBooking } from "../services/bookings";
 import { getServices } from "../services/services";
@@ -39,6 +39,7 @@ export function BookingPage() {
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; startTime: string; endTime: string } | null>(null);
   const bookingWith = searchParams.get("with");
   const specificTrainerId = searchParams.get("trainerId") ?? "";
+  const isLockedToProfile = Boolean(specificTrainerId);
 
   const trainersQuery = useQuery({ queryKey: ["trainers"], queryFn: getTrainers });
   const verifiedProfessionals = useMemo(() => {
@@ -111,6 +112,15 @@ export function BookingPage() {
   [servicesByTrainer, verifiedProfessionals]);
 
   const selectedService = useMemo(() => serviceOptions.find((s) => s.id === selectedServiceId) ?? null, [selectedServiceId, serviceOptions]);
+  const selectedProfessional = useMemo(
+    () => verifiedProfessionals.find((p) => p.id === specificTrainerId) ?? null,
+    [specificTrainerId, verifiedProfessionals],
+  );
+
+  useEffect(() => {
+    if (!specificTrainerId) return;
+    setTrainerId(specificTrainerId);
+  }, [specificTrainerId]);
 
   const handleServiceSelect = (serviceId: string, trId: string) => {
     setSelectedServiceId(serviceId);
@@ -162,20 +172,26 @@ export function BookingPage() {
               <strong>{bookingWith === "nutritionist" ? "Nutritionists only" : bookingWith === "trainer" ? "Trainers only" : "All professionals"}</strong>
               {specificTrainerId ? " · Selected profile only" : ""}
             </p>
-            <div className="flex gap-2 mb-4 flex-wrap">
-              <Link className={`secondary-btn ${bookingWith === "trainer" ? "active-filter-btn" : ""}`} to={`${ROUTES.client.book}?with=trainer`}>
-                Trainers only
-              </Link>
-              <Link
-                className={`secondary-btn ${bookingWith === "nutritionist" ? "active-filter-btn" : ""}`}
-                to={`${ROUTES.client.book}?with=nutritionist`}
-              >
-                Nutritionists only
-              </Link>
-              <Link className={`secondary-btn ${!bookingWith ? "active-filter-btn" : ""}`} to={ROUTES.client.book}>
-                All professionals
-              </Link>
-            </div>
+            {isLockedToProfile ? (
+              <p className="muted mb-4">
+                Booking with: <strong>{selectedProfessional?.profiles?.full_name ?? "Selected professional"}</strong>
+              </p>
+            ) : (
+              <div className="flex gap-2 mb-4 flex-wrap">
+                <Link className={`secondary-btn ${bookingWith === "trainer" ? "active-filter-btn" : ""}`} to={`${ROUTES.client.book}?with=trainer`}>
+                  Trainers only
+                </Link>
+                <Link
+                  className={`secondary-btn ${bookingWith === "nutritionist" ? "active-filter-btn" : ""}`}
+                  to={`${ROUTES.client.book}?with=nutritionist`}
+                >
+                  Nutritionists only
+                </Link>
+                <Link className={`secondary-btn ${!bookingWith ? "active-filter-btn" : ""}`} to={ROUTES.client.book}>
+                  All professionals
+                </Link>
+              </div>
+            )}
             <div className="service-grid">
               {serviceOptions.map((service) => (
                 <div key={service.id} className="service-card" onClick={() => handleServiceSelect(service.id, service.trainer_id)}>

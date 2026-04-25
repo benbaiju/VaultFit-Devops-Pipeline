@@ -5,6 +5,11 @@ import { ROUTES } from "../lib/navigation";
 import { getTrainerReviews } from "../services/reviews";
 import { getTrainerById } from "../services/trainers";
 
+function isNutritionSpecialty(value: string | null | undefined): boolean {
+  const text = (value ?? "").toLowerCase();
+  return text.includes("nutri") || text.includes("diet") || text.includes("meal");
+}
+
 export function TrainerPublicProfilePage() {
   const { trainerId } = useParams<{ trainerId: string }>();
 
@@ -31,6 +36,9 @@ export function TrainerPublicProfilePage() {
       : 0;
   const roundedRating = Math.round(averageRating);
   const displayName = trainer.profiles?.full_name ?? "Unnamed Trainer";
+  const professionalType =
+    trainer.profiles?.role === "nutritionist" || isNutritionSpecialty(trainer.specialty) ? "nutritionist" : "trainer";
+  const bookLabel = professionalType === "nutritionist" ? "Book with this nutritionist" : "Book with this trainer";
   const initials = displayName
     .split(" ")
     .map((part) => part[0])
@@ -78,8 +86,8 @@ export function TrainerPublicProfilePage() {
           </div>
           <p className="trainer-profile-bio">{trainer.bio ?? "This trainer has not added a bio yet."}</p>
           <div className="trainer-profile-actions">
-            <Link className="primary-btn" to={`${ROUTES.client.book}?with=trainer&trainerId=${trainer.id}`}>
-              Book with this trainer
+            <Link className="primary-btn" to={`${ROUTES.client.book}?with=${professionalType}&trainerId=${trainer.id}`}>
+              {bookLabel}
             </Link>
             <Link className="secondary-link" to={ROUTES.client.trainers}>
               Back to all trainers

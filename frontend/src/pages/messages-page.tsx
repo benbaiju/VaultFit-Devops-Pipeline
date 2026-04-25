@@ -142,7 +142,7 @@ export function MessagesPage() {
     <section>
       <h2>Messages</h2>
       <div className="chat-layout">
-        <aside className="card chat-sidebar">
+        <aside className="card chat-sidebar whatsapp-rail">
           <div className="chat-conversations">
             <h3>Conversations</h3>
             {conversationsQuery.isLoading ? <p className="muted">Loading conversations...</p> : null}
@@ -162,7 +162,7 @@ export function MessagesPage() {
                     onClick={() => setSelectedConversationId(conversation.id)}
                   >
                     <span className="chat-conversation-name">{conversationLabel(conversation.id)}</span>
-                    <span className="chat-conversation-meta">live</span>
+                    <span className="chat-conversation-meta chat-conversation-meta-live">live</span>
                   </button>
                 );
               })}
@@ -191,12 +191,12 @@ export function MessagesPage() {
           </div>
         </aside>
 
-        <section className="card chat-thread">
+        <section className="card chat-thread whatsapp-thread">
           {!selectedConversationId ? (
             <p className="muted">Select a conversation to start messaging.</p>
           ) : (
             <>
-              <div className="chat-thread-head">
+              <div className="chat-thread-head whatsapp-thread-head">
                 <h3>{selectedConversationLabel}</h3>
                 <p className="muted">{selectedConversation?.chat_open === false ? "Archived thread" : "Live thread"}</p>
               </div>
@@ -206,7 +206,7 @@ export function MessagesPage() {
                 <p className="muted">Service completed. This chat is archived and read-only.</p>
               ) : null}
 
-              <div className="chat-messages">
+              <div className="chat-messages whatsapp-messages">
                 {messages.length === 0 ? <p className="muted">No messages yet. Say hello.</p> : null}
                 {messages.map((message) => {
                   const mine = message.sender_id === user?.id;
@@ -214,7 +214,7 @@ export function MessagesPage() {
                   const isImage = message.message_type === "image" && Boolean(imageUrl);
                   return (
                     <div key={message.id} className={`chat-message-row ${mine ? "chat-message-row-mine" : ""}`}>
-                      <div className={`chat-bubble ${mine ? "chat-bubble-mine" : ""}`}>
+                      <div className={`chat-bubble ${mine ? "chat-bubble-mine" : ""} ${isImage ? "chat-bubble-image" : ""}`}>
                         {isImage ? (
                           <a href={imageUrl!} target="_blank" rel="noreferrer">
                             <img src={imageUrl!} alt="Chat upload" className="chat-image" />
@@ -222,15 +222,15 @@ export function MessagesPage() {
                         ) : (
                           <p>{message.message}</p>
                         )}
-                        <span>{new Date(message.created_at).toLocaleString()}</span>
+                        <span className="chat-time">{new Date(message.created_at).toLocaleString()}</span>
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="chat-composer">
-                <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Type your message..." />
+              <div className="chat-composer whatsapp-composer">
+                <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Type a message..." />
                 <input
                   ref={imageInputRef}
                   type="file"
@@ -269,12 +269,161 @@ export function MessagesPage() {
       </div>
 
       <style>{`
+        .chat-layout {
+          display: grid;
+          grid-template-columns: 320px 1fr;
+          gap: 1rem;
+          min-height: 70vh;
+        }
+        .whatsapp-rail,
+        .whatsapp-thread {
+          margin-bottom: 0;
+          display: flex;
+          flex-direction: column;
+          padding: 0;
+          overflow: hidden;
+        }
+        .chat-conversations {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          padding: 1rem;
+          gap: 0.75rem;
+        }
+        .chat-conversations h3 {
+          margin: 0;
+          padding: 0 0.25rem;
+        }
+        .chat-conversation-list {
+          display: grid;
+          gap: 0.45rem;
+          overflow-y: auto;
+          padding-right: 0.2rem;
+        }
+        .chat-conversation-item {
+          border: 1px solid var(--border-light);
+          background: rgba(255, 255, 255, 0.02);
+          color: var(--text-primary);
+          border-radius: 0.9rem;
+          padding: 0.75rem 0.85rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          text-align: left;
+          width: 100%;
+        }
+        .chat-conversation-item:hover {
+          background: rgba(255, 255, 255, 0.06);
+        }
+        .chat-conversation-item-active {
+          border-color: rgba(99, 102, 241, 0.6);
+          background: rgba(79, 70, 229, 0.18);
+        }
+        .chat-conversation-name {
+          font-weight: 700;
+          font-size: 0.95rem;
+        }
+        .chat-conversation-meta {
+          font-size: 0.72rem;
+          text-transform: uppercase;
+          color: var(--text-muted);
+          letter-spacing: 0.04em;
+        }
+        .chat-conversation-meta-live {
+          color: #34d399;
+        }
+        .whatsapp-thread-head {
+          padding: 0.95rem 1rem;
+          border-bottom: 1px solid var(--border-light);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background: rgba(255, 255, 255, 0.02);
+        }
+        .whatsapp-thread-head h3 {
+          margin: 0;
+        }
+        .whatsapp-messages {
+          flex: 1;
+          overflow-y: auto;
+          padding: 1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          background-image: radial-gradient(rgba(148, 163, 184, 0.07) 1px, transparent 1px);
+          background-size: 16px 16px;
+          background-color: rgba(2, 6, 23, 0.28);
+        }
+        .chat-message-row {
+          display: flex;
+          justify-content: flex-start;
+        }
+        .chat-message-row-mine {
+          justify-content: flex-end;
+        }
+        .chat-bubble {
+          max-width: min(78%, 520px);
+          border-radius: 1rem;
+          border: 1px solid var(--border-light);
+          background: rgba(15, 23, 42, 0.9);
+          padding: 0.58rem 0.72rem 0.42rem;
+        }
+        .chat-bubble p {
+          margin: 0;
+          line-height: 1.45;
+          word-break: break-word;
+        }
+        .chat-bubble-mine {
+          background: rgba(37, 99, 235, 0.2);
+          border-color: rgba(59, 130, 246, 0.35);
+        }
+        .chat-bubble-image {
+          padding: 0.42rem;
+        }
+        .chat-time {
+          display: block;
+          margin-top: 0.3rem;
+          font-size: 0.7rem;
+          color: var(--text-muted);
+          text-align: right;
+        }
+        .whatsapp-composer {
+          border-top: 1px solid var(--border-light);
+          padding: 0.8rem;
+          display: grid;
+          grid-template-columns: 1fr auto auto;
+          gap: 0.6rem;
+          align-items: center;
+          background: rgba(2, 6, 23, 0.88);
+        }
+        .whatsapp-composer input {
+          margin: 0;
+          min-height: 42px;
+          border-radius: 999px;
+          padding-left: 0.95rem;
+        }
+        .whatsapp-composer .secondary-btn,
+        .whatsapp-composer .primary-btn {
+          margin: 0;
+          min-height: 42px;
+          border-radius: 999px;
+          padding: 0 1rem;
+        }
         .chat-image {
           max-width: 220px;
           max-height: 220px;
           border-radius: 0.6rem;
           display: block;
           border: 1px solid var(--border-light);
+        }
+        @media (max-width: 980px) {
+          .chat-layout {
+            grid-template-columns: 1fr;
+          }
+          .whatsapp-rail {
+            min-height: 220px;
+            max-height: 300px;
+          }
         }
       `}</style>
 

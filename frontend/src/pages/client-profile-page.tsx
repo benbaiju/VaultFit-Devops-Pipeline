@@ -112,7 +112,7 @@ export function ClientProfilePage() {
 
   return (
     <section>
-      <h2>{profileDisplayName}</h2>
+      <h2>{`Hi, ${profileDisplayName}`}</h2>
       <p className="muted">{roleLabel}</p>
       <p className="muted">View and update your account profile details.</p>
 

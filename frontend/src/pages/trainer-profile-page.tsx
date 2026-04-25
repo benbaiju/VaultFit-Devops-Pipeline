@@ -59,10 +59,14 @@ export function TrainerProfilePage() {
 
   const latestVerification = (verificationQuery.data ?? [])[0];
   const isVerified = Boolean(meQuery.data?.verified);
+  const profileDisplayName = meQuery.data?.profiles?.full_name?.trim() || "My profile";
+  const roleLabel =
+    (meQuery.data?.specialty ?? "").toLowerCase().includes("nutri") ? "Nutritionist" : "Trainer";
 
   return (
     <section>
-      <h2>My profile</h2>
+      <h2>{`Hi, ${profileDisplayName}`}</h2>
+      <p className="muted">{roleLabel}</p>
       <p className="muted">Complete your trainer or nutritionist profile and submit verification to unlock platform features.</p>
 
       <div className="card">

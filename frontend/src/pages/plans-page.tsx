@@ -278,7 +278,7 @@ export function PlansPage() {
     return Array.from(byClient.entries())
       .map(([id, details]) => ({
         id,
-        label: `Client ${id.slice(0, 8)} - latest booking ${details.latestDate}`,
+        label: `Client - latest booking ${details.latestDate}`,
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [roleBookings]);
@@ -331,7 +331,7 @@ export function PlansPage() {
 
   function counterpartLabel(booking: (typeof roleBookings)[number]): string {
     if (user?.role === "trainer") {
-      return `Client ${booking.client_id?.slice(0, 8) ?? "Unknown"}`;
+      return "Client";
     }
     return booking.trainer_id ? (trainerNameById.get(booking.trainer_id) ?? "Trainer") : "Trainer";
   }

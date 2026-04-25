@@ -102,10 +102,10 @@ export function TrainerDashboardPage() {
                   </div>
                   <div className="agenda-divider"></div>
                   <div className="agenda-details">
-                    <h4 className="m-0 mb-1">Session {b.id.slice(0,4)}</h4>
+                    <h4 className="m-0 mb-1">Client session</h4>
                     <div className="flex items-center gap-2">
                       <span className={`badge badge-${b.status === 'confirmed' ? 'success' : 'warning'}`}>{b.status}</span>
-                      <span className="muted text-sm flex items-center gap-1"><Users size={12}/> Client {b.client_id?.slice(0,4)}</span>
+                      <span className="muted text-sm flex items-center gap-1"><Users size={12}/> Client booking</span>
                     </div>
                   </div>
                 </div>

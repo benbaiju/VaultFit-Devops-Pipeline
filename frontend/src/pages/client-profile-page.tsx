@@ -98,6 +98,12 @@ export function ClientProfilePage() {
   const roleLabel = profileQuery.data?.role ? `${profileQuery.data.role.charAt(0).toUpperCase()}${profileQuery.data.role.slice(1)}` : "Client";
   const nameLocked = Boolean(profileQuery.data?.full_name?.trim());
   const avatarInitial = profileDisplayName.charAt(0).toUpperCase();
+  const normalizedCurrentPhone = phone.trim().replace(/[\s\-()]/g, "");
+  const normalizedSavedPhone = (profileQuery.data?.phone ?? "").trim().replace(/[\s\-()]/g, "");
+  const phoneAlreadyVerifiedForCurrentInput =
+    Boolean(profileQuery.data?.phone_verified) &&
+    Boolean(normalizedCurrentPhone) &&
+    normalizedCurrentPhone === normalizedSavedPhone;
 
   useEffect(() => {
     if (!profileQuery.data) return;
@@ -281,10 +287,14 @@ export function ClientProfilePage() {
               <button
                 className="secondary-btn otp-btn-sm"
                 type="button"
-                disabled={!phone.trim() || sendOtpMutation.isPending}
+                disabled={!phone.trim() || sendOtpMutation.isPending || phoneAlreadyVerifiedForCurrentInput}
                 onClick={() => sendOtpMutation.mutate()}
               >
-                {sendOtpMutation.isPending ? "Sending OTP..." : "Send OTP"}
+                {sendOtpMutation.isPending
+                  ? "Sending OTP..."
+                  : phoneAlreadyVerifiedForCurrentInput
+                    ? "Already verified"
+                    : "Send OTP"}
               </button>
               <input
                 value={otpCode}
@@ -296,12 +306,19 @@ export function ClientProfilePage() {
               <button
                 className="secondary-btn otp-btn-sm"
                 type="button"
-                disabled={otpCode.trim().length !== 6 || verifyOtpMutation.isPending}
+                disabled={otpCode.trim().length !== 6 || verifyOtpMutation.isPending || phoneAlreadyVerifiedForCurrentInput}
                 onClick={() => verifyOtpMutation.mutate()}
               >
-                {verifyOtpMutation.isPending ? "Verifying..." : "Verify OTP"}
+                {verifyOtpMutation.isPending
+                  ? "Verifying..."
+                  : phoneAlreadyVerifiedForCurrentInput
+                    ? "Verified"
+                    : "Verify OTP"}
               </button>
             </div>
+            {phoneAlreadyVerifiedForCurrentInput ? (
+              <p className="muted">This phone is already verified. Verification is only needed if you change the number.</p>
+            ) : null}
             {otpStatus ? <p className="muted">{otpStatus}</p> : null}
             {otpPreview ? <p className="muted">Dev OTP: {otpPreview}</p> : null}
 

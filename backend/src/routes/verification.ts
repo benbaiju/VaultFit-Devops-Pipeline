@@ -56,6 +56,7 @@ function ensureVerificationDocs(payload: { credentialRef: string; identityRef: s
 verificationRouter.post("/verification-requests", requireAuth, requireRole(["trainer"]), async (req, res) => {
   const payload = submitVerificationSchema.parse(req.body);
   const trainerId = await getTrainerIdOrThrow(req.user!.id, req.user!.role);
+  await ensureTrainerNotAlreadyVerified(trainerId);
 
   const { data: existing, error: existingError } = await supabaseAdmin
     .from("verification_requests")
@@ -98,6 +99,7 @@ verificationRouter.post(
   ]),
   async (req, res) => {
     const trainerId = await getTrainerIdOrThrow(req.user!.id, req.user!.role);
+    await ensureTrainerNotAlreadyVerified(trainerId);
     const notes = typeof req.body?.notes === "string" ? req.body.notes.slice(0, 2000) : undefined;
     const bodyCredentialUrl = typeof req.body?.credentialUrl === "string" ? req.body.credentialUrl.trim() : "";
     const bodyIdentityUrl = typeof req.body?.identityUrl === "string" ? req.body.identityUrl.trim() : "";
@@ -316,4 +318,18 @@ async function getTrainerIdOrThrow(userId: string, role: string | undefined): Pr
   const { data, error } = await supabaseAdmin.from("trainers").select("id").eq("user_id", userId).maybeSingle();
   if (error || !data) throw new HttpError(404, "Trainer profile not found", "TRAINER_NOT_FOUND");
   return data.id;
+}
+
+async function ensureTrainerNotAlreadyVerified(trainerId: string): Promise<void> {
+  const { data, error } = await supabaseAdmin.from("trainers").select("verified").eq("id", trainerId).single();
+  if (error || !data) {
+    throw new HttpError(400, error?.message ?? "Trainer profile not found", "TRAINER_READ_FAILED");
+  }
+  if (data.verified) {
+    throw new HttpError(
+      409,
+      "Your documents are already verified. Re-submission is only required if your verification status changes.",
+      "VERIFICATION_ALREADY_APPROVED",
+    );
+  }
 }

@@ -82,6 +82,23 @@ profilesRouter.post("/me/phone/send-otp", requireAuth, async (req, res) => {
   if (!/^\+?[1-9]\d{7,14}$/.test(normalizedPhone)) {
     throw new HttpError(400, "Phone must be in international format (e.g. +61400111222).", "PHONE_INVALID");
   }
+  const { data: existingProfile, error: existingProfileError } = await supabaseAdmin
+    .from("profiles")
+    .select("phone, phone_verified")
+    .eq("id", req.user!.id)
+    .single();
+  if (existingProfileError || !existingProfile) {
+    throw new HttpError(400, existingProfileError?.message ?? "Profile not found", "PROFILE_READ_FAILED");
+  }
+  const existingPhoneNormalized = normalizePhone(existingProfile.phone ?? "");
+  if (existingProfile.phone_verified && existingPhoneNormalized && existingPhoneNormalized === normalizedPhone) {
+    throw new HttpError(
+      409,
+      "This phone number is already verified. You only need to verify again if you change the number.",
+      "PHONE_ALREADY_VERIFIED",
+    );
+  }
+
   const otp = String(Math.floor(100000 + Math.random() * 900000));
   const codeHash = hashOtp(req.user!.id, otp);
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
@@ -114,11 +131,15 @@ profilesRouter.post("/me/phone/verify-otp", requireAuth, async (req, res) => {
   const payload = verifyPhoneOtpSchema.parse(req.body);
   const { data: profile, error: readError } = await supabaseAdmin
     .from("profiles")
-    .select("id, phone, phone_verification_code_hash, phone_verification_expires_at, phone_verification_attempts")
+    .select("id, phone, phone_verified, phone_verification_code_hash, phone_verification_expires_at, phone_verification_attempts")
     .eq("id", req.user!.id)
     .single();
   if (readError || !profile) {
     throw new HttpError(400, readError?.message ?? "Profile not found", "PROFILE_READ_FAILED");
+  }
+  if (profile.phone_verified) {
+    res.json({ message: "Phone already verified", phone: profile.phone, alreadyVerified: true });
+    return;
   }
   if (!profile.phone_verification_code_hash || !profile.phone_verification_expires_at) {
     throw new HttpError(409, "No pending OTP. Send OTP first.", "PHONE_OTP_NOT_REQUESTED");

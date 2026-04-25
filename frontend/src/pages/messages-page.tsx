@@ -123,7 +123,7 @@ export function MessagesPage() {
   const selectedConversationLabel = selectedConversation
     ? conversationLabel(selectedConversation.id)
     : selectedConversationId
-      ? `Conversation ${selectedConversationId.slice(0, 8)}`
+      ? "Conversation"
       : "Conversation";
 
   return (
@@ -150,7 +150,7 @@ export function MessagesPage() {
                     onClick={() => setSelectedConversationId(conversation.id)}
                   >
                     <span className="chat-conversation-name">{conversationLabel(conversation.id)}</span>
-                    <span className="chat-conversation-meta">{conversation.id.slice(0, 8)}</span>
+                    <span className="chat-conversation-meta">live</span>
                   </button>
                 );
               })}

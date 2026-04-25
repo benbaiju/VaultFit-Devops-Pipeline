@@ -514,9 +514,11 @@ export function PlansPage() {
             <p className="muted">
               <strong>{user?.role === "trainer" ? "Client" : "Trainer"}:</strong> {counterpartLabel(booking)}
             </p>
-            <p className="muted booking-id-line">
-              <strong>Booking Ref:</strong> {booking.id}
-            </p>
+            {user?.role === "trainer" ? (
+              <p className="muted booking-id-line">
+                <strong>Booking Ref:</strong> {booking.id}
+              </p>
+            ) : null}
             <div>
               <button
                 className="secondary-btn"

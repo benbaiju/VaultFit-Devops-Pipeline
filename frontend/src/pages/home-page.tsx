@@ -62,7 +62,6 @@ export function HomePage() {
             <p className="muted">Specialty: {trainer.specialty ?? "general"}</p>
             <p className="muted">Rate: ${trainer.hourly_rate}/hour</p>
             <p>{trainer.bio ?? "No bio yet."}</p>
-            <p className="muted">ID: {trainer.id}</p>
             <p className="muted">Click to view full profile</p>
           </Link>
         ))}

@@ -53,6 +53,19 @@ availabilityRouter.get("/:trainerId/open-slots", async (req, res) => {
     to: String(req.query.to),
   });
   await ensureServiceBelongsToTrainer(trainerId, query.serviceId);
+  const { data: service, error: serviceError } = await supabaseAdmin
+    .from("services")
+    .select("id, duration_minutes, is_active")
+    .eq("id", query.serviceId)
+    .single();
+  if (serviceError || !service) throw new HttpError(404, "Service not found", "SERVICE_NOT_FOUND");
+  if (!service.is_active) {
+    throw new HttpError(409, "Service is currently inactive", "SERVICE_INACTIVE");
+  }
+  const durationMinutes = Number(service.duration_minutes);
+  if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
+    throw new HttpError(400, "Service duration must be a positive number", "SERVICE_DURATION_INVALID");
+  }
 
   const filteredAvailabilityQuery = supabaseAdmin
     .from("trainer_availability")
@@ -75,9 +88,10 @@ availabilityRouter.get("/:trainerId/open-slots", async (req, res) => {
     .from("bookings")
     .select("booking_date, start_time, end_time, status")
     .eq("trainer_id", trainerId)
+    .eq("service_id", query.serviceId)
     .gte("booking_date", query.from)
     .lte("booking_date", query.to)
-    .in("status", ["confirmed", "completed"]);
+    .in("status", ["pending", "confirmed", "completed"]);
   if (bookingsError) throw new HttpError(400, bookingsError.message, "OPEN_SLOTS_FAILED");
 
   const blockedSet = new Set((blockedDates ?? []).map((b) => String(b.blocked_date)));
@@ -102,11 +116,12 @@ availabilityRouter.get("/:trainerId/open-slots", async (req, res) => {
       const base = [{ start: toMinutes(String(slot.start_time)), end: toMinutes(String(slot.end_time)) }];
       const remaining = subtractRanges(base, bookedRanges);
       for (const part of remaining) {
-        if (part.start < part.end) {
+        if (part.start >= part.end) continue;
+        for (let cursor = part.start; cursor + durationMinutes <= part.end; cursor += durationMinutes) {
           openSlots.push({
             date: dateStr,
-            startTime: fromMinutes(part.start),
-            endTime: fromMinutes(part.end),
+            startTime: fromMinutes(cursor),
+            endTime: fromMinutes(cursor + durationMinutes),
           });
         }
       }

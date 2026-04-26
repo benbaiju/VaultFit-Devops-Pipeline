@@ -23,6 +23,27 @@ export async function sendMessage(token: string, conversationId: string, message
   );
 }
 
+export async function sendImageMessage(
+  token: string,
+  conversationId: string,
+  image: { uri: string; name?: string; type?: string },
+): Promise<Message> {
+  const form = new FormData();
+  form.append("image", {
+    uri: image.uri,
+    name: image.name ?? "upload.jpg",
+    type: image.type ?? "image/jpeg",
+  } as any);
+  return apiRequest<Message>(
+    `/conversations/${conversationId}/messages/image`,
+    {
+      method: "POST",
+      body: form,
+    },
+    token,
+  );
+}
+
 export async function getNotifications(token: string): Promise<Notification[]> {
   return apiRequest<Notification[]>("/notifications", {}, token);
 }

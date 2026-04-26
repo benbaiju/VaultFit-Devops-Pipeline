@@ -42,6 +42,7 @@ export function MessagesPage() {
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const pendingOfferRef = useRef<RTCSessionDescriptionInit | null>(null);
+  const pendingIceCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
 
   const [callId, setCallId] = useState("");
   const [incomingFromUserId, setIncomingFromUserId] = useState("");
@@ -147,6 +148,13 @@ export function MessagesPage() {
     });
     return map;
   }, [trainers]);
+  const trainerUserIdByTrainerId = useMemo(() => {
+    const map = new Map<string, string>();
+    trainers.forEach((trainer) => {
+      if (trainer.user_id) map.set(trainer.id, trainer.user_id);
+    });
+    return map;
+  }, [trainers]);
 
   function conversationLabel(conversationId: string): string {
     const conversation = conversations.find((c) => c.id === conversationId);
@@ -163,9 +171,11 @@ export function MessagesPage() {
   );
   const selectedPeerUserId = useMemo(() => {
     if (!selectedConversation || !user?.id) return "";
-    if (selectedConversation.client_id === user.id) return selectedConversation.trainer_id;
+    if (selectedConversation.client_id === user.id) {
+      return trainerUserIdByTrainerId.get(selectedConversation.trainer_id) ?? "";
+    }
     return selectedConversation.client_id;
-  }, [selectedConversation, user?.id]);
+  }, [selectedConversation, trainerUserIdByTrainerId, user?.id]);
 
   useEffect(() => {
     return () => {
@@ -178,6 +188,7 @@ export function MessagesPage() {
       remoteStreamRef.current?.getTracks().forEach((t) => t.stop());
       remoteStreamRef.current = null;
       pendingOfferRef.current = null;
+      pendingIceCandidatesRef.current = [];
     };
   }, []);
 
@@ -204,12 +215,22 @@ export function MessagesPage() {
         if (data.toUserId && data.toUserId !== user.id) return;
         if (!peerConnectionRef.current || !data.answer) return;
         await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
+        if (pendingIceCandidatesRef.current.length > 0) {
+          for (const candidate of pendingIceCandidatesRef.current) {
+            await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+          }
+          pendingIceCandidatesRef.current = [];
+        }
         setCallStatus("connected");
       })
       .on("broadcast", { event: "ice_candidate" }, async ({ payload }) => {
         const data = payload as CallSignalPayload;
         if (data.toUserId && data.toUserId !== user.id) return;
         if (!peerConnectionRef.current || !data.candidate) return;
+        if (!peerConnectionRef.current.remoteDescription) {
+          pendingIceCandidatesRef.current.push(data.candidate);
+          return;
+        }
         try {
           await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
         } catch {
@@ -262,7 +283,11 @@ export function MessagesPage() {
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
 
     peer.ontrack = (event) => {
-      event.streams[0]?.getTracks().forEach((track) => remoteStream.addTrack(track));
+      if (event.streams[0]) {
+        event.streams[0].getTracks().forEach((track) => remoteStream.addTrack(track));
+      } else {
+        remoteStream.addTrack(event.track);
+      }
     };
     peer.onicecandidate = (event) => {
       if (!event.candidate || !signalingChannelRef.current || !user?.id || !selectedConversationId) return;
@@ -309,6 +334,7 @@ export function MessagesPage() {
     remoteStreamRef.current?.getTracks().forEach((t) => t.stop());
     remoteStreamRef.current = null;
     pendingOfferRef.current = null;
+    pendingIceCandidatesRef.current = [];
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     setIncomingOfferPending(false);
@@ -395,6 +421,12 @@ export function MessagesPage() {
         } satisfies CallSignalPayload,
       });
       pendingOfferRef.current = null;
+      if (pendingIceCandidatesRef.current.length > 0) {
+        for (const candidate of pendingIceCandidatesRef.current) {
+          await peer.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+        pendingIceCandidatesRef.current = [];
+      }
       setIncomingOfferPending(false);
       setIncomingFromUserId("");
       setCallStatus("connecting");

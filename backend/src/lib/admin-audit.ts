@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "./supabase.js";
 
-export type AdminAuditTarget = "verification_request" | "trainer" | "profile";
+export type AdminAuditTarget = "verification_request" | "trainer" | "profile" | "ticket";
 
 /**
  * Best-effort audit row; does not throw (main request should still succeed).

@@ -13,6 +13,7 @@ export const ROUTES = {
     reviews: "/client/reviews",
     messages: "/client/messages",
     notifications: "/client/notifications",
+    support: "/client/support",
   },
   trainer: {
     root: "/trainer",
@@ -26,10 +27,12 @@ export const ROUTES = {
     plans: "/trainer/plans",
     messages: "/trainer/messages",
     notifications: "/trainer/notifications",
+    support: "/trainer/support",
     verification: "/trainer/verification",
   },
   admin: {
     root: "/admin",
+    support: "/admin/support",
   },
 } as const;
 

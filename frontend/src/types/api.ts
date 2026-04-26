@@ -132,6 +132,38 @@ export interface Notification {
   created_at: string;
 }
 
+export type TicketStatus = "open" | "in_progress" | "waiting_user" | "resolved" | "closed";
+export type TicketPriority = "low" | "normal" | "high" | "urgent";
+export type TicketCategory = "booking" | "payment" | "verification" | "account" | "technical" | "other";
+
+export interface SupportTicket {
+  id: string;
+  created_by_user_id: string;
+  assigned_admin_user_id?: string | null;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
+  subject: string;
+  description: string;
+  resolution_note?: string | null;
+  resolved_at?: string | null;
+  closed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by?: { full_name?: string | null; email?: string | null } | null;
+  assigned_admin?: { full_name?: string | null; email?: string | null } | null;
+}
+
+export interface SupportTicketEvent {
+  id: string;
+  ticket_id: string;
+  actor_user_id: string;
+  event_type: "created" | "status_changed" | "assigned" | "comment" | "priority_changed" | "closed" | "reopened";
+  detail: Record<string, unknown>;
+  created_at: string;
+  actor?: { full_name?: string | null; email?: string | null } | null;
+}
+
 export interface VerificationRequest {
   id: string;
   trainer_id: string;

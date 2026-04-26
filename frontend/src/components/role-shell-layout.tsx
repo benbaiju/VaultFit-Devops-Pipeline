@@ -64,6 +64,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
                 <p className="sidebar-heading">Communication</p>
                 <NavItem to={ROUTES.client.messages} icon={<MessageSquare size={18}/>} label="Messages" />
                 <NavItem to={ROUTES.client.notifications} icon={<Bell size={18}/>} label="Notifications" />
+                <NavItem to={ROUTES.client.support} icon={<ClipboardCheck size={18}/>} label="Support" />
               </>
             )}
             
@@ -80,6 +81,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
                     <p className="sidebar-heading">Communication</p>
                     <NavItem to={ROUTES.trainer.messages} icon={<MessageSquare size={18}/>} label="Messages" />
                     <NavItem to={ROUTES.trainer.notifications} icon={<Bell size={18}/>} label="Notifications" />
+                    <NavItem to={ROUTES.trainer.support} icon={<ClipboardCheck size={18}/>} label="Support" />
                   </>
                 )}
                 {!trainerVerified && (
@@ -95,6 +97,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
               <>
                 <p className="sidebar-heading">Admin Console</p>
                 <NavItem to={ROUTES.admin.root} icon={<ShieldCheck size={18}/>} label="Control Center" end />
+                <NavItem to={ROUTES.admin.support} icon={<ClipboardCheck size={18}/>} label="Support Tickets" />
               </>
             )}
           </nav>

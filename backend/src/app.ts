@@ -13,6 +13,7 @@ import { plansRouter } from "./routes/plans.js";
 import { profilesRouter } from "./routes/profiles.js";
 import { reviewsRouter } from "./routes/reviews.js";
 import { servicesRouter } from "./routes/services.js";
+import { ticketsRouter } from "./routes/tickets.js";
 import { trainersRouter } from "./routes/trainers.js";
 import { verificationRouter } from "./routes/verification.js";
 import { errorHandler } from "./middleware/error-handler.js";
@@ -39,6 +40,7 @@ app.use("/payments", paymentsRouter);
 app.use("/plans", plansRouter);
 app.use("/", reviewsRouter);
 app.use("/", messagingRouter);
+app.use("/", ticketsRouter);
 app.use("/", verificationRouter);
 app.use("/", adminRouter);
 

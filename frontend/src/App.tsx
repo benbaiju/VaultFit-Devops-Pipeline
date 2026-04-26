@@ -14,12 +14,14 @@ import { PlansPage } from "./pages/plans-page.tsx";
 import { RegisterPage } from "./pages/register-page.tsx";
 import { ReviewsPage } from "./pages/reviews-page.tsx";
 import { ServicesPage } from "./pages/services-page.tsx";
+import { SupportPage } from "./pages/support-page.tsx";
 import { TrainerBookingsPage } from "./pages/trainer-bookings-page.tsx";
 import { TrainerDashboardPage } from "./pages/trainer-dashboard-page.tsx";
 import { TrainerProfilePage } from "./pages/trainer-profile-page.tsx";
 import { TrainerPublicProfilePage } from "./pages/trainer-public-profile-page.tsx";
 import { TrainersPage } from "./pages/trainers-page.tsx";
 import { VerificationPage } from "./pages/verification-page.tsx";
+import { AdminSupportPage } from "./pages/admin-support-page.tsx";
 import "./App.css";
 
 function App() {
@@ -48,6 +50,7 @@ function App() {
         <Route path="reviews" element={<ReviewsPage />} />
         <Route path="messages" element={<MessagesPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="support" element={<SupportPage />} />
       </Route>
       <Route
         path="/trainer"
@@ -133,6 +136,14 @@ function App() {
             </TrainerVerifiedRoute>
           }
         />
+        <Route
+          path="support"
+          element={
+            <TrainerVerifiedRoute>
+              <SupportPage />
+            </TrainerVerifiedRoute>
+          }
+        />
         <Route path="verification" element={<VerificationPage />} />
       </Route>
       <Route
@@ -146,6 +157,7 @@ function App() {
         }
       >
         <Route index element={<AdminPage />} />
+        <Route path="support" element={<AdminSupportPage />} />
       </Route>
       <Route path="*" element={<AuthHomeRedirect />} />
     </Routes>

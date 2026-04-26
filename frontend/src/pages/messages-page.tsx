@@ -174,7 +174,7 @@ export function MessagesPage() {
     if (user?.role === "client") {
       return trainerNameById.get(conversation.trainer_id) ?? "Trainer";
     }
-    return "Client";
+    return conversation.client_profile?.full_name?.trim() || "Client";
   }
 
   const selectedConversation = useMemo(

@@ -26,3 +26,18 @@ export async function createMyTrainerProfile(
     token,
   );
 }
+
+export async function updateMyTrainerProfile(
+  token: string,
+  trainerId: string,
+  input: { bio?: string; specialty?: string; experienceYears?: number; hourlyRate?: number },
+): Promise<Trainer> {
+  return apiRequest<Trainer>(
+    `/trainers/${trainerId}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(input),
+    },
+    token,
+  );
+}

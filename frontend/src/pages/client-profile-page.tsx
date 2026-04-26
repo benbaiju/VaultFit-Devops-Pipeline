@@ -2,7 +2,9 @@ import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/rea
 import { Star } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getBookings } from "../services/bookings";
+import { getPlans } from "../services/plans";
 import { getTrainerReviews } from "../services/reviews";
+import { getServices } from "../services/services";
 import { getTrainers } from "../services/trainers";
 import { getMyProfile, sendPhoneOtp, updateMyProfile, verifyPhoneOtp } from "../services/profiles";
 import { useAuth } from "../state/auth-context";
@@ -53,10 +55,34 @@ export function ClientProfilePage() {
     queryKey: ["bookings"],
     queryFn: () => getBookings(token),
   });
+  const plansQuery = useQuery({
+    queryKey: ["plans"],
+    queryFn: () => getPlans(token),
+  });
   const completedBookings = useMemo(
     () => (bookingsQuery.data ?? []).filter((booking) => booking.status === "completed"),
     [bookingsQuery.data],
   );
+  const completedTrainerServiceIds = useMemo(
+    () => Array.from(new Set(completedBookings.map((booking) => booking.trainer_id).filter((id): id is string => Boolean(id)))),
+    [completedBookings],
+  );
+  const servicesByTrainer = useQueries({
+    queries: completedTrainerServiceIds.map((trainerId) => ({
+      queryKey: ["services", trainerId],
+      queryFn: () => getServices(trainerId),
+      enabled: Boolean(trainerId),
+    })),
+  });
+  const serviceTitleById = useMemo(() => {
+    const map = new Map<string, string>();
+    servicesByTrainer.forEach((query) => {
+      (query.data ?? []).forEach((service) => {
+        map.set(service.id, service.title);
+      });
+    });
+    return map;
+  }, [servicesByTrainer]);
   const completedTrainerIds = useMemo(
     () =>
       Array.from(
@@ -94,6 +120,27 @@ export function ClientProfilePage() {
     });
     return rows;
   }, [reviewsByCompletedTrainer, trainerNameById, user?.id]);
+  const plansByTrainer = useMemo(() => {
+    const map = new Map<string, { id: string; title: string; taskCount: number; createdAt: string }[]>();
+    (plansQuery.data ?? []).forEach((plan) => {
+      const taskCount = countPlanTasks(plan.content);
+      const rows = map.get(plan.trainer_id) ?? [];
+      rows.push({
+        id: plan.id,
+        title: plan.title,
+        taskCount,
+        createdAt: plan.created_at,
+      });
+      map.set(plan.trainer_id, rows);
+    });
+    map.forEach((rows, trainerId) => {
+      map.set(
+        trainerId,
+        rows.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+      );
+    });
+    return map;
+  }, [plansQuery.data]);
   const profileDisplayName = profileQuery.data?.full_name?.trim() || user?.full_name || user?.email || "Client";
   const roleLabel = profileQuery.data?.role ? `${profileQuery.data.role.charAt(0).toUpperCase()}${profileQuery.data.role.slice(1)}` : "Client";
   const nameLocked = Boolean(profileQuery.data?.full_name?.trim());
@@ -473,6 +520,35 @@ export function ClientProfilePage() {
       </div>
 
       <div className="card">
+        <h3>Service and task history</h3>
+        <p className="muted">Completed services with assigned plan tasks.</p>
+        {bookingsQuery.isLoading || plansQuery.isLoading ? <p>Loading service history...</p> : null}
+        {!bookingsQuery.isLoading && completedBookings.length === 0 ? (
+          <p className="muted">No completed services yet.</p>
+        ) : null}
+        <ul className="list">
+          {completedBookings.map((booking) => {
+            const trainerName = booking.trainer_id ? (trainerNameById.get(booking.trainer_id) ?? "Trainer") : "Trainer";
+            const serviceTitle = booking.service_id ? (serviceTitleById.get(booking.service_id) ?? "Service session") : "Service session";
+            const trainerPlans = booking.trainer_id ? (plansByTrainer.get(booking.trainer_id) ?? []) : [];
+            const latestPlan = trainerPlans[0];
+            return (
+              <li key={booking.id}>
+                <span>
+                  <b>{serviceTitle}</b> · {booking.booking_date} · {trainerName}
+                </span>
+                <p className="muted" style={{ margin: "0.35rem 0 0" }}>
+                  {latestPlan
+                    ? `Latest plan: ${latestPlan.title} (${latestPlan.taskCount} task${latestPlan.taskCount === 1 ? "" : "s"})`
+                    : "No trainer plan assigned yet."}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <div className="card">
         <h3>My given reviews</h3>
         <p className="muted">Reviews you have posted for completed services.</p>
         {bookingsQuery.isLoading ? <p>Loading your reviews...</p> : null}
@@ -565,4 +641,11 @@ export function ClientProfilePage() {
       `}</style>
     </section>
   );
+}
+
+function countPlanTasks(content: unknown): number {
+  if (!content || typeof content !== "object") return 0;
+  const maybe = content as { weeks?: Array<{ days?: unknown[] }> };
+  if (!Array.isArray(maybe.weeks)) return 0;
+  return maybe.weeks.reduce((total, week) => total + (Array.isArray(week.days) ? week.days.length : 0), 0);
 }

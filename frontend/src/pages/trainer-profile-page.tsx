@@ -3,8 +3,11 @@ import { Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "../lib/navigation";
+import { getBookings } from "../services/bookings";
+import { getPlans } from "../services/plans";
 import { getMyProfile, sendPhoneOtp, updateMyProfile, verifyPhoneOtp } from "../services/profiles";
 import { getTrainerReviews } from "../services/reviews";
+import { getServices } from "../services/services";
 import { createMyTrainerProfile, getMyTrainerProfile, updateMyTrainerProfile } from "../services/trainers";
 import { getMyVerificationRequests } from "../services/verification";
 import { useAuth } from "../state/auth-context";
@@ -39,6 +42,20 @@ export function TrainerProfilePage() {
   const reviewsQuery = useQuery({
     queryKey: ["reviews", meQuery.data?.id ?? ""],
     queryFn: () => getTrainerReviews(meQuery.data!.id),
+    enabled: Boolean(meQuery.data?.id),
+  });
+  const bookingsQuery = useQuery({
+    queryKey: ["bookings"],
+    queryFn: () => getBookings(token),
+  });
+  const plansQuery = useQuery({
+    queryKey: ["plans"],
+    queryFn: () => getPlans(token),
+    enabled: Boolean(meQuery.data?.id),
+  });
+  const servicesQuery = useQuery({
+    queryKey: ["services", meQuery.data?.id ?? ""],
+    queryFn: () => getServices(meQuery.data!.id),
     enabled: Boolean(meQuery.data?.id),
   });
 
@@ -115,6 +132,24 @@ export function TrainerProfilePage() {
     Boolean(profileQuery.data?.phone_verified) &&
     Boolean(normalizedCurrentPhone) &&
     normalizedCurrentPhone === normalizedSavedPhone;
+  const completedBookings = (bookingsQuery.data ?? []).filter((booking) => booking.status === "completed");
+  const serviceTitleById = new Map((servicesQuery.data ?? []).map((service) => [service.id, service.title]));
+  const planRowsByClientId = new Map<string, { title: string; taskCount: number; createdAt: string }[]>();
+  (plansQuery.data ?? []).forEach((plan) => {
+    const rows = planRowsByClientId.get(plan.client_id) ?? [];
+    rows.push({
+      title: plan.title,
+      taskCount: countPlanTasks(plan.content),
+      createdAt: plan.created_at,
+    });
+    planRowsByClientId.set(plan.client_id, rows);
+  });
+  planRowsByClientId.forEach((rows, clientId) => {
+    planRowsByClientId.set(
+      clientId,
+      rows.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    );
+  });
 
   return (
     <section>
@@ -287,6 +322,32 @@ export function TrainerProfilePage() {
       </div>
 
       <div className="card">
+        <h3>Service and task history</h3>
+        <p className="muted">Completed client services and assigned plans.</p>
+        {bookingsQuery.isLoading || plansQuery.isLoading || servicesQuery.isLoading ? <p>Loading service history...</p> : null}
+        {!bookingsQuery.isLoading && completedBookings.length === 0 ? <p className="muted">No completed services yet.</p> : null}
+        <ul className="list">
+          {completedBookings.map((booking) => {
+            const serviceTitle = booking.service_id ? (serviceTitleById.get(booking.service_id) ?? "Service session") : "Service session";
+            const clientKey = booking.client_id ?? "";
+            const latestPlan = clientKey ? (planRowsByClientId.get(clientKey) ?? [])[0] : undefined;
+            return (
+              <li key={booking.id}>
+                <span>
+                  <b>{serviceTitle}</b> · {booking.booking_date}
+                </span>
+                <p className="muted" style={{ margin: "0.35rem 0 0" }}>
+                  {latestPlan
+                    ? `Latest plan for this client: ${latestPlan.title} (${latestPlan.taskCount} task${latestPlan.taskCount === 1 ? "" : "s"})`
+                    : "No plan assigned for this client yet."}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <div className="card">
         <h3>Client reviews</h3>
         <p className="muted">Feedback from clients on completed bookings.</p>
         {reviewsQuery.isLoading ? <p>Loading reviews...</p> : null}
@@ -390,5 +451,12 @@ export function TrainerProfilePage() {
       `}</style>
     </section>
   );
+}
+
+function countPlanTasks(content: unknown): number {
+  if (!content || typeof content !== "object") return 0;
+  const maybe = content as { weeks?: Array<{ days?: unknown[] }> };
+  if (!Array.isArray(maybe.weeks)) return 0;
+  return maybe.weeks.reduce((total, week) => total + (Array.isArray(week.days) ? week.days.length : 0), 0);
 }
 

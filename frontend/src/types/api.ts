@@ -107,6 +107,7 @@ export interface Conversation {
   booking_id?: string | null;
   service_id?: string | null;
   chat_open?: boolean;
+  client_profile?: { full_name?: string | null } | null;
   created_at: string;
 }
 

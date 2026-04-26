@@ -28,7 +28,10 @@ messagingRouter.get("/conversations", requireAuth, async (req, res) => {
   const trainerId = await getTrainerIdForUser(userId);
   const includeClosed = String(req.query.includeClosed ?? "false") === "true";
 
-  let query = supabaseAdmin.from("conversations").select("*").order("created_at", { ascending: false });
+  let query = supabaseAdmin
+    .from("conversations")
+    .select("*, client_profile:client_id(full_name)")
+    .order("created_at", { ascending: false });
   query = trainerId ? query.or(`client_id.eq.${userId},trainer_id.eq.${trainerId}`) : query.eq("client_id", userId);
 
   const { data, error } = await query;

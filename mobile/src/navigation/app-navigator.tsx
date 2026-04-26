@@ -16,16 +16,20 @@ import { ClientSupportScreen } from "../screens/client/client-support-screen";
 import { ClientProfileScreen } from "../screens/client/client-profile-screen";
 import { ClientTrainerProfileScreen } from "../screens/client/client-trainer-profile-screen";
 import { ClientReviewsScreen } from "../screens/client/client-reviews-screen";
+import { ClientMoreScreen } from "../screens/client/client-more-screen";
 import { NotificationsScreen } from "../screens/common/notifications-screen";
 import { TrainerOverviewScreen } from "../screens/trainer/trainer-overview-screen";
 import { TrainerServicesScreen } from "../screens/trainer/trainer-services-screen";
 import { TrainerBookingsScreen } from "../screens/trainer/trainer-bookings-screen";
 import { TrainerPlansScreen } from "../screens/trainer/trainer-plans-screen";
 import { TrainerProfileScreen } from "../screens/trainer/trainer-profile-screen";
+import { TrainerMoreScreen } from "../screens/trainer/trainer-more-screen";
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
 const DiscoverStack = createNativeStackNavigator();
+const ClientMoreStack = createNativeStackNavigator();
+const TrainerMoreStack = createNativeStackNavigator();
 
 function ClientDiscoverStack() {
   return (
@@ -42,16 +46,49 @@ function ClientDiscoverStack() {
   );
 }
 
+function ClientMoreMenuStack() {
+  return (
+    <ClientMoreStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: "#0f172a" },
+        headerTintColor: "#fff",
+        contentStyle: { backgroundColor: "#020817" },
+      }}
+    >
+      <ClientMoreStack.Screen name="ClientMoreHome" component={ClientMoreScreen} options={{ title: "More" }} />
+      <ClientMoreStack.Screen name="ClientReviews" component={ClientReviewsScreen} options={{ title: "Reviews" }} />
+      <ClientMoreStack.Screen name="ClientNotifications" component={NotificationsScreen} options={{ title: "Notifications" }} />
+      <ClientMoreStack.Screen name="ClientSupport" component={ClientSupportScreen} options={{ title: "Support" }} />
+    </ClientMoreStack.Navigator>
+  );
+}
+
+function TrainerMoreMenuStack() {
+  return (
+    <TrainerMoreStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: "#0f172a" },
+        headerTintColor: "#fff",
+        contentStyle: { backgroundColor: "#020817" },
+      }}
+    >
+      <TrainerMoreStack.Screen name="TrainerMoreHome" component={TrainerMoreScreen} options={{ title: "More" }} />
+      <TrainerMoreStack.Screen name="TrainerServices" component={TrainerServicesScreen} options={{ title: "Services" }} />
+      <TrainerMoreStack.Screen name="TrainerPlans" component={TrainerPlansScreen} options={{ title: "Plans" }} />
+      <TrainerMoreStack.Screen name="TrainerNotifications" component={NotificationsScreen} options={{ title: "Notifications" }} />
+      <TrainerMoreStack.Screen name="TrainerSupport" component={ClientSupportScreen} options={{ title: "Support" }} />
+    </TrainerMoreStack.Navigator>
+  );
+}
+
 function ClientTabs() {
   return (
     <Tabs.Navigator screenOptions={baseTabOptions}>
       <Tabs.Screen name="Discover" component={ClientDiscoverStack} />
       <Tabs.Screen name="Bookings" component={ClientBookingsScreen} />
-      <Tabs.Screen name="Reviews" component={ClientReviewsScreen} />
       <Tabs.Screen name="Messages" component={ClientMessagesScreen} />
-      <Tabs.Screen name="Notifications" component={NotificationsScreen} />
-      <Tabs.Screen name="Support" component={ClientSupportScreen} />
       <Tabs.Screen name="Profile" component={ClientProfileScreen} />
+      <Tabs.Screen name="More" component={ClientMoreMenuStack} />
     </Tabs.Navigator>
   );
 }
@@ -60,13 +97,10 @@ function TrainerTabs() {
   return (
     <Tabs.Navigator screenOptions={baseTabOptions}>
       <Tabs.Screen name="Overview" component={TrainerOverviewScreen} />
-      <Tabs.Screen name="Services" component={TrainerServicesScreen} />
       <Tabs.Screen name="Bookings" component={TrainerBookingsScreen} />
-      <Tabs.Screen name="Plans" component={TrainerPlansScreen} />
       <Tabs.Screen name="Messages" component={ClientMessagesScreen} />
-      <Tabs.Screen name="Notifications" component={NotificationsScreen} />
-      <Tabs.Screen name="Support" component={ClientSupportScreen} />
       <Tabs.Screen name="Profile" component={TrainerProfileScreen} />
+      <Tabs.Screen name="More" component={TrainerMoreMenuStack} />
     </Tabs.Navigator>
   );
 }

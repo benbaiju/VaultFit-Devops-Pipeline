@@ -52,6 +52,7 @@ export function MessagesPage() {
   const [isCameraEnabled, setIsCameraEnabled] = useState(true);
   const [isCallChannelReady, setIsCallChannelReady] = useState(false);
   const [callChannelStatus, setCallChannelStatus] = useState("idle");
+  const [needsRemotePlaybackAction, setNeedsRemotePlaybackAction] = useState(false);
 
   const conversationsQuery = useQuery({
     queryKey: ["conversations"],
@@ -276,11 +277,40 @@ export function MessagesPage() {
     return stream;
   }
 
+  async function tryPlayRemoteVideo(): Promise<void> {
+    const el = remoteVideoRef.current;
+    if (!el) return;
+    try {
+      await el.play();
+      setNeedsRemotePlaybackAction(false);
+    } catch {
+      setNeedsRemotePlaybackAction(true);
+    }
+  }
+
+  useEffect(() => {
+    if (localVideoRef.current && localStreamRef.current && localVideoRef.current.srcObject !== localStreamRef.current) {
+      localVideoRef.current.srcObject = localStreamRef.current;
+    }
+    if (remoteVideoRef.current && remoteStreamRef.current && remoteVideoRef.current.srcObject !== remoteStreamRef.current) {
+      remoteVideoRef.current.srcObject = remoteStreamRef.current;
+      remoteVideoRef.current.onloadedmetadata = () => {
+        void tryPlayRemoteVideo();
+      };
+      void tryPlayRemoteVideo();
+    }
+  }, [callStatus]);
+
   function buildPeerConnection(targetUserId: string, activeCallId: string): RTCPeerConnection {
     const peer = new RTCPeerConnection({ iceServers: FREE_ICE_SERVERS });
     const remoteStream = new MediaStream();
     remoteStreamRef.current = remoteStream;
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = remoteStream;
+      remoteVideoRef.current.onloadedmetadata = () => {
+        void tryPlayRemoteVideo();
+      };
+    }
 
     peer.ontrack = (event) => {
       if (event.streams[0]) {
@@ -288,6 +318,7 @@ export function MessagesPage() {
       } else {
         remoteStream.addTrack(event.track);
       }
+      void tryPlayRemoteVideo();
     };
     peer.onicecandidate = (event) => {
       if (!event.candidate || !signalingChannelRef.current || !user?.id || !selectedConversationId) return;
@@ -336,11 +367,15 @@ export function MessagesPage() {
     pendingOfferRef.current = null;
     pendingIceCandidatesRef.current = [];
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+      remoteVideoRef.current.onloadedmetadata = null;
+    }
     setIncomingOfferPending(false);
     setIncomingFromUserId("");
     setCallId("");
     setCallStatus(setEnded ? "ended" : "idle");
+    setNeedsRemotePlaybackAction(false);
   }
 
   async function startCall() {
@@ -599,6 +634,14 @@ export function MessagesPage() {
                   </div>
                   <div className="call-actions">
                     <span className="muted">Call status: {callStatus}</span>
+                    <button type="button" className="secondary-btn" onClick={() => void tryPlayRemoteVideo()}>
+                      Refresh Remote Video
+                    </button>
+                    {needsRemotePlaybackAction ? (
+                      <button type="button" className="secondary-btn" onClick={() => void tryPlayRemoteVideo()}>
+                        Tap to start remote video/audio
+                      </button>
+                    ) : null}
                     <button type="button" className="secondary-btn" onClick={toggleMic}>
                       {isMicEnabled ? "Mute" : "Unmute"}
                     </button>

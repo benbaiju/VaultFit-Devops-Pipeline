@@ -12,6 +12,7 @@ api/dist/
 api/.env
 api/.env.*
 !api/.env.example
+!frontend/.env.example
 
 # Logs
 *.log

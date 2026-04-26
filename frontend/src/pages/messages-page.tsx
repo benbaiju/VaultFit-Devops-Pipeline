@@ -12,6 +12,29 @@ import {
 import { getTrainers } from "../services/trainers";
 import { useAuth } from "../state/auth-context";
 
+type CallSignalPayload = {
+  fromUserId: string;
+  toUserId?: string;
+  conversationId: string;
+  callId: string;
+  offer?: RTCSessionDescriptionInit;
+  answer?: RTCSessionDescriptionInit;
+  candidate?: RTCIceCandidateInit;
+  reason?: string;
+};
+
+const FREE_ICE_SERVERS: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
+const CALL_STARTED_TEXT = "Video call started";
+const CALL_DECLINED_TEXT = "Video call declined";
+const CALL_ENDED_PREFIX = "Video call ended";
+
+function normalizeCallEventText(raw: string): string {
+  return raw
+    .replace(/^\[(Video call[^\]]*)\]$/i, "$1")
+    .replace(/^\[(Video call[^\]]*)\]\s*/i, "$1 ")
+    .trim();
+}
+
 export function MessagesPage() {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
@@ -22,6 +45,25 @@ export function MessagesPage() {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const signalingChannelRef = useRef<ReturnType<NonNullable<typeof realtimeClient>["channel"]> | null>(null);
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const pendingOfferRef = useRef<RTCSessionDescriptionInit | null>(null);
+  const pendingIceCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
+  const callConnectedAtRef = useRef<number | null>(null);
+
+  const [callId, setCallId] = useState("");
+  const [incomingFromUserId, setIncomingFromUserId] = useState("");
+  const [incomingOfferPending, setIncomingOfferPending] = useState(false);
+  const [callStatus, setCallStatus] = useState<"idle" | "calling" | "incoming" | "connecting" | "connected" | "ended">("idle");
+  const [isMicEnabled, setIsMicEnabled] = useState(true);
+  const [isCameraEnabled, setIsCameraEnabled] = useState(true);
+  const [isCallChannelReady, setIsCallChannelReady] = useState(false);
+  const [callChannelStatus, setCallChannelStatus] = useState("idle");
+  const [needsRemotePlaybackAction, setNeedsRemotePlaybackAction] = useState(false);
 
   const conversationsQuery = useQuery({
     queryKey: ["conversations"],
@@ -118,6 +160,13 @@ export function MessagesPage() {
     });
     return map;
   }, [trainers]);
+  const trainerUserIdByTrainerId = useMemo(() => {
+    const map = new Map<string, string>();
+    trainers.forEach((trainer) => {
+      if (trainer.user_id) map.set(trainer.id, trainer.user_id);
+    });
+    return map;
+  }, [trainers]);
 
   function conversationLabel(conversationId: string): string {
     const conversation = conversations.find((c) => c.id === conversationId);
@@ -132,6 +181,383 @@ export function MessagesPage() {
     () => conversations.find((c) => c.id === selectedConversationId),
     [conversations, selectedConversationId],
   );
+  const selectedPeerUserId = useMemo(() => {
+    if (!selectedConversation || !user?.id) return "";
+    if (selectedConversation.client_id === user.id) {
+      return trainerUserIdByTrainerId.get(selectedConversation.trainer_id) ?? "";
+    }
+    return selectedConversation.client_id;
+  }, [selectedConversation, trainerUserIdByTrainerId, user?.id]);
+
+  useEffect(() => {
+    return () => {
+      if (localVideoRef.current) localVideoRef.current.srcObject = null;
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+      peerConnectionRef.current?.close();
+      peerConnectionRef.current = null;
+      localStreamRef.current?.getTracks().forEach((t) => t.stop());
+      localStreamRef.current = null;
+      remoteStreamRef.current?.getTracks().forEach((t) => t.stop());
+      remoteStreamRef.current = null;
+      pendingOfferRef.current = null;
+      pendingIceCandidatesRef.current = [];
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedConversationId || !realtimeClient || !user?.id) return;
+    const client = realtimeClient;
+    setIsCallChannelReady(false);
+    setCallChannelStatus("connecting");
+
+    const callChannel = client
+      .channel(`call-signaling-${selectedConversationId}`)
+      .on("broadcast", { event: "call_offer" }, ({ payload }) => {
+        const data = payload as CallSignalPayload;
+        if (data.toUserId && data.toUserId !== user.id) return;
+        if (data.fromUserId === user.id) return;
+        pendingOfferRef.current = data.offer ?? null;
+        setCallId(data.callId);
+        setIncomingFromUserId(data.fromUserId);
+        setIncomingOfferPending(Boolean(data.offer));
+        setCallStatus("incoming");
+      })
+      .on("broadcast", { event: "call_answer" }, async ({ payload }) => {
+        const data = payload as CallSignalPayload;
+        if (data.toUserId && data.toUserId !== user.id) return;
+        if (!peerConnectionRef.current || !data.answer) return;
+        await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
+        if (pendingIceCandidatesRef.current.length > 0) {
+          for (const candidate of pendingIceCandidatesRef.current) {
+            await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+          }
+          pendingIceCandidatesRef.current = [];
+        }
+        setCallStatus("connected");
+      })
+      .on("broadcast", { event: "ice_candidate" }, async ({ payload }) => {
+        const data = payload as CallSignalPayload;
+        if (data.toUserId && data.toUserId !== user.id) return;
+        if (!peerConnectionRef.current || !data.candidate) return;
+        if (!peerConnectionRef.current.remoteDescription) {
+          pendingIceCandidatesRef.current.push(data.candidate);
+          return;
+        }
+        try {
+          await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } catch {
+          // ignore stale/invalid candidate
+        }
+      })
+      .on("broadcast", { event: "call_end" }, ({ payload }) => {
+        const data = payload as CallSignalPayload;
+        if (data.toUserId && data.toUserId !== user.id) return;
+        endCall({ notifyPeer: false, setEnded: true });
+      })
+      .subscribe((status) => {
+        setCallChannelStatus(status.toLowerCase());
+        setIsCallChannelReady(status === "SUBSCRIBED");
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          setError(`Call signaling unavailable (${status}). You can still send messages.`);
+        }
+      });
+
+    signalingChannelRef.current = callChannel;
+
+    return () => {
+      void client.removeChannel(callChannel);
+      signalingChannelRef.current = null;
+      setIsCallChannelReady(false);
+      setCallChannelStatus("idle");
+    };
+  }, [selectedConversationId, user?.id]);
+
+  async function ensureLocalStream(): Promise<MediaStream> {
+    if (!window.isSecureContext) {
+      throw new Error("Video calls require HTTPS on mobile. Open the app using a secure (https://) URL.");
+    }
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
+      throw new Error("Camera/microphone API is unavailable in this browser context. Use Chrome/Safari on a secure URL.");
+    }
+    if (localStreamRef.current) return localStreamRef.current;
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+    localStreamRef.current = stream;
+    setIsMicEnabled(true);
+    setIsCameraEnabled(true);
+    if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+    return stream;
+  }
+
+  function formatCallDuration(totalSeconds: number): string {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${String(secs).padStart(2, "0")}`;
+  }
+
+  async function postCallEventMessage(message: string): Promise<void> {
+    if (!selectedConversationId) return;
+    try {
+      await sendMessage(token, selectedConversationId, message);
+      void queryClient.invalidateQueries({ queryKey: ["messages", selectedConversationId] });
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    } catch {
+      // Timeline logging should not break live call flow.
+    }
+  }
+
+  async function tryPlayRemoteVideo(): Promise<void> {
+    const el = remoteVideoRef.current;
+    if (!el) return;
+    try {
+      await el.play();
+      setNeedsRemotePlaybackAction(false);
+    } catch {
+      setNeedsRemotePlaybackAction(true);
+    }
+  }
+
+  useEffect(() => {
+    if (localVideoRef.current && localStreamRef.current && localVideoRef.current.srcObject !== localStreamRef.current) {
+      localVideoRef.current.srcObject = localStreamRef.current;
+    }
+    if (remoteVideoRef.current && remoteStreamRef.current && remoteVideoRef.current.srcObject !== remoteStreamRef.current) {
+      remoteVideoRef.current.srcObject = remoteStreamRef.current;
+      remoteVideoRef.current.onloadedmetadata = () => {
+        void tryPlayRemoteVideo();
+      };
+      void tryPlayRemoteVideo();
+    }
+  }, [callStatus]);
+
+  function buildPeerConnection(targetUserId: string, activeCallId: string): RTCPeerConnection {
+    const peer = new RTCPeerConnection({ iceServers: FREE_ICE_SERVERS });
+    const remoteStream = new MediaStream();
+    remoteStreamRef.current = remoteStream;
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = remoteStream;
+      remoteVideoRef.current.onloadedmetadata = () => {
+        void tryPlayRemoteVideo();
+      };
+    }
+
+    peer.ontrack = (event) => {
+      if (event.streams[0]) {
+        event.streams[0].getTracks().forEach((track) => remoteStream.addTrack(track));
+      } else {
+        remoteStream.addTrack(event.track);
+      }
+      void tryPlayRemoteVideo();
+    };
+    peer.onicecandidate = (event) => {
+      if (!event.candidate || !signalingChannelRef.current || !user?.id || !selectedConversationId) return;
+      void signalingChannelRef.current.send({
+        type: "broadcast",
+        event: "ice_candidate",
+        payload: {
+          fromUserId: user.id,
+          toUserId: targetUserId,
+          conversationId: selectedConversationId,
+          callId: activeCallId,
+          candidate: event.candidate.toJSON(),
+        } satisfies CallSignalPayload,
+      });
+    };
+    peer.onconnectionstatechange = () => {
+      if (peer.connectionState === "connected") {
+        if (!callConnectedAtRef.current) callConnectedAtRef.current = Date.now();
+        setCallStatus("connected");
+      } else if (peer.connectionState === "failed" || peer.connectionState === "disconnected" || peer.connectionState === "closed") {
+        setCallStatus("ended");
+      }
+    };
+    return peer;
+  }
+
+  function endCall(opts?: { notifyPeer?: boolean; setEnded?: boolean }) {
+    const { notifyPeer = true, setEnded = false } = opts ?? {};
+    if (notifyPeer && signalingChannelRef.current && user?.id && selectedConversationId && selectedPeerUserId && callId) {
+      void signalingChannelRef.current.send({
+        type: "broadcast",
+        event: "call_end",
+        payload: {
+          fromUserId: user.id,
+          toUserId: selectedPeerUserId,
+          conversationId: selectedConversationId,
+          callId,
+        } satisfies CallSignalPayload,
+      });
+    }
+    peerConnectionRef.current?.close();
+    peerConnectionRef.current = null;
+    localStreamRef.current?.getTracks().forEach((t) => t.stop());
+    localStreamRef.current = null;
+    remoteStreamRef.current?.getTracks().forEach((t) => t.stop());
+    remoteStreamRef.current = null;
+    pendingOfferRef.current = null;
+    pendingIceCandidatesRef.current = [];
+    callConnectedAtRef.current = null;
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+      remoteVideoRef.current.onloadedmetadata = null;
+    }
+    setIncomingOfferPending(false);
+    setIncomingFromUserId("");
+    setCallId("");
+    setCallStatus(setEnded ? "ended" : "idle");
+    setNeedsRemotePlaybackAction(false);
+  }
+
+  async function startCall() {
+    if (!selectedConversationId) {
+      setError("Please select a conversation first.");
+      return;
+    }
+    if (!selectedPeerUserId) {
+      setError("Unable to identify the other participant for this chat.");
+      return;
+    }
+    if (!user?.id) {
+      setError("You must be signed in to start a call.");
+      return;
+    }
+    if (!signalingChannelRef.current) {
+      setError("Call signaling is not initialized yet. Please wait and try again.");
+      return;
+    }
+    try {
+      setError("");
+      setCallStatus("calling");
+      const localStream = await ensureLocalStream();
+      const nextCallId = `${selectedConversationId}-${Date.now()}`;
+      setCallId(nextCallId);
+      const peer = buildPeerConnection(selectedPeerUserId, nextCallId);
+      localStream.getTracks().forEach((track) => peer.addTrack(track, localStream));
+      peerConnectionRef.current = peer;
+      const offer = await peer.createOffer();
+      await peer.setLocalDescription(offer);
+      await signalingChannelRef.current.send({
+        type: "broadcast",
+        event: "call_offer",
+        payload: {
+          fromUserId: user.id,
+          toUserId: selectedPeerUserId,
+          conversationId: selectedConversationId,
+          callId: nextCallId,
+          offer,
+        } satisfies CallSignalPayload,
+      });
+      void postCallEventMessage(CALL_STARTED_TEXT);
+      setCallStatus("connecting");
+    } catch (e) {
+      endCall({ notifyPeer: false });
+      setError((e as Error).message || "Unable to start video call");
+    }
+  }
+
+  async function acceptIncomingCall() {
+    if (
+      !pendingOfferRef.current ||
+      !selectedConversationId ||
+      !incomingFromUserId ||
+      !signalingChannelRef.current ||
+      !user?.id ||
+      !callId
+    ) {
+      return;
+    }
+    try {
+      setError("");
+      const localStream = await ensureLocalStream();
+      const peer = buildPeerConnection(incomingFromUserId, callId);
+      localStream.getTracks().forEach((track) => peer.addTrack(track, localStream));
+      peerConnectionRef.current = peer;
+      await peer.setRemoteDescription(new RTCSessionDescription(pendingOfferRef.current));
+      const answer = await peer.createAnswer();
+      await peer.setLocalDescription(answer);
+      await signalingChannelRef.current.send({
+        type: "broadcast",
+        event: "call_answer",
+        payload: {
+          fromUserId: user.id,
+          toUserId: incomingFromUserId,
+          conversationId: selectedConversationId,
+          callId,
+          answer,
+        } satisfies CallSignalPayload,
+      });
+      pendingOfferRef.current = null;
+      if (pendingIceCandidatesRef.current.length > 0) {
+        for (const candidate of pendingIceCandidatesRef.current) {
+          await peer.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+        pendingIceCandidatesRef.current = [];
+      }
+      setIncomingOfferPending(false);
+      setIncomingFromUserId("");
+      setCallStatus("connecting");
+    } catch (e) {
+      endCall({ notifyPeer: false });
+      setError((e as Error).message || "Unable to accept incoming call");
+    }
+  }
+
+  function rejectIncomingCall() {
+    if (!signalingChannelRef.current || !incomingFromUserId || !user?.id || !selectedConversationId || !callId) {
+      setIncomingOfferPending(false);
+      setIncomingFromUserId("");
+      setCallStatus("idle");
+      return;
+    }
+    void signalingChannelRef.current.send({
+      type: "broadcast",
+      event: "call_end",
+      payload: {
+        fromUserId: user.id,
+        toUserId: incomingFromUserId,
+        conversationId: selectedConversationId,
+        callId,
+        reason: "rejected",
+      } satisfies CallSignalPayload,
+    });
+    void postCallEventMessage(CALL_DECLINED_TEXT);
+    setIncomingOfferPending(false);
+    setIncomingFromUserId("");
+    pendingOfferRef.current = null;
+    setCallStatus("idle");
+  }
+
+  function toggleMic() {
+    const stream = localStreamRef.current;
+    if (!stream) return;
+    const nextEnabled = !isMicEnabled;
+    stream.getAudioTracks().forEach((track) => {
+      track.enabled = nextEnabled;
+    });
+    setIsMicEnabled(nextEnabled);
+  }
+
+  function toggleCamera() {
+    const stream = localStreamRef.current;
+    if (!stream) return;
+    const nextEnabled = !isCameraEnabled;
+    stream.getVideoTracks().forEach((track) => {
+      track.enabled = nextEnabled;
+    });
+    setIsCameraEnabled(nextEnabled);
+  }
+
+  function endCallAndLog() {
+    const connectedAt = callConnectedAtRef.current;
+    endCall({ notifyPeer: true, setEnded: true });
+    if (!connectedAt) {
+      void postCallEventMessage(CALL_ENDED_PREFIX);
+      return;
+    }
+    const durationSeconds = Math.max(0, Math.round((Date.now() - connectedAt) / 1000));
+    void postCallEventMessage(`${CALL_ENDED_PREFIX} • Duration ${formatCallDuration(durationSeconds)}`);
+  }
+
   const selectedConversationLabel = selectedConversation
     ? conversationLabel(selectedConversation.id)
     : selectedConversationId
@@ -198,8 +624,79 @@ export function MessagesPage() {
             <>
               <div className="chat-thread-head whatsapp-thread-head">
                 <h3>{selectedConversationLabel}</h3>
-                <p className="muted">{selectedConversation?.chat_open === false ? "Archived thread" : "Live thread"}</p>
+                <div className="chat-head-actions">
+                  <p className="muted">{selectedConversation?.chat_open === false ? "Archived thread" : "Live thread"}</p>
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    disabled={
+                      selectedConversation?.chat_open === false ||
+                      !selectedPeerUserId ||
+                      callStatus === "calling" ||
+                      callStatus === "connecting" ||
+                      callStatus === "connected"
+                    }
+                    onClick={() => {
+                      void startCall();
+                    }}
+                  >
+                    Video Call
+                  </button>
+                </div>
               </div>
+              {!isCallChannelReady ? (
+                <p className="muted call-status-hint">
+                  Video signaling status: {callChannelStatus}. If this stays stuck, verify Supabase Realtime is enabled for your project.
+                </p>
+              ) : null}
+              {incomingOfferPending ? (
+                <div className="call-banner">
+                  <p>Incoming video call...</p>
+                  <div className="call-banner-actions">
+                    <button type="button" className="primary-btn" onClick={() => void acceptIncomingCall()}>
+                      Accept
+                    </button>
+                    <button type="button" className="secondary-btn" onClick={rejectIncomingCall}>
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {callStatus === "calling" || callStatus === "connecting" || callStatus === "connected" ? (
+                <div className="call-panel">
+                  <div className="call-videos">
+                    <div className="call-video-card">
+                      <p>You</p>
+                      <video ref={localVideoRef} autoPlay muted playsInline />
+                    </div>
+                    <div className="call-video-card">
+                      <p>{selectedConversationLabel}</p>
+                      <video ref={remoteVideoRef} autoPlay playsInline />
+                    </div>
+                  </div>
+                  <div className="call-actions">
+                    <span className="muted">Call status: {callStatus}</span>
+                    <button type="button" className="secondary-btn" onClick={() => void tryPlayRemoteVideo()}>
+                      Refresh Remote Video
+                    </button>
+                    {needsRemotePlaybackAction ? (
+                      <button type="button" className="secondary-btn" onClick={() => void tryPlayRemoteVideo()}>
+                        Tap to start remote video/audio
+                      </button>
+                    ) : null}
+                    <button type="button" className="secondary-btn" onClick={toggleMic}>
+                      {isMicEnabled ? "Mute" : "Unmute"}
+                    </button>
+                    <button type="button" className="secondary-btn" onClick={toggleCamera}>
+                      {isCameraEnabled ? "Camera Off" : "Camera On"}
+                    </button>
+                    <button type="button" className="primary-btn" onClick={endCallAndLog}>
+                      End Call
+                    </button>
+                  </div>
+                </div>
+              ) : null}
 
               {messagesQuery.isError ? <p className="error">{(messagesQuery.error as Error).message}</p> : null}
               {selectedConversation?.chat_open === false ? (
@@ -212,17 +709,29 @@ export function MessagesPage() {
                   const mine = message.sender_id === user?.id;
                   const imageUrl = message.image_signed_url ?? message.image_url ?? null;
                   const isImage = message.message_type === "image" && Boolean(imageUrl);
+                  const normalizedMessageText = normalizeCallEventText(message.message);
+                  const isCallEvent =
+                    normalizedMessageText === CALL_STARTED_TEXT ||
+                    normalizedMessageText === CALL_DECLINED_TEXT ||
+                    normalizedMessageText.startsWith(CALL_ENDED_PREFIX);
                   return (
-                    <div key={message.id} className={`chat-message-row ${mine ? "chat-message-row-mine" : ""}`}>
+                    <div
+                      key={message.id}
+                      className={`chat-message-row ${mine ? "chat-message-row-mine" : ""} ${isCallEvent ? "chat-message-row-system" : ""}`}
+                    >
                       <div className={`chat-bubble ${mine ? "chat-bubble-mine" : ""} ${isImage ? "chat-bubble-image" : ""}`}>
-                        {isImage ? (
+                        {isCallEvent ? (
+                          <p className="chat-system-message">{normalizedMessageText}</p>
+                        ) : isImage ? (
                           <a href={imageUrl!} target="_blank" rel="noreferrer">
                             <img src={imageUrl!} alt="Chat upload" className="chat-image" />
                           </a>
                         ) : (
                           <p>{message.message}</p>
                         )}
-                        <span className="chat-time">{new Date(message.created_at).toLocaleString()}</span>
+                        <span className={`chat-time ${isCallEvent ? "chat-time-system" : ""}`}>
+                          {new Date(message.created_at).toLocaleString()}
+                        </span>
                       </div>
                     </div>
                   );
@@ -336,12 +845,78 @@ export function MessagesPage() {
           padding: 0.95rem 1rem;
           border-bottom: 1px solid var(--border-light);
           display: flex;
-          justify-content: space-between;
           align-items: center;
           background: rgba(255, 255, 255, 0.02);
         }
+        .chat-head-actions {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+        }
         .whatsapp-thread-head h3 {
           margin: 0;
+        }
+        .call-banner {
+          margin: 0.75rem 1rem 0;
+          border: 1px solid rgba(59, 130, 246, 0.4);
+          background: rgba(37, 99, 235, 0.15);
+          border-radius: 0.8rem;
+          padding: 0.7rem 0.9rem;
+          display: flex;
+          justify-content: space-between;
+          gap: 0.75rem;
+          align-items: center;
+        }
+        .call-banner p {
+          margin: 0;
+        }
+        .call-banner-actions {
+          display: flex;
+          gap: 0.5rem;
+        }
+        .call-panel {
+          margin: 0.75rem 1rem 0;
+          border: 1px solid var(--border-light);
+          border-radius: 0.8rem;
+          background: rgba(2, 6, 23, 0.55);
+          padding: 0.8rem;
+          display: grid;
+          gap: 0.7rem;
+        }
+        .call-status-hint {
+          margin: 0.55rem 1rem 0;
+          font-size: 0.78rem;
+        }
+        .call-videos {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.7rem;
+        }
+        .call-video-card {
+          border: 1px solid var(--border-light);
+          border-radius: 0.7rem;
+          overflow: hidden;
+          background: rgba(2, 6, 23, 0.6);
+        }
+        .call-video-card p {
+          margin: 0;
+          padding: 0.35rem 0.55rem;
+          font-size: 0.78rem;
+          color: var(--text-muted);
+        }
+        .call-video-card video {
+          width: 100%;
+          min-height: 180px;
+          background: #020617;
+          object-fit: cover;
+          display: block;
+        }
+        .call-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.55rem;
+          align-items: center;
         }
         .whatsapp-messages {
           flex: 1;
@@ -361,6 +936,9 @@ export function MessagesPage() {
         .chat-message-row-mine {
           justify-content: flex-end;
         }
+        .chat-message-row-system {
+          justify-content: center;
+        }
         .chat-bubble {
           max-width: min(78%, 520px);
           border-radius: 1rem;
@@ -377,6 +955,18 @@ export function MessagesPage() {
           background: rgba(37, 99, 235, 0.2);
           border-color: rgba(59, 130, 246, 0.35);
         }
+        .chat-system-message {
+          margin: 0;
+          font-style: italic;
+          color: var(--text-muted);
+          text-align: center;
+        }
+        .chat-message-row-system .chat-bubble {
+          background: transparent;
+          border: none;
+          padding: 0.2rem 0.35rem 0.1rem;
+          max-width: 90%;
+        }
         .chat-bubble-image {
           padding: 0.42rem;
         }
@@ -386,6 +976,10 @@ export function MessagesPage() {
           font-size: 0.7rem;
           color: var(--text-muted);
           text-align: right;
+        }
+        .chat-time-system {
+          text-align: center;
+          margin-top: 0.18rem;
         }
         .whatsapp-composer {
           border-top: 1px solid var(--border-light);
@@ -423,6 +1017,9 @@ export function MessagesPage() {
           .whatsapp-rail {
             min-height: 220px;
             max-height: 300px;
+          }
+          .call-videos {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>

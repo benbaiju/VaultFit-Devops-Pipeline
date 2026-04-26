@@ -12,6 +12,8 @@ export default defineConfig(({ mode }) => {
       // If 5173 is taken, fail fast instead of switching ports (avoids a stale tab still using ws://localhost:5173).
       port: 5173,
       strictPort: true,
+      // Allow Cloudflare quick tunnel hostnames for HTTPS device testing.
+      allowedHosts: [".trycloudflare.com", "localhost", "127.0.0.1"],
       proxy: {
         // Same-origin in dev so opening the app via LAN IP still hits your machine's API.
         "/api": {

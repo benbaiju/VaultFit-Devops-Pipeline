@@ -1,11 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { getAdminTicketTimeline, getAdminTickets, updateAdminTicket } from "../services/tickets";
+import { addTicketComment, getAdminTicketTimeline, getAdminTickets, updateAdminTicket } from "../services/tickets";
 import type { TicketPriority, TicketStatus } from "../types/api";
 import { useAuth } from "../state/auth-context";
 
 const STATUSES: TicketStatus[] = ["open", "in_progress", "waiting_user", "resolved", "closed"];
 const PRIORITIES: TicketPriority[] = ["low", "normal", "high", "urgent"];
+
+function formatActorDisplay(actor: { full_name?: string | null; email?: string | null } | null | undefined): string {
+  return actor?.full_name?.trim() || actor?.email?.trim() || "User";
+}
 
 export function AdminSupportPage() {
   const { token, user } = useAuth();
@@ -13,6 +17,7 @@ export function AdminSupportPage() {
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "all">("all");
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | "all">("all");
   const [selectedTicketId, setSelectedTicketId] = useState("");
+  const [adminReply, setAdminReply] = useState("");
   const [error, setError] = useState("");
 
   const ticketsQuery = useQuery({
@@ -41,6 +46,16 @@ export function AdminSupportPage() {
       setError("");
       void queryClient.invalidateQueries({ queryKey: ["admin-tickets"] });
       void queryClient.invalidateQueries({ queryKey: ["admin-ticket-timeline", selectedTicketId] });
+    },
+    onError: (e) => setError((e as Error).message),
+  });
+  const commentMutation = useMutation({
+    mutationFn: () => addTicketComment(token, selectedTicketId, adminReply.trim()),
+    onSuccess: () => {
+      setError("");
+      setAdminReply("");
+      void queryClient.invalidateQueries({ queryKey: ["admin-ticket-timeline", selectedTicketId] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-tickets"] });
     },
     onError: (e) => setError((e as Error).message),
   });
@@ -144,11 +159,30 @@ export function AdminSupportPage() {
               <li key={event.id}>
                 <span>
                   <b>{event.event_type}</b> · {new Date(event.created_at).toLocaleString()} ·{" "}
-                  {event.actor?.full_name ?? event.actor?.email ?? event.actor_user_id}
+                  {formatActorDisplay(event.actor)}
                 </span>
+                {event.event_type === "comment" && typeof event.detail?.comment === "string" ? (
+                  <p className="muted" style={{ margin: "0.35rem 0 0" }}>
+                    {event.detail.comment}
+                  </p>
+                ) : null}
               </li>
             ))}
           </ul>
+          <label>Admin reply</label>
+          <textarea
+            rows={3}
+            value={adminReply}
+            onChange={(e) => setAdminReply(e.target.value)}
+            placeholder="Reply to user and update the ticket thread..."
+          />
+          <button
+            className="secondary-btn"
+            disabled={!adminReply.trim() || commentMutation.isPending}
+            onClick={() => commentMutation.mutate()}
+          >
+            {commentMutation.isPending ? "Posting..." : "Post admin reply"}
+          </button>
         </div>
       ) : null}
       {error ? <p className="error">{error}</p> : null}

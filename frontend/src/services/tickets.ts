@@ -41,6 +41,10 @@ export async function getTicketById(token: string, ticketId: string): Promise<Su
   return apiRequest<SupportTicket>(`/tickets/${ticketId}`, {}, token);
 }
 
+export async function getTicketTimeline(token: string, ticketId: string): Promise<SupportTicketEvent[]> {
+  return apiRequest<SupportTicketEvent[]>(`/tickets/${ticketId}/timeline`, {}, token);
+}
+
 export async function addTicketComment(token: string, ticketId: string, comment: string): Promise<{ message: string }> {
   return apiRequest<{ message: string }>(
     `/tickets/${ticketId}/comments`,

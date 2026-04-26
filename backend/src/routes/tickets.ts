@@ -77,6 +77,17 @@ ticketsRouter.get("/tickets/:id", requireAuth, async (req, res) => {
   res.json(ticket);
 });
 
+ticketsRouter.get("/tickets/:id/timeline", requireAuth, async (req, res) => {
+  const ticket = await getTicketForUser(req.params.id, req.user!.id, req.user?.role === "admin");
+  const { data, error } = await supabaseAdmin
+    .from("support_ticket_events")
+    .select("*, actor:actor_user_id(full_name, email)")
+    .eq("ticket_id", ticket.id)
+    .order("created_at", { ascending: true });
+  if (error) throw new HttpError(400, error.message, "TICKET_TIMELINE_FAILED");
+  res.json(data ?? []);
+});
+
 ticketsRouter.post("/tickets/:id/comments", requireAuth, async (req, res) => {
   const payload = addCommentSchema.parse(req.body);
   const ticket = await getTicketForUser(req.params.id, req.user!.id, req.user?.role === "admin");

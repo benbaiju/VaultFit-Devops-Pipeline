@@ -24,6 +24,16 @@ type CallSignalPayload = {
 };
 
 const FREE_ICE_SERVERS: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
+const CALL_STARTED_TEXT = "Video call started";
+const CALL_DECLINED_TEXT = "Video call declined";
+const CALL_ENDED_PREFIX = "Video call ended";
+
+function normalizeCallEventText(raw: string): string {
+  return raw
+    .replace(/^\[(Video call[^\]]*)\]$/i, "$1")
+    .replace(/^\[(Video call[^\]]*)\]\s*/i, "$1 ")
+    .trim();
+}
 
 export function MessagesPage() {
   const { token, user } = useAuth();
@@ -43,6 +53,7 @@ export function MessagesPage() {
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const pendingOfferRef = useRef<RTCSessionDescriptionInit | null>(null);
   const pendingIceCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
+  const callConnectedAtRef = useRef<number | null>(null);
 
   const [callId, setCallId] = useState("");
   const [incomingFromUserId, setIncomingFromUserId] = useState("");
@@ -277,6 +288,23 @@ export function MessagesPage() {
     return stream;
   }
 
+  function formatCallDuration(totalSeconds: number): string {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${String(secs).padStart(2, "0")}`;
+  }
+
+  async function postCallEventMessage(message: string): Promise<void> {
+    if (!selectedConversationId) return;
+    try {
+      await sendMessage(token, selectedConversationId, message);
+      void queryClient.invalidateQueries({ queryKey: ["messages", selectedConversationId] });
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    } catch {
+      // Timeline logging should not break live call flow.
+    }
+  }
+
   async function tryPlayRemoteVideo(): Promise<void> {
     const el = remoteVideoRef.current;
     if (!el) return;
@@ -336,6 +364,7 @@ export function MessagesPage() {
     };
     peer.onconnectionstatechange = () => {
       if (peer.connectionState === "connected") {
+        if (!callConnectedAtRef.current) callConnectedAtRef.current = Date.now();
         setCallStatus("connected");
       } else if (peer.connectionState === "failed" || peer.connectionState === "disconnected" || peer.connectionState === "closed") {
         setCallStatus("ended");
@@ -366,6 +395,7 @@ export function MessagesPage() {
     remoteStreamRef.current = null;
     pendingOfferRef.current = null;
     pendingIceCandidatesRef.current = [];
+    callConnectedAtRef.current = null;
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = null;
@@ -417,6 +447,7 @@ export function MessagesPage() {
           offer,
         } satisfies CallSignalPayload,
       });
+      void postCallEventMessage(CALL_STARTED_TEXT);
       setCallStatus("connecting");
     } catch (e) {
       endCall({ notifyPeer: false });
@@ -489,6 +520,7 @@ export function MessagesPage() {
         reason: "rejected",
       } satisfies CallSignalPayload,
     });
+    void postCallEventMessage(CALL_DECLINED_TEXT);
     setIncomingOfferPending(false);
     setIncomingFromUserId("");
     pendingOfferRef.current = null;
@@ -513,6 +545,17 @@ export function MessagesPage() {
       track.enabled = nextEnabled;
     });
     setIsCameraEnabled(nextEnabled);
+  }
+
+  function endCallAndLog() {
+    const connectedAt = callConnectedAtRef.current;
+    endCall({ notifyPeer: true, setEnded: true });
+    if (!connectedAt) {
+      void postCallEventMessage(CALL_ENDED_PREFIX);
+      return;
+    }
+    const durationSeconds = Math.max(0, Math.round((Date.now() - connectedAt) / 1000));
+    void postCallEventMessage(`${CALL_ENDED_PREFIX} • Duration ${formatCallDuration(durationSeconds)}`);
   }
 
   const selectedConversationLabel = selectedConversation
@@ -648,7 +691,7 @@ export function MessagesPage() {
                     <button type="button" className="secondary-btn" onClick={toggleCamera}>
                       {isCameraEnabled ? "Camera Off" : "Camera On"}
                     </button>
-                    <button type="button" className="primary-btn" onClick={() => endCall({ notifyPeer: true, setEnded: true })}>
+                    <button type="button" className="primary-btn" onClick={endCallAndLog}>
                       End Call
                     </button>
                   </div>
@@ -666,17 +709,29 @@ export function MessagesPage() {
                   const mine = message.sender_id === user?.id;
                   const imageUrl = message.image_signed_url ?? message.image_url ?? null;
                   const isImage = message.message_type === "image" && Boolean(imageUrl);
+                  const normalizedMessageText = normalizeCallEventText(message.message);
+                  const isCallEvent =
+                    normalizedMessageText === CALL_STARTED_TEXT ||
+                    normalizedMessageText === CALL_DECLINED_TEXT ||
+                    normalizedMessageText.startsWith(CALL_ENDED_PREFIX);
                   return (
-                    <div key={message.id} className={`chat-message-row ${mine ? "chat-message-row-mine" : ""}`}>
+                    <div
+                      key={message.id}
+                      className={`chat-message-row ${mine ? "chat-message-row-mine" : ""} ${isCallEvent ? "chat-message-row-system" : ""}`}
+                    >
                       <div className={`chat-bubble ${mine ? "chat-bubble-mine" : ""} ${isImage ? "chat-bubble-image" : ""}`}>
-                        {isImage ? (
+                        {isCallEvent ? (
+                          <p className="chat-system-message">{normalizedMessageText}</p>
+                        ) : isImage ? (
                           <a href={imageUrl!} target="_blank" rel="noreferrer">
                             <img src={imageUrl!} alt="Chat upload" className="chat-image" />
                           </a>
                         ) : (
                           <p>{message.message}</p>
                         )}
-                        <span className="chat-time">{new Date(message.created_at).toLocaleString()}</span>
+                        <span className={`chat-time ${isCallEvent ? "chat-time-system" : ""}`}>
+                          {new Date(message.created_at).toLocaleString()}
+                        </span>
                       </div>
                     </div>
                   );
@@ -881,6 +936,9 @@ export function MessagesPage() {
         .chat-message-row-mine {
           justify-content: flex-end;
         }
+        .chat-message-row-system {
+          justify-content: center;
+        }
         .chat-bubble {
           max-width: min(78%, 520px);
           border-radius: 1rem;
@@ -897,6 +955,18 @@ export function MessagesPage() {
           background: rgba(37, 99, 235, 0.2);
           border-color: rgba(59, 130, 246, 0.35);
         }
+        .chat-system-message {
+          margin: 0;
+          font-style: italic;
+          color: var(--text-muted);
+          text-align: center;
+        }
+        .chat-message-row-system .chat-bubble {
+          background: transparent;
+          border: none;
+          padding: 0.2rem 0.35rem 0.1rem;
+          max-width: 90%;
+        }
         .chat-bubble-image {
           padding: 0.42rem;
         }
@@ -906,6 +976,10 @@ export function MessagesPage() {
           font-size: 0.7rem;
           color: var(--text-muted);
           text-align: right;
+        }
+        .chat-time-system {
+          text-align: center;
+          margin-top: 0.18rem;
         }
         .whatsapp-composer {
           border-top: 1px solid var(--border-light);

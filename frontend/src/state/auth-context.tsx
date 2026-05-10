@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { apiRequest, ApiError } from "../lib/api-client";
 import { clearSession, getStoredToken, getStoredUser, saveSession } from "../lib/storage";
@@ -11,6 +11,8 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<User>;
   register: (input: { fullName: string; email: string; password: string; role: Role }) => Promise<User>;
   logout: () => void;
+  /** Merges into the signed-in user and persists session (e.g. after profile name update). */
+  refreshUserDisplay: (updates: Partial<User>) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -66,6 +68,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearSession();
   }
 
+  const refreshUserDisplay = useCallback((updates: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...updates };
+      saveSession(token, JSON.stringify(next));
+      return next;
+    });
+  }, [token]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       token,
@@ -74,8 +85,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       logout,
+      refreshUserDisplay,
     }),
-    [token, user],
+    [token, user, refreshUserDisplay],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

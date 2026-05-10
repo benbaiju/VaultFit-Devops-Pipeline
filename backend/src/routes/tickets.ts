@@ -32,6 +32,13 @@ const listAdminTicketsSchema = z.object({
 
 export const ticketsRouter = Router();
 
+function routeTicketId(req: { params: { id?: string | string[] } }): string {
+  const v = req.params.id;
+  if (typeof v === "string") return v;
+  if (Array.isArray(v)) return v[0] ?? "";
+  return "";
+}
+
 ticketsRouter.post("/tickets", requireAuth, async (req, res) => {
   const payload = createTicketSchema.parse(req.body);
   const { data, error } = await supabaseAdmin
@@ -73,12 +80,12 @@ ticketsRouter.get("/tickets", requireAuth, async (req, res) => {
 });
 
 ticketsRouter.get("/tickets/:id", requireAuth, async (req, res) => {
-  const ticket = await getTicketForUser(req.params.id, req.user!.id, req.user?.role === "admin");
+  const ticket = await getTicketForUser(routeTicketId(req), req.user!.id, req.user?.role === "admin");
   res.json(ticket);
 });
 
 ticketsRouter.get("/tickets/:id/timeline", requireAuth, async (req, res) => {
-  const ticket = await getTicketForUser(req.params.id, req.user!.id, req.user?.role === "admin");
+  const ticket = await getTicketForUser(routeTicketId(req), req.user!.id, req.user?.role === "admin");
   const { data, error } = await supabaseAdmin
     .from("support_ticket_events")
     .select("*, actor:actor_user_id(full_name, email)")
@@ -90,7 +97,7 @@ ticketsRouter.get("/tickets/:id/timeline", requireAuth, async (req, res) => {
 
 ticketsRouter.post("/tickets/:id/comments", requireAuth, async (req, res) => {
   const payload = addCommentSchema.parse(req.body);
-  const ticket = await getTicketForUser(req.params.id, req.user!.id, req.user?.role === "admin");
+  const ticket = await getTicketForUser(routeTicketId(req), req.user!.id, req.user?.role === "admin");
   await insertTicketEvent(ticket.id, req.user!.id, "comment", { comment: payload.comment });
   if (req.user?.role === "admin") {
     await createNotification(ticket.created_by_user_id, "Support ticket update", `Admin replied: ${ticket.subject}`);
@@ -122,8 +129,9 @@ ticketsRouter.get("/admin/tickets", requireAuth, requireRole(["admin"]), async (
 });
 
 ticketsRouter.patch("/admin/tickets/:id", requireAuth, requireRole(["admin"]), async (req, res) => {
+  const ticketId = routeTicketId(req);
   const payload = adminUpdateTicketSchema.parse(req.body);
-  const { data: existing, error: existingError } = await supabaseAdmin.from("support_tickets").select("*").eq("id", req.params.id).single();
+  const { data: existing, error: existingError } = await supabaseAdmin.from("support_tickets").select("*").eq("id", ticketId).single();
   if (existingError || !existing) throw new HttpError(404, "Ticket not found", "TICKET_NOT_FOUND");
 
   if (payload.status && !isValidStatusTransition(existing.status, payload.status)) {
@@ -149,7 +157,7 @@ ticketsRouter.patch("/admin/tickets/:id", requireAuth, requireRole(["admin"]), a
     patch.closed_at = null;
   }
 
-  const { data, error } = await supabaseAdmin.from("support_tickets").update(patch).eq("id", req.params.id).select("*").single();
+  const { data, error } = await supabaseAdmin.from("support_tickets").update(patch).eq("id", ticketId).select("*").single();
   if (error || !data) throw new HttpError(400, error?.message ?? "Failed to update ticket", "TICKET_UPDATE_FAILED");
 
   if (payload.status && payload.status !== existing.status) {
@@ -192,7 +200,7 @@ ticketsRouter.get("/admin/tickets/:id/timeline", requireAuth, requireRole(["admi
   const { data, error } = await supabaseAdmin
     .from("support_ticket_events")
     .select("*, actor:actor_user_id(full_name, email)")
-    .eq("ticket_id", req.params.id)
+    .eq("ticket_id", routeTicketId(req))
     .order("created_at", { ascending: true });
   if (error) throw new HttpError(400, error.message, "TICKET_TIMELINE_FAILED");
   res.json(data ?? []);

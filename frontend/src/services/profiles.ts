@@ -1,9 +1,10 @@
 import { apiRequest } from "../lib/api-client";
 import type { Profile } from "../types/api";
 
-type UpdateProfileInput = {
+export type UpdateProfileInput = {
   fullName?: string;
   phone?: string;
+  /** Omit to leave unchanged; send "" to clear. https URL or data:image base64 (cropped). */
   avatarUrl?: string;
   timezone?: string;
 };

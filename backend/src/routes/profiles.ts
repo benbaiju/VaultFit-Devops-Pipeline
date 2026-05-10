@@ -5,10 +5,19 @@ import { supabaseAdmin } from "../lib/supabase.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
 
+const dataImagePrefix = /^data:image\/(png|jpeg|jpg|webp);base64,/i;
 const updateProfileSchema = z.object({
   fullName: z.string().min(2).optional(),
   phone: z.string().optional(),
-  avatarUrl: z.url().optional(),
+  /** Public https URL or an inline cropped image (same as client profile). */
+  avatarUrl: z
+    .union([
+      z.literal(""),
+      z.string().url().max(4000),
+      z.string().regex(dataImagePrefix).max(1_500_000),
+    ])
+    .optional()
+    .transform((v) => (v === "" ? null : v)),
   timezone: z.string().optional(),
 });
 const sendPhoneOtpSchema = z.object({
@@ -29,6 +38,7 @@ profilesRouter.get("/me", requireAuth, async (req, res) => {
 });
 
 profilesRouter.put("/me", requireAuth, async (req, res) => {
+  const raw = req.body && typeof req.body === "object" ? (req.body as Record<string, unknown>) : {};
   const payload = updateProfileSchema.parse(req.body);
   const { data: existing, error: readError } = await supabaseAdmin
     .from("profiles")
@@ -49,26 +59,35 @@ profilesRouter.put("/me", requireAuth, async (req, res) => {
     throw new HttpError(409, "Client name cannot be changed once set", "PROFILE_NAME_LOCKED");
   }
 
-  const { data, error } = await supabaseAdmin
-    .from("profiles")
-    .update({
-      full_name: payload.fullName,
-      phone: payload.phone,
-      ...(payload.phone && payload.phone !== existing.phone
-        ? {
-            phone_verified: false,
-            phone_verified_at: null,
-            phone_verification_code_hash: null,
-            phone_verification_expires_at: null,
-            phone_verification_attempts: 0,
-          }
-        : {}),
-      avatar_url: payload.avatarUrl,
-      timezone: payload.timezone,
-    })
-    .eq("id", req.user!.id)
-    .select("*")
-    .single();
+  const update: Record<string, unknown> = {};
+  if (Object.prototype.hasOwnProperty.call(raw, "fullName")) {
+    update.full_name = payload.fullName ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(raw, "phone")) {
+    update.phone = payload.phone ?? null;
+    if (payload.phone && payload.phone !== existing.phone) {
+      update.phone_verified = false;
+      update.phone_verified_at = null;
+      update.phone_verification_code_hash = null;
+      update.phone_verification_expires_at = null;
+      update.phone_verification_attempts = 0;
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(raw, "avatarUrl")) {
+    update.avatar_url = payload.avatarUrl;
+  }
+  if (Object.prototype.hasOwnProperty.call(raw, "timezone")) {
+    update.timezone = payload.timezone ?? null;
+  }
+
+  if (Object.keys(update).length === 0) {
+    const { data: row, error: readAgain } = await supabaseAdmin.from("profiles").select("*").eq("id", req.user!.id).single();
+    if (readAgain || !row) throw new HttpError(400, readAgain?.message ?? "Profile read failed", "PROFILE_READ_FAILED");
+    res.json(row);
+    return;
+  }
+
+  const { data, error } = await supabaseAdmin.from("profiles").update(update).eq("id", req.user!.id).select("*").single();
 
   if (error) {
     throw new HttpError(400, error.message, "PROFILE_UPDATE_FAILED");

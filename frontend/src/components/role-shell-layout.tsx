@@ -22,6 +22,7 @@ import {
   Users,
   BadgeCheck,
   Headset,
+  Home,
 } from "lucide-react";
 
 type ShellVariant = "client" | "trainer" | "admin";
@@ -124,12 +125,11 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
             {variant === "admin" && (
               <>
                 <p className="sidebar-heading">Admin</p>
-                <NavItem to={ROUTES.admin.root} icon={<LayoutDashboard size={18} />} label="Dashboard" end />
+                <NavItem to={ROUTES.admin.root} icon={<Home size={18} />} label="Dashboard" end />
                 <NavItem to={ROUTES.admin.users} icon={<Users size={18} />} label="Users" />
                 <NavItem to={ROUTES.admin.verifications} icon={<BadgeCheck size={18} />} label="Verifications" />
                 <NavItem to={ROUTES.admin.support} icon={<Headset size={18} />} label="Support" />
-                <p className="sidebar-heading">Account</p>
-                <NavItem to={ROUTES.admin.settings} icon={<Settings size={18} />} label="Profile settings" />
+                <NavItem to={ROUTES.admin.settings} icon={<User size={18} />} label="Profile Settings" />
               </>
             )}
           </nav>

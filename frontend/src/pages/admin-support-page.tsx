@@ -371,6 +371,23 @@ function labelPriority(p: TicketPriority): string {
   return map[p];
 }
 
+/** Badge text aligned with product mock (normal → MEDIUM). */
+function labelPriorityBadge(p: TicketPriority): string {
+  const map: Record<TicketPriority, string> = {
+    low: "LOW",
+    normal: "MEDIUM",
+    high: "HIGH",
+    urgent: "URGENT",
+  };
+  return map[p];
+}
+
+function initialsFromName(name: string): string {
+  const parts = name.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
+  return name.slice(0, 2).toUpperCase() || "?";
+}
+
 function TicketRow({
   ticket,
   selected,
@@ -409,12 +426,14 @@ function TicketRow({
       <td className="support-queue-td-subject">{ticket.subject}</td>
       <td>
         <span className={`support-priority-badge support-priority-badge--${ticket.priority}`}>
-          {labelPriority(ticket.priority).toUpperCase()}
+          {labelPriorityBadge(ticket.priority)}
         </span>
       </td>
       <td>
-        <span className={`support-status-pill support-status-pill--${ticket.status}`}>
-          {ticket.status === "open" ? <span className="support-status-dot" aria-hidden /> : null}
+        <span className={`support-status-cell support-status-cell--${ticket.status}`}>
+          {(ticket.status === "open" || ticket.status === "in_progress") && (
+            <span className={`support-status-dot support-status-dot--${ticket.status}`} aria-hidden />
+          )}
           {labelStatus(ticket.status)}
         </span>
       </td>
@@ -471,15 +490,17 @@ function TicketDetailPanel({
       <div className="support-panel-meta">
         <div className="support-panel-meta-row">
           <span className="support-panel-meta-label">Status</span>
-          <span className={`support-status-pill support-status-pill--${ticket.status}`}>
-            {ticket.status === "open" ? <span className="support-status-dot" aria-hidden /> : null}
+          <span className={`support-meta-badge support-meta-badge--status-${ticket.status}`}>
+            {(ticket.status === "open" || ticket.status === "in_progress") && (
+              <span className={`support-meta-badge-dot support-meta-badge-dot--${ticket.status}`} aria-hidden />
+            )}
             {labelStatus(ticket.status)}
           </span>
         </div>
         <div className="support-panel-meta-row">
           <span className="support-panel-meta-label">Priority</span>
           <span className={`support-priority-badge support-priority-badge--${ticket.priority}`}>
-            {labelPriority(ticket.priority).toUpperCase()}
+            {labelPriorityBadge(ticket.priority)}
           </span>
         </div>
         <div className="support-panel-meta-row support-panel-meta-row--assign">
@@ -488,7 +509,7 @@ function TicketDetailPanel({
             {assigned ? formatActorDisplay(ticket.assigned_admin) : "Unassigned"}
             {!assignedToMe && ticket.status !== "closed" ? (
               <button type="button" className="support-panel-link" onClick={onAssignMe} disabled={updateBusy}>
-                Assign me
+                Assign Me
               </button>
             ) : null}
           </span>
@@ -534,7 +555,7 @@ function TicketDetailPanel({
               disabled={updateBusy || ticket.status === "closed"}
               onClick={onCloseTicket}
             >
-              Close ticket
+              Close Ticket
             </button>
             <button
               type="button"
@@ -542,7 +563,7 @@ function TicketDetailPanel({
               disabled={!adminReply.trim() || commentBusy || ticket.status === "closed"}
               onClick={onSendReply}
             >
-              {commentBusy ? "Sending…" : "Send reply"}
+              {commentBusy ? "Sending…" : "Send Reply"}
             </button>
           </div>
         </div>
@@ -580,11 +601,18 @@ function MessageBlock({
           </span>
         </div>
       ) : null}
-      <div className="support-msg-head">
-        <span className="support-msg-name">{message.name}</span>
-        <span className="support-msg-time">{formatRelativeTime(message.at)}</span>
+      <div className="support-msg-row">
+        <div className="support-msg-avatar" aria-hidden>
+          {initialsFromName(message.name)}
+        </div>
+        <div className="support-msg-main">
+          <div className="support-msg-head">
+            <span className="support-msg-name">{message.name}</span>
+            <span className="support-msg-time">{formatRelativeTime(message.at)}</span>
+          </div>
+          <p className="support-msg-body">{message.body}</p>
+        </div>
       </div>
-      <p className="support-msg-body">{message.body}</p>
     </div>
   );
 }

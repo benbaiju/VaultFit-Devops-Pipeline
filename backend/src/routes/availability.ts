@@ -96,6 +96,7 @@ availabilityRouter.get("/:trainerId/open-slots", async (req, res) => {
 
   const blockedSet = new Set((blockedDates ?? []).map((b) => String(b.blocked_date)));
   const openSlots: Array<{ date: string; startTime: string; endTime: string }> = [];
+  const seenSlots = new Set<string>();
 
   for (
     let d = new Date(`${query.from}T00:00:00.000Z`);
@@ -122,11 +123,12 @@ availabilityRouter.get("/:trainerId/open-slots", async (req, res) => {
       for (const part of remaining) {
         if (part.start >= part.end) continue;
         for (let cursor = part.start; cursor + durationMinutes <= part.end; cursor += durationMinutes) {
-          openSlots.push({
-            date: dateStr,
-            startTime: fromMinutes(cursor),
-            endTime: fromMinutes(cursor + durationMinutes),
-          });
+          const startTime = fromMinutes(cursor);
+          const endTime = fromMinutes(cursor + durationMinutes);
+          const slotKey = `${dateStr}|${startTime}|${endTime}`;
+          if (seenSlots.has(slotKey)) continue;
+          seenSlots.add(slotKey);
+          openSlots.push({ date: dateStr, startTime, endTime });
         }
       }
     }

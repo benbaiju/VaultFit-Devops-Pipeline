@@ -13,7 +13,7 @@ import { AdminSupportScreen } from "../screens/admin/admin-support-screen";
 import { ClientDiscoverScreen } from "../screens/client/client-discover-screen";
 import { ClientBookingsScreen } from "../screens/client/client-bookings-screen";
 import { MessagesStackNavigator } from "../screens/client/messages-stack";
-import { ClientSupportScreen } from "../screens/client/client-support-screen";
+import { SupportStackNavigator } from "../screens/client/support-stack";
 import { ClientProfileScreen } from "../screens/client/client-profile-screen";
 import { ClientTrainerProfileScreen } from "../screens/client/client-trainer-profile-screen";
 import { ClientReviewsScreen } from "../screens/client/client-reviews-screen";
@@ -59,7 +59,7 @@ function ClientMoreMenuStack() {
       <ClientMoreStack.Screen name="ClientMoreHome" component={ClientMoreScreen} options={{ title: "More" }} />
       <ClientMoreStack.Screen name="ClientReviews" component={ClientReviewsScreen} options={{ title: "Reviews" }} />
       <ClientMoreStack.Screen name="ClientNotifications" component={NotificationsScreen} options={{ title: "Notifications" }} />
-      <ClientMoreStack.Screen name="ClientSupport" component={ClientSupportScreen} options={{ title: "Support" }} />
+      <ClientMoreStack.Screen name="ClientSupport" component={SupportStackNavigator} options={{ title: "Support", headerShown: false }} />
     </ClientMoreStack.Navigator>
   );
 }
@@ -71,7 +71,7 @@ function TrainerMoreMenuStack() {
       <TrainerMoreStack.Screen name="TrainerServices" component={TrainerServicesScreen} options={{ title: "Services" }} />
       <TrainerMoreStack.Screen name="TrainerPlans" component={TrainerPlansScreen} options={{ title: "Plans" }} />
       <TrainerMoreStack.Screen name="TrainerNotifications" component={NotificationsScreen} options={{ title: "Notifications" }} />
-      <TrainerMoreStack.Screen name="TrainerSupport" component={ClientSupportScreen} options={{ title: "Support" }} />
+      <TrainerMoreStack.Screen name="TrainerSupport" component={SupportStackNavigator} options={{ title: "Support", headerShown: false }} />
     </TrainerMoreStack.Navigator>
   );
 }

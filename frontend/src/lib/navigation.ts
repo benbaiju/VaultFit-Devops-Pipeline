@@ -9,6 +9,7 @@ export const ROUTES = {
     nutritionists: "/client/nutritionists",
     profile: "/client/profile",
     book: "/client/book",
+    bookings: "/client/bookings",
     plans: "/client/plans",
     reviews: "/client/reviews",
     messages: "/client/messages",

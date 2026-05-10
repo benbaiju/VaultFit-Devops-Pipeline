@@ -58,6 +58,10 @@ export interface Booking {
   start_time: string;
   end_time: string;
   trainer_id?: string;
+  /** Present on list responses for calendar labels (professional’s public name). */
+  trainer_display_name?: string | null;
+  /** Present on list responses for calendar labels (client’s profile name). */
+  client_display_name?: string | null;
 }
 
 export interface OpenSlot {

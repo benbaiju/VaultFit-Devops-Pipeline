@@ -8,6 +8,7 @@ import {
   Dumbbell,
   LayoutDashboard,
   User,
+  Calendar,
   CalendarDays,
   ClipboardCheck,
   MessageSquare,
@@ -47,6 +48,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
     const p = location.pathname;
     if (p === ROUTES.client.root || p === `${ROUTES.client.root}/`) return "Discover";
     if (p.startsWith(ROUTES.client.nutritionists)) return "Nutritionists";
+    if (p.startsWith(ROUTES.client.bookings)) return "Bookings";
     if (p.startsWith(ROUTES.client.book)) return "Book session";
     if (p.startsWith(ROUTES.client.plans)) return "My plans";
     if (p.startsWith(ROUTES.client.reviews)) return "My reviews";
@@ -103,6 +105,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
                 <NavItem to={ROUTES.client.nutritionists} icon={<Activity size={18}/>} label="Nutritionists" />
                 <NavItem to={ROUTES.client.profile} icon={<User size={18}/>} label="Profile" />
                 <NavItem to={ROUTES.client.book} icon={<CalendarDays size={18}/>} label="Book Session" />
+                <NavItem to={ROUTES.client.bookings} icon={<Calendar size={18} />} label="Bookings" />
                 <NavItem to={ROUTES.client.plans} icon={<Activity size={18}/>} label="My Plans" />
                 <NavItem to={ROUTES.client.reviews} icon={<Bookmark size={18}/>} label="My Reviews" />
                 <p className="sidebar-heading">Communication</p>

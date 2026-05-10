@@ -1,5 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   addDays,
   addMonths,
@@ -17,15 +18,22 @@ import {
   startOfWeek,
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ROUTES } from "../lib/navigation";
 import { getBookings, updateBookingStatus } from "../services/bookings";
 import { getServices } from "../services/services";
 import { getMyTrainerProfile } from "../services/trainers";
 import { useAuth } from "../state/auth-context";
 import type { Booking } from "../types/api";
 
-const NEXT_STATUS: Partial<Record<Booking["status"], Booking["status"][]>> = {
+const TRAINER_NEXT_STATUS: Partial<Record<Booking["status"], Booking["status"][]>> = {
   pending: ["confirmed", "cancelled"],
   confirmed: ["completed", "cancelled"],
+};
+
+/** Clients may cancel their own bookings (API allows client or trainer). */
+const CLIENT_NEXT_STATUS: Partial<Record<Booking["status"], Booking["status"][]>> = {
+  pending: ["cancelled"],
+  confirmed: ["cancelled"],
 };
 
 const HOUR_START = 9;
@@ -88,14 +96,16 @@ function bookingBlockStyle(
   const clampedStart = Math.max(startMin, gridStartMin);
   const clampedEnd = Math.min(Math.max(endMin, clampedStart + 15), gridEndMin);
   const top = ((clampedStart - gridStartMin) / 60) * ROW_H;
-  const height = Math.max(((clampedEnd - clampedStart) / 60) * ROW_H, 20);
+  const height = Math.max(((clampedEnd - clampedStart) / 60) * ROW_H, 44);
   const widthPct = 100 / lanes;
   const leftPct = lane * widthPct;
   return { top, height, leftPct, widthPct };
 }
 
-export function TrainerBookingsPage() {
-  const { token } = useAuth();
+export type BookingsCalendarVariant = "trainer" | "client";
+
+export function BookingsCalendarPage({ variant }: { variant: BookingsCalendarVariant }) {
+  const { token, user } = useAuth();
   const queryClient = useQueryClient();
   const [error, setError] = useState("");
   const [cursorDate, setCursorDate] = useState(() => new Date());
@@ -105,6 +115,7 @@ export function TrainerBookingsPage() {
   const meQuery = useQuery({
     queryKey: ["trainer-me"],
     queryFn: () => getMyTrainerProfile(token),
+    enabled: variant === "trainer" && Boolean(token),
   });
 
   const bookingsQuery = useQuery({
@@ -117,8 +128,28 @@ export function TrainerBookingsPage() {
   const servicesQuery = useQuery({
     queryKey: ["services", trainerId],
     queryFn: () => getServices(trainerId!),
-    enabled: Boolean(trainerId),
+    enabled: variant === "trainer" && Boolean(trainerId),
   });
+
+  const clientTrainerIds = useMemo(() => {
+    if (variant !== "client" || !user?.id) return [];
+    const list = bookingsQuery.data ?? [];
+    const mine = list.filter((b) => b.client_id === user.id);
+    return [...new Set(mine.map((b) => b.trainer_id).filter((id): id is string => Boolean(id)))];
+  }, [variant, user?.id, bookingsQuery.data]);
+
+  const clientServicesQueries = useQueries({
+    queries: clientTrainerIds.map((tid) => ({
+      queryKey: ["services", tid],
+      queryFn: () => getServices(tid),
+      enabled: variant === "client" && Boolean(tid),
+    })),
+  });
+
+  const allClientServices = useMemo(
+    () => clientServicesQueries.flatMap((q) => q.data ?? []),
+    [clientServicesQueries],
+  );
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: Booking["status"] }) => updateBookingStatus(token, id, status),
@@ -131,17 +162,27 @@ export function TrainerBookingsPage() {
 
   const titleByServiceId = useMemo(() => {
     const m = new Map<string, string>();
-    for (const s of servicesQuery.data ?? []) {
-      m.set(s.id, s.title);
+    if (variant === "trainer") {
+      for (const s of servicesQuery.data ?? []) {
+        m.set(s.id, s.title);
+      }
+    } else {
+      for (const s of allClientServices) {
+        m.set(s.id, s.title);
+      }
     }
     return m;
-  }, [servicesQuery.data]);
+  }, [variant, servicesQuery.data, allClientServices]);
 
-  const trainerBookings = useMemo(() => {
+  const displayBookings = useMemo(() => {
     const list = bookingsQuery.data ?? [];
-    if (!trainerId) return [];
-    return list.filter((b) => b.trainer_id === trainerId);
-  }, [bookingsQuery.data, trainerId]);
+    if (variant === "trainer") {
+      if (!trainerId) return [];
+      return list.filter((b) => b.trainer_id === trainerId);
+    }
+    if (!user?.id) return [];
+    return list.filter((b) => b.client_id === user.id);
+  }, [bookingsQuery.data, variant, trainerId, user?.id]);
 
   const weekStart = useMemo(() => startOfWeek(cursorDate, { weekStartsOn: 1 }), [cursorDate]);
   const weekEnd = useMemo(() => endOfWeek(cursorDate, { weekStartsOn: 1 }), [cursorDate]);
@@ -190,25 +231,25 @@ export function TrainerBookingsPage() {
   const gridBodyHeight = hourRows.length * ROW_H;
 
   const selectedBooking = useMemo(
-    () => trainerBookings.find((b) => b.id === selectedId) ?? null,
-    [trainerBookings, selectedId],
+    () => displayBookings.find((b) => b.id === selectedId) ?? null,
+    [displayBookings, selectedId],
   );
 
   const yearSummaries = useMemo(() => {
     const y = getYear(cursorDate);
     const months: { monthIndex: number; label: string; count: number }[] = [];
     for (let m = 0; m < 12; m += 1) {
-      const count = trainerBookings.filter((b) => {
+      const count = displayBookings.filter((b) => {
         const d = parseISO(b.booking_date);
         return !Number.isNaN(d.getTime()) && d.getFullYear() === y && d.getMonth() === m;
       }).length;
       months.push({ monthIndex: m, label: format(new Date(y, m, 1), "MMMM"), count });
     }
     return months;
-  }, [cursorDate, trainerBookings]);
+  }, [cursorDate, displayBookings]);
 
   function bookingsForDay(day: Date): Booking[] {
-    return trainerBookings.filter((b) => {
+    return displayBookings.filter((b) => {
       try {
         return isSameDay(parseISO(b.booking_date), day);
       } catch {
@@ -222,14 +263,29 @@ export function TrainerBookingsPage() {
     return title?.trim() || "Session";
   }
 
-  const loading = bookingsQuery.isLoading || meQuery.isLoading;
+  function formatTimeRange(b: Booking): string {
+    return `${b.start_time.slice(0, 5)}–${b.end_time.slice(0, 5)}`;
+  }
+
+  function personLabel(booking: Booking): string {
+    if (variant === "client") {
+      return booking.trainer_display_name?.trim() || "Trainer";
+    }
+    return booking.client_display_name?.trim() || "Client";
+  }
+
+  const loading = bookingsQuery.isLoading || (variant === "trainer" && meQuery.isLoading);
+
+  const nextStatusMap = variant === "client" ? CLIENT_NEXT_STATUS : TRAINER_NEXT_STATUS;
 
   return (
     <section className="tb-bookings">
       <header className="tb-bookings-head">
         <h2 className="tb-bookings-title">Bookings</h2>
         <p className="muted tb-bookings-lead">
-          Your sessions on the calendar. Select a block to update status.
+          {variant === "client"
+            ? "Your sessions on the calendar. Select a block to view details or cancel if plans change."
+            : "Your sessions on the calendar. Select a block to update status."}
         </p>
       </header>
 
@@ -290,7 +346,7 @@ export function TrainerBookingsPage() {
           {view === "month" ? (
             <MonthGrid
               cursorDate={cursorDate}
-              trainerBookings={trainerBookings}
+              bookings={displayBookings}
               onPickDay={(d) => {
                 setCursorDate(d);
                 setView("day");
@@ -348,7 +404,7 @@ export function TrainerBookingsPage() {
                       {dayBookings.map((b) => {
                         const lane = lanesMap.get(b.id) ?? 0;
                         const pos = bookingBlockStyle(b, lane, lanes);
-                        const startLabel = b.start_time.slice(0, 5);
+                        const summary = `${formatTimeRange(b)}, ${sessionLabel(b)}, ${personLabel(b)}`;
                         return (
                           <button
                             key={b.id}
@@ -360,10 +416,13 @@ export function TrainerBookingsPage() {
                               left: `${pos.leftPct}%`,
                               width: `${pos.widthPct}%`,
                             }}
+                            title={summary}
+                            aria-label={`Booking: ${summary}. ${b.status}.`}
                             onClick={() => setSelectedId(b.id === selectedId ? null : b.id)}
                           >
-                            <span className="tb-cal-event-time">{startLabel}</span>
+                            <span className="tb-cal-event-time">{formatTimeRange(b)}</span>
                             <span className="tb-cal-event-title">{sessionLabel(b)}</span>
+                            <span className="tb-cal-event-person">{personLabel(b)}</span>
                           </button>
                         );
                       })}
@@ -380,14 +439,34 @@ export function TrainerBookingsPage() {
         <div className="tb-cal-detail card">
           <div className="tb-cal-detail-row">
             <strong>
-              {selectedBooking.booking_date} · {selectedBooking.start_time.slice(0, 5)}–
-              {selectedBooking.end_time.slice(0, 5)}
+              {selectedBooking.booking_date} · {formatTimeRange(selectedBooking)}
             </strong>
             <span className={`status status-${selectedBooking.status}`}>{selectedBooking.status}</span>
           </div>
-          <p className="muted">{sessionLabel(selectedBooking)}</p>
+          <p className="tb-cal-detail-service">{sessionLabel(selectedBooking)}</p>
+          <p className="muted tb-cal-detail-person">
+            {variant === "client" ? (
+              <>
+                Trainer:{" "}
+                {selectedBooking.trainer_id ? (
+                  <Link
+                    className="tb-cal-detail-link"
+                    to={`${ROUTES.client.trainers}/${selectedBooking.trainer_id}`}
+                  >
+                    {personLabel(selectedBooking)}
+                  </Link>
+                ) : (
+                  personLabel(selectedBooking)
+                )}
+              </>
+            ) : (
+              <>
+                Client: {personLabel(selectedBooking)}
+              </>
+            )}
+          </p>
           <div className="inline-actions">
-            {(NEXT_STATUS[selectedBooking.status] ?? []).map((next) => (
+            {(nextStatusMap[selectedBooking.status] ?? []).map((next) => (
               <button
                 key={next}
                 type="button"
@@ -395,15 +474,24 @@ export function TrainerBookingsPage() {
                 disabled={statusMutation.isPending}
                 onClick={() => statusMutation.mutate({ id: selectedBooking.id, status: next })}
               >
-                Mark {next}
+                {variant === "client" && next === "cancelled" ? "Cancel booking" : `Mark ${next}`}
               </button>
             ))}
           </div>
         </div>
       ) : null}
 
-      {!loading && trainerBookings.length === 0 ? (
-        <p className="muted tb-cal-empty">No bookings yet. Once clients book your services, they appear here.</p>
+      {!loading && displayBookings.length === 0 ? (
+        <p className="muted tb-cal-empty">
+          {variant === "client" ? (
+            <>
+              No bookings yet.{" "}
+              <Link to={ROUTES.client.book}>Book a session</Link> to see it on your calendar.
+            </>
+          ) : (
+            <>No bookings yet. Once clients book your services, they appear here.</>
+          )}
+        </p>
       ) : null}
 
       <style>{`
@@ -582,14 +670,18 @@ export function TrainerBookingsPage() {
           border-radius: 8px;
           text-align: left;
           cursor: pointer;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: rgba(56, 189, 248, 0.25);
           border: 1px solid rgba(56, 189, 248, 0.55);
           background: rgba(56, 189, 248, 0.12);
           color: #e0f2fe;
           overflow: hidden;
           display: flex;
           flex-direction: column;
+          align-items: flex-start;
+          justify-content: flex-start;
           gap: 0.1rem;
-          z-index: 2;
+          z-index: 3;
           font-size: 0.78rem;
           line-height: 1.2;
         }
@@ -614,6 +706,16 @@ export function TrainerBookingsPage() {
         }
         .tb-cal-event-title {
           font-weight: 600;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          line-height: 1.15;
+        }
+        .tb-cal-event-person {
+          font-size: 0.68rem;
+          font-weight: 500;
+          color: rgba(224, 242, 254, 0.88);
           white-space: nowrap;
           text-overflow: ellipsis;
           overflow: hidden;
@@ -657,6 +759,24 @@ export function TrainerBookingsPage() {
           flex-wrap: wrap;
           margin-bottom: 0.35rem;
         }
+        .tb-cal-detail-service {
+          margin: 0 0 0.25rem;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+        .tb-cal-detail-person {
+          margin: 0 0 0.75rem;
+          font-size: 0.92rem;
+        }
+        .tb-cal-detail-link {
+          color: #7dd3fc;
+          font-weight: 600;
+          text-decoration: underline;
+          text-underline-offset: 3px;
+        }
+        .tb-cal-detail-link:hover {
+          color: #bae6fd;
+        }
         .tb-cal-empty {
           margin-top: 1rem;
         }
@@ -665,12 +785,16 @@ export function TrainerBookingsPage() {
   );
 }
 
+export function TrainerBookingsPage() {
+  return <BookingsCalendarPage variant="trainer" />;
+}
+
 function MonthGrid(props: {
   cursorDate: Date;
-  trainerBookings: Booking[];
+  bookings: Booking[];
   onPickDay: (d: Date) => void;
 }) {
-  const { cursorDate, trainerBookings, onPickDay } = props;
+  const { cursorDate, bookings, onPickDay } = props;
   const monthStart = startOfMonth(cursorDate);
   const monthEnd = endOfMonth(cursorDate);
   const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
@@ -679,12 +803,12 @@ function MonthGrid(props: {
 
   const countByDay = useMemo(() => {
     const m = new Map<string, number>();
-    for (const b of trainerBookings) {
+    for (const b of bookings) {
       const k = b.booking_date;
       m.set(k, (m.get(k) ?? 0) + 1);
     }
     return m;
-  }, [trainerBookings]);
+  }, [bookings]);
 
   const weekDaysHeader = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 

@@ -7,6 +7,7 @@ import { AuthHomeRedirect } from "./components/root-redirect.tsx";
 import { ProtectedRoute, RoleRoute, TrainerVerifiedRoute } from "./components/protected-route.tsx";
 import { RoleShellLayout } from "./components/role-shell-layout.tsx";
 import { BookingPage } from "./pages/booking-page.tsx";
+import { ClientBookingsPage } from "./pages/client-bookings-page.tsx";
 import { ClientProfilePage } from "./pages/client-profile-page.tsx";
 import { HomePage } from "./pages/home-page.tsx";
 import { LoginPage } from "./pages/login-page.tsx";
@@ -49,6 +50,7 @@ function App() {
         <Route path="trainers/:trainerId" element={<TrainerPublicProfilePage />} />
         <Route path="profile" element={<ClientProfilePage />} />
         <Route path="book" element={<BookingPage />} />
+        <Route path="bookings" element={<ClientBookingsPage />} />
         <Route path="plans" element={<PlansPage />} />
         <Route path="reviews" element={<ReviewsPage />} />
         <Route path="messages" element={<MessagesPage />} />

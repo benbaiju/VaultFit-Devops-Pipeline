@@ -1,5 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getBookings } from "../services/bookings";
 import { createConversation } from "../services/messaging";
@@ -18,6 +19,19 @@ type DraftPlanWeek = {
   goal: string;
   days: DraftPlanDay[];
 };
+
+function planTypeSubtitle(planType: "fitness" | "nutrition" | "hybrid"): string {
+  switch (planType) {
+    case "fitness":
+      return "Workout plan";
+    case "nutrition":
+      return "Nutrition plan";
+    case "hybrid":
+      return "Workout and Diet Plan";
+    default:
+      return "Plan";
+  }
+}
 
 type StructuredPlanContent = {
   summary: string;
@@ -700,8 +714,10 @@ export function PlansPage() {
         </div>
       ) : null}
 
-      <div className="card">
-        <h3>Your Plans</h3>
+      <div className="card plans-prev-card">
+        <h3 className="plans-prev-heading">
+          {user?.role === "client" ? "My plans" : "Previous Sessions"}
+        </h3>
         {plansQuery.isLoading ? <p>Loading plans...</p> : null}
         {!plansQuery.isLoading && (plansQuery.data ?? []).length === 0 ? (
           <p className="muted">
@@ -710,93 +726,181 @@ export function PlansPage() {
               : "No plans yet."}
           </p>
         ) : null}
-        <ul className="list">
-          {(plansQuery.data ?? []).map((plan) => (
-            <li key={plan.id}>
-              <div>
-                <span>
-                  <b>{plan.title}</b> ({plan.plan_type})
-                </span>
-                <p className="muted" style={{ marginTop: "0.35rem" }}>
-                  {expandedPlanId === plan.id ? "Click to hide full plan" : "Click to view full plan"}
-                </p>
-                <button
-                  className="secondary-btn"
-                  type="button"
-                  onClick={() => setExpandedPlanId((prev) => (prev === plan.id ? null : plan.id))}
-                >
-                  {expandedPlanId === plan.id ? "Hide plan details" : "View plan details"}
-                </button>
-                {expandedPlanId === plan.id
-                  ? (() => {
-                      const parsed = parsePlanContent(plan.content);
-                      if (!parsed) {
-                        return (
-                          <>
-                            <p className="muted">No structured content saved yet.</p>
-                            <button
-                              className="secondary-btn"
-                              type="button"
-                              onClick={() => downloadPlanPdf(plan.title, plan.plan_type, parsed)}
-                            >
-                              Download PDF
-                            </button>
-                          </>
-                        );
-                      }
-                      return (
-                        <div className="muted" style={{ marginTop: "0.35rem" }}>
-                          {parsed.summary ? (
-                            <p>
-                              <strong>Summary:</strong> {parsed.summary}
-                            </p>
-                          ) : null}
-                          {parsed.weeks.map((week) => (
-                            <div key={`plan-${plan.id}-week-${week.week}`} style={{ marginBottom: "0.35rem" }}>
-                              <p>
-                                <strong>Week {week.week}:</strong> {week.goal}
-                              </p>
-                              {week.days.map((day, idx) => (
-                                <p key={`plan-${plan.id}-week-${week.week}-day-${idx}`}>
-                                  - <strong>{day.day}:</strong> {day.focus} {day.details ? `- ${day.details}` : ""}
-                                </p>
-                              ))}
-                            </div>
-                          ))}
-                          <button
-                            className="secondary-btn"
-                            type="button"
-                            onClick={() => downloadPlanPdf(plan.title, plan.plan_type, parsed)}
-                          >
-                            Download PDF
-                          </button>
-                        </div>
-                      );
-                    })()
-                  : null}
-              </div>
-              {user?.role === "trainer" || user?.role === "nutritionist" ? (
-                <div className="inline-actions">
+        <div className="plans-prev-list">
+          {(plansQuery.data ?? []).map((plan) => {
+            const parsed = parsePlanContent(plan.content);
+            const isTrainerRole = user?.role === "trainer" || user?.role === "nutritionist";
+            return (
+              <div key={plan.id} className="plans-prev-item">
+                <div className="plans-prev-top">
+                  <div className="plans-prev-copy">
+                    <p className="plans-prev-title">{plan.title}</p>
+                    <p className="plans-prev-sub muted">{planTypeSubtitle(plan.plan_type)}</p>
+                  </div>
+                  {isTrainerRole ? (
+                    <div className="plans-prev-admin-actions">
+                      <button
+                        className="secondary-btn plans-prev-btn-sm"
+                        type="button"
+                        disabled={updateMutation.isPending}
+                        onClick={() => updateMutation.mutate(plan.id)}
+                      >
+                        Quick edit
+                      </button>
+                      <button
+                        className="secondary-btn plans-prev-btn-sm"
+                        type="button"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => deleteMutation.mutate(plan.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="plans-prev-toolbar">
                   <button
-                    className="secondary-btn"
-                    disabled={updateMutation.isPending}
-                    onClick={() => updateMutation.mutate(plan.id)}
+                    type="button"
+                    className="plans-prev-dl"
+                    aria-label={`Download ${plan.title} as PDF`}
+                    title="Download PDF"
+                    onClick={() => downloadPlanPdf(plan.title, plan.plan_type, parsed)}
                   >
-                    Quick edit
+                    <Download size={22} strokeWidth={2} aria-hidden />
                   </button>
                   <button
-                    className="secondary-btn"
-                    disabled={deleteMutation.isPending}
-                    onClick={() => deleteMutation.mutate(plan.id)}
+                    className="secondary-btn plans-prev-details-btn"
+                    type="button"
+                    onClick={() => setExpandedPlanId((prev) => (prev === plan.id ? null : plan.id))}
                   >
-                    Delete
+                    {expandedPlanId === plan.id ? "Hide details" : "View details"}
                   </button>
                 </div>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+                {expandedPlanId === plan.id ? (
+                  <div className="plans-prev-expand muted">
+                    {!parsed ? (
+                      <p>No structured content saved yet.</p>
+                    ) : (
+                      <>
+                        {parsed.summary ? (
+                          <p>
+                            <strong>Summary:</strong> {parsed.summary}
+                          </p>
+                        ) : null}
+                        {parsed.weeks.map((week) => (
+                          <div key={`plan-${plan.id}-week-${week.week}`} style={{ marginBottom: "0.35rem" }}>
+                            <p>
+                              <strong>Week {week.week}:</strong> {week.goal}
+                            </p>
+                            {week.days.map((day, idx) => (
+                              <p key={`plan-${plan.id}-week-${week.week}-day-${idx}`}>
+                                - <strong>{day.day}:</strong> {day.focus}{" "}
+                                {day.details ? `- ${day.details}` : ""}
+                              </p>
+                            ))}
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
       </div>
+
+      <style>{`
+        .plans-prev-card {
+          padding: 1.25rem 1.35rem;
+        }
+        .plans-prev-heading {
+          margin: 0 0 1rem;
+          font-size: 1.15rem;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          color: var(--text-primary);
+        }
+        .plans-prev-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+        .plans-prev-item {
+          border-radius: 12px;
+          border: 1px solid rgba(148, 163, 184, 0.18);
+          background: rgba(15, 23, 42, 0.55);
+          padding: 1rem 1.1rem;
+        }
+        .plans-prev-top {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 0.75rem;
+        }
+        .plans-prev-copy {
+          min-width: 0;
+          flex: 1;
+        }
+        .plans-prev-title {
+          margin: 0;
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+        .plans-prev-sub {
+          margin: 0.35rem 0 0;
+          font-size: 0.92rem;
+        }
+        .plans-prev-admin-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.45rem;
+        }
+        .plans-prev-btn-sm {
+          padding: 0.45rem 0.75rem;
+          font-size: 0.82rem;
+        }
+        .plans-prev-toolbar {
+          display: flex;
+          align-items: center;
+          gap: 0.65rem;
+          margin-top: 0.85rem;
+          padding-top: 0.85rem;
+          border-top: 1px solid rgba(148, 163, 184, 0.14);
+        }
+        .plans-prev-dl {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 44px;
+          padding: 0;
+          line-height: 0;
+          border-radius: 10px;
+          border: 1px solid rgba(148, 163, 184, 0.35);
+          background: rgba(255, 255, 255, 0.06);
+          color: #f1f5f9;
+          cursor: pointer;
+          transition: border-color 0.15s ease, background 0.15s ease;
+        }
+        .plans-prev-dl:hover {
+          border-color: rgba(56, 189, 248, 0.55);
+          background: rgba(56, 189, 248, 0.12);
+          color: #fff;
+        }
+        .plans-prev-details-btn {
+          padding: 0.45rem 0.85rem;
+          font-size: 0.85rem;
+        }
+        .plans-prev-expand {
+          margin-top: 0.85rem;
+          padding-top: 0.85rem;
+          border-top: 1px solid rgba(148, 163, 184, 0.12);
+          font-size: 0.92rem;
+        }
+      `}</style>
 
       {user?.role === "client" || user?.role === "trainer" || user?.role === "nutritionist" ? (
         <div className="card">

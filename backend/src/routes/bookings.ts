@@ -24,12 +24,52 @@ bookingsRouter.get("/", requireAuth, async (req, res) => {
   const { data: trainer } = await supabaseAdmin.from("trainers").select("id").eq("user_id", req.user!.id).maybeSingle();
 
   const query = supabaseAdmin.from("bookings").select("*").order("created_at", { ascending: false });
-  const { data, error } = trainer
+  const { data: rows, error } = trainer
     ? await query.or(`client_id.eq.${req.user!.id},trainer_id.eq.${trainer.id}`)
     : await query.eq("client_id", req.user!.id);
 
   if (error) throw new HttpError(400, error.message, "BOOKINGS_LIST_FAILED");
-  res.json(data);
+
+  const bookings = rows ?? [];
+  const trainerIds = [...new Set(bookings.map((b) => b.trainer_id).filter((id): id is string => Boolean(id)))];
+  const clientIds = [...new Set(bookings.map((b) => b.client_id).filter((id): id is string => Boolean(id)))];
+
+  const trainersFetchPromise =
+    trainerIds.length === 0
+      ? Promise.resolve({ data: [] as { id: string; profiles?: { full_name?: string | null } | null }[], error: null })
+      : supabaseAdmin.from("trainers").select("id, profiles:user_id(full_name)").in("id", trainerIds);
+
+  const clientsFetchPromise =
+    clientIds.length === 0
+      ? Promise.resolve({ data: [] as { id: string; full_name: string | null }[], error: null })
+      : supabaseAdmin.from("profiles").select("id, full_name").in("id", clientIds);
+
+  const [trainersResult, clientsResult] = await Promise.all([trainersFetchPromise, clientsFetchPromise]);
+
+  if (trainersResult.error) throw new HttpError(400, trainersResult.error.message, "BOOKINGS_LIST_FAILED");
+  if (clientsResult.error) throw new HttpError(400, clientsResult.error.message, "BOOKINGS_LIST_FAILED");
+
+  const trainerNameById = new Map<string, string>();
+  for (const t of trainersResult.data ?? []) {
+    const raw = t.profiles as { full_name?: string | null } | { full_name?: string | null }[] | null | undefined;
+    const prof = Array.isArray(raw) ? raw[0] : raw;
+    const name = prof?.full_name?.trim();
+    trainerNameById.set(t.id, name || "Trainer");
+  }
+
+  const clientNameById = new Map<string, string>();
+  for (const p of clientsResult.data ?? []) {
+    const name = p.full_name?.trim();
+    clientNameById.set(p.id, name || "Client");
+  }
+
+  const enriched = bookings.map((b) => ({
+    ...b,
+    trainer_display_name: b.trainer_id ? trainerNameById.get(b.trainer_id) ?? null : null,
+    client_display_name: b.client_id ? clientNameById.get(b.client_id) ?? null : null,
+  }));
+
+  res.json(enriched);
 });
 
 bookingsRouter.post("/", requireAuth, async (req, res) => {

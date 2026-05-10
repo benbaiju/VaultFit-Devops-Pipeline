@@ -15,7 +15,7 @@ export async function getMyTrainerProfile(token: string): Promise<Trainer | null
 
 export async function createMyTrainerProfile(
   token: string,
-  input: { bio?: string; specialty?: string; experienceYears?: number; hourlyRate?: number },
+  input: { bio?: string; specialty?: string; experienceYears?: number; hourlyRate?: number; expertiseTags?: string[] },
 ): Promise<Trainer> {
   return apiRequest<Trainer>(
     "/trainers",
@@ -30,7 +30,7 @@ export async function createMyTrainerProfile(
 export async function updateMyTrainerProfile(
   token: string,
   trainerId: string,
-  input: { bio?: string; specialty?: string; experienceYears?: number; hourlyRate?: number },
+  input: { bio?: string; specialty?: string; experienceYears?: number; hourlyRate?: number; expertiseTags?: string[] },
 ): Promise<Trainer> {
   return apiRequest<Trainer>(
     `/trainers/${trainerId}`,

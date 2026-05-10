@@ -170,7 +170,7 @@ export function TrainerDashboardPage() {
             <BarChart3 size={20} />
           </div>
           <p className="trainer-dash-stat-value">{isVerified ? planUpdatesCount : "—"}</p>
-          <p className="trainer-dash-stat-label">Plans</p>
+          <p className="trainer-dash-stat-label">Plan updates</p>
         </article>
       </div>
 
@@ -229,13 +229,19 @@ export function TrainerDashboardPage() {
               </ul>
             )}
 
-            <Link to={ROUTES.trainer.bookings} className="trainer-dash-add-slot">
+            <Link
+              to={isVerified ? ROUTES.trainer.bookings : ROUTES.trainer.verification}
+              className="trainer-dash-add-slot"
+            >
               <Plus size={18} />
               Add session
             </Link>
           </div>
 
-          <Link to={ROUTES.trainer.bookings} className="trainer-dash-foot-btn">
+          <Link
+            to={isVerified ? ROUTES.trainer.bookings : ROUTES.trainer.verification}
+            className="trainer-dash-foot-btn"
+          >
             View full calendar
           </Link>
         </section>

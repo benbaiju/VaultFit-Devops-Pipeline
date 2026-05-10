@@ -30,6 +30,8 @@ export interface Trainer {
   user_id?: string;
   bio: string | null;
   specialty: string | null;
+  /** Up to 24 short labels, e.g. hypertrophy, rehab (stored as JSON array). */
+  expertise_tags?: string[] | null;
   experience_years?: number;
   hourly_rate: number;
   verified: boolean;

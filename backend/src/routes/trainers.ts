@@ -4,11 +4,18 @@ import { supabaseAdmin } from "../lib/supabase.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
 
+const expertiseTagsSchema = z
+  .array(z.string().trim().min(1).max(100))
+  .max(24)
+  .optional()
+  .transform((arr) => (arr == null ? undefined : [...new Set(arr.map((t) => t.trim()).filter(Boolean))].slice(0, 24)));
+
 const createTrainerSchema = z.object({
   bio: z.string().optional(),
   specialty: z.string().optional(),
   experienceYears: z.number().int().min(0).default(0),
   hourlyRate: z.number().min(0).default(0),
+  expertiseTags: expertiseTagsSchema,
 });
 
 const updateTrainerSchema = createTrainerSchema.partial();
@@ -58,6 +65,7 @@ trainersRouter.post("/", requireAuth, requireRole(["trainer", "nutritionist", "a
       specialty: payload.specialty,
       experience_years: payload.experienceYears,
       hourly_rate: payload.hourlyRate,
+      expertise_tags: payload.expertiseTags ?? [],
     })
     .select("*")
     .single();
@@ -78,17 +86,25 @@ trainersRouter.put("/:id", requireAuth, requireRole(["trainer", "nutritionist", 
     throw new HttpError(403, "Can only update your own trainer profile", "FORBIDDEN");
   }
 
-  const { data, error } = await supabaseAdmin
-    .from("trainers")
-    .update({
-      bio: payload.bio,
-      specialty: payload.specialty,
-      experience_years: payload.experienceYears,
-      hourly_rate: payload.hourlyRate,
-    })
-    .eq("id", req.params.id)
-    .select("*")
-    .single();
+  const row: Record<string, unknown> = {};
+  if (payload.bio !== undefined) row.bio = payload.bio;
+  if (payload.specialty !== undefined) row.specialty = payload.specialty;
+  if (payload.experienceYears !== undefined) row.experience_years = payload.experienceYears;
+  if (payload.hourlyRate !== undefined) row.hourly_rate = payload.hourlyRate;
+  if (payload.expertiseTags !== undefined) row.expertise_tags = payload.expertiseTags;
+
+  if (Object.keys(row).length === 0) {
+    const { data: unchanged, error: readErr } = await supabaseAdmin
+      .from("trainers")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+    if (readErr || !unchanged) throw new HttpError(404, "Trainer not found", "TRAINER_NOT_FOUND");
+    res.json(unchanged);
+    return;
+  }
+
+  const { data, error } = await supabaseAdmin.from("trainers").update(row).eq("id", req.params.id).select("*").single();
   if (error) throw new HttpError(400, error.message, "TRAINER_UPDATE_FAILED");
   res.json(data);
 });

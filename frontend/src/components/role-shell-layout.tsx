@@ -144,12 +144,13 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
               </div>
             ) : (
               <div className="sidebar-avatar">
-                {(variant === "trainer"
-                  ? trainerMeQuery.data?.profiles?.full_name?.trim() || user?.email
-                  : user?.email
+                {(
+                  (variant === "trainer"
+                    ? trainerMeQuery.data?.profiles?.full_name?.trim() || user?.email
+                    : user?.email) || "U"
                 )
-                  ?.charAt(0)
-                  .toUpperCase() || "U"}
+                  .charAt(0)
+                  .toUpperCase()}
               </div>
             )}
             <div className="sidebar-user-info">

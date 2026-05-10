@@ -29,6 +29,7 @@ export interface Trainer {
   user_id?: string;
   bio: string | null;
   specialty: string | null;
+  expertise_tags?: string[] | null;
   experience_years?: number;
   hourly_rate: number;
   verified: boolean;

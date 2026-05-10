@@ -3,6 +3,7 @@ import { FlatList, StyleSheet, Text, View } from "react-native";
 import { getBookings } from "../../services/bookings";
 import { getMyTrainerProfile } from "../../services/trainers";
 import { useAuth } from "../../state/auth-context";
+import { colors } from "../../theme";
 
 export function TrainerOverviewScreen() {
   const { token } = useAuth();
@@ -55,15 +56,15 @@ export function TrainerOverviewScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#020817", padding: 14 },
-  heading: { color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 6 },
-  subtle: { color: "#94a3b8" },
+  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
+  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 6 },
+  subtle: { color: colors.textSecondary },
   kpiRow: { flexDirection: "row", gap: 10, marginTop: 12, marginBottom: 10 },
-  kpiCard: { flex: 1, backgroundColor: "#0f172a", borderColor: "#1e293b", borderWidth: 1, borderRadius: 10, padding: 10 },
-  kpiLabel: { color: "#94a3b8", fontSize: 12, textTransform: "uppercase" },
-  kpiValue: { color: "#fff", fontSize: 26, fontWeight: "700" },
-  section: { color: "#cbd5e1", fontWeight: "700", marginBottom: 8, marginTop: 6 },
-  card: { backgroundColor: "#0f172a", borderColor: "#1e293b", borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 8 },
-  title: { color: "#fff", fontWeight: "700" },
-  badge: { color: "#93c5fd", marginTop: 5, textTransform: "uppercase" },
+  kpiCard: { flex: 1, backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10 },
+  kpiLabel: { color: colors.textSecondary, fontSize: 12, textTransform: "uppercase" },
+  kpiValue: { color: colors.textPrimary, fontSize: 26, fontWeight: "700" },
+  section: { color: colors.textSection, fontWeight: "700", marginBottom: 8, marginTop: 6 },
+  card: { backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 8 },
+  title: { color: colors.textPrimary, fontWeight: "700" },
+  badge: { color: colors.primaryMuted, marginTop: 5, textTransform: "uppercase" },
 });

@@ -5,6 +5,7 @@ import { getMyProfile, sendPhoneOtp, updateMyProfile, verifyPhoneOtp } from "../
 import { createMyTrainerProfile, getMyTrainerProfile, updateMyTrainerProfile } from "../../services/trainers";
 import { getMyVerificationRequests, submitVerificationRequest } from "../../services/verification";
 import { useAuth } from "../../state/auth-context";
+import { colors } from "../../theme";
 
 export function TrainerProfileScreen() {
   const { token, user } = useAuth();
@@ -102,20 +103,20 @@ export function TrainerProfileScreen() {
       <Text style={styles.subtle}>
         {user?.email} · {trainerQuery.data?.verified ? "Verified" : "Not verified"}
       </Text>
-      <TextInput style={styles.input} value={specialty} onChangeText={setSpecialty} placeholder="Specialty" placeholderTextColor="#64748b" />
+      <TextInput style={styles.input} value={specialty} onChangeText={setSpecialty} placeholder="Specialty" placeholderTextColor={colors.textMuted} />
       <TextInput
         style={[styles.input, styles.textarea]}
         value={bio}
         onChangeText={setBio}
         multiline
         placeholder="Bio"
-        placeholderTextColor="#64748b"
+        placeholderTextColor={colors.textMuted}
       />
       <Pressable style={styles.button} onPress={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
         <Text style={styles.buttonText}>{saveMutation.isPending ? "Saving..." : "Save profile"}</Text>
       </Pressable>
       <Text style={styles.section}>Phone verification</Text>
-      <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="Phone" placeholderTextColor="#64748b" />
+      <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="Phone" placeholderTextColor={colors.textMuted} />
       <Pressable style={styles.secondaryButton} disabled={!phone.trim() || profileUpdateMutation.isPending} onPress={() => profileUpdateMutation.mutate()}>
         <Text style={styles.buttonText}>{profileUpdateMutation.isPending ? "Saving phone..." : "Save phone"}</Text>
       </Pressable>
@@ -134,7 +135,7 @@ export function TrainerProfileScreen() {
         onChangeText={setOtpCode}
         placeholder="Enter 6-digit OTP"
         maxLength={6}
-        placeholderTextColor="#64748b"
+        placeholderTextColor={colors.textMuted}
       />
       <Pressable
         style={styles.secondaryButton}
@@ -153,7 +154,7 @@ export function TrainerProfileScreen() {
         value={credentialUrl}
         onChangeText={setCredentialUrl}
         placeholder="Credential URL"
-        placeholderTextColor="#64748b"
+        placeholderTextColor={colors.textMuted}
       />
       <Pressable style={styles.button} disabled={!credentialUrl.trim() || verifyMutation.isPending} onPress={() => verifyMutation.mutate()}>
         <Text style={styles.buttonText}>{verifyMutation.isPending ? "Submitting..." : "Submit verification"}</Text>
@@ -166,13 +167,13 @@ export function TrainerProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#020817", padding: 14 },
-  heading: { color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 6 },
-  subtle: { color: "#94a3b8" },
-  section: { color: "#cbd5e1", marginTop: 12, marginBottom: 8, fontWeight: "700" },
-  input: { borderWidth: 1, borderColor: "#334155", borderRadius: 8, color: "#fff", paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
+  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
+  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 6 },
+  subtle: { color: colors.textSecondary },
+  section: { color: colors.textSection, marginTop: 12, marginBottom: 8, fontWeight: "700" },
+  input: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 8, color: colors.textPrimary, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
   textarea: { minHeight: 80, textAlignVertical: "top" },
-  button: { backgroundColor: "#4f46e5", borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 8 },
-  secondaryButton: { backgroundColor: "#334155", borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 8 },
-  buttonText: { color: "#fff", fontWeight: "700" },
+  button: { backgroundColor: colors.primary, borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 8 },
+  secondaryButton: { backgroundColor: colors.chipBorder, borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 8 },
+  buttonText: { color: colors.textPrimary, fontWeight: "700" },
 });

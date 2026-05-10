@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "../../services/messaging";
 import { useAuth } from "../../state/auth-context";
+import { colors } from "../../theme";
 
 export function NotificationsScreen() {
   const { token } = useAuth();
@@ -63,19 +64,19 @@ export function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#020817", padding: 14 },
+  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
-  heading: { color: "#fff", fontSize: 24, fontWeight: "700" },
-  headerButton: { borderWidth: 1, borderColor: "#334155", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 },
-  headerButtonText: { color: "#cbd5e1", fontWeight: "600" },
-  subtle: { color: "#94a3b8" },
-  item: { borderWidth: 1, borderColor: "#1e293b", borderRadius: 10, padding: 10, marginBottom: 8, backgroundColor: "#0f172a" },
-  title: { color: "#fff", fontWeight: "700", marginBottom: 4 },
-  body: { color: "#cbd5e1" },
+  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700" },
+  headerButton: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 },
+  headerButtonText: { color: colors.textSection, fontWeight: "600" },
+  subtle: { color: colors.textSecondary },
+  item: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 10, padding: 10, marginBottom: 8, backgroundColor: colors.surface },
+  title: { color: colors.textPrimary, fontWeight: "700", marginBottom: 4 },
+  body: { color: colors.textSection },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 },
   badge: { fontSize: 12, fontWeight: "700" },
-  read: { color: "#94a3b8" },
-  unread: { color: "#22c55e" },
-  smallButton: { borderWidth: 1, borderColor: "#4f46e5", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
-  smallButtonText: { color: "#c7d2fe", fontWeight: "700" },
+  read: { color: colors.textSecondary },
+  unread: { color: colors.successBright },
+  smallButton: { borderWidth: 1, borderColor: colors.primary, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  smallButtonText: { color: colors.linkSoft, fontWeight: "700" },
 });

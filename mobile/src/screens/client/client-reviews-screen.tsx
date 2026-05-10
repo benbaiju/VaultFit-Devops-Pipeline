@@ -5,6 +5,7 @@ import { getBookings } from "../../services/bookings";
 import { createReview, deleteReview, getTrainerReviews } from "../../services/reviews";
 import { getTrainers } from "../../services/trainers";
 import { useAuth } from "../../state/auth-context";
+import { colors } from "../../theme";
 
 export function ClientReviewsScreen() {
   const { token, user } = useAuth();
@@ -113,7 +114,7 @@ export function ClientReviewsScreen() {
                     value={draftComment}
                     onChangeText={setDraftComment}
                     placeholder="Share your experience"
-                    placeholderTextColor="#64748b"
+                    placeholderTextColor={colors.textMuted}
                   />
                   <Pressable
                     style={styles.button}
@@ -133,18 +134,18 @@ export function ClientReviewsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#020817", padding: 14 },
-  heading: { color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 8 },
-  subtle: { color: "#94a3b8" },
-  card: { backgroundColor: "#0f172a", borderColor: "#1e293b", borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 10 },
-  title: { color: "#fff", fontWeight: "700" },
+  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
+  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 8 },
+  subtle: { color: colors.textSecondary },
+  card: { backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 10 },
+  title: { color: colors.textPrimary, fontWeight: "700" },
   row: { flexDirection: "row", gap: 8, marginTop: 8 },
-  button: { borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, alignItems: "center", backgroundColor: "#4f46e5" },
-  buttonText: { color: "#fff", fontWeight: "700" },
+  button: { borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, alignItems: "center", backgroundColor: colors.primary },
+  buttonText: { color: colors.textPrimary, fontWeight: "700" },
   form: { marginTop: 8, gap: 8 },
-  input: { borderWidth: 1, borderColor: "#334155", borderRadius: 8, color: "#fff", paddingHorizontal: 10, paddingVertical: 8 },
+  input: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 8, color: colors.textPrimary, paddingHorizontal: 10, paddingVertical: 8 },
   ratingRow: { flexDirection: "row", gap: 6 },
-  ratingPill: { borderWidth: 1, borderColor: "#334155", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
-  ratingPillActive: { borderColor: "#4f46e5", backgroundColor: "rgba(79,70,229,0.25)" },
-  ratingText: { color: "#e2e8f0", fontWeight: "700" },
+  ratingPill: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  ratingPillActive: { borderColor: colors.primary, backgroundColor: colors.primarySoftStrong },
+  ratingText: { color: colors.textBody, fontWeight: "700" },
 });

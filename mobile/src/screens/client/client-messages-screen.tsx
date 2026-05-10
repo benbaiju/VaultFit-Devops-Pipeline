@@ -5,6 +5,7 @@ import * as ImagePicker from "expo-image-picker";
 import { realtimeClient } from "../../lib/supabase-realtime";
 import { getConversations, getMessages, sendImageMessage, sendMessage } from "../../services/messaging";
 import { useAuth } from "../../state/auth-context";
+import { colors } from "../../theme";
 
 const CALL_EVENT_MESSAGES = new Set(["Video call started", "Video call declined", "Video call ended"]);
 
@@ -152,7 +153,7 @@ export function ClientMessagesScreen() {
             value={draft}
             onChangeText={setDraft}
             placeholder="Type a message..."
-            placeholderTextColor="#64748b"
+            placeholderTextColor={colors.textMuted}
           />
           <View style={styles.composerRow}>
             <Pressable
@@ -180,25 +181,25 @@ export function ClientMessagesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#020817", padding: 14 },
-  heading: { color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 8 },
-  subtle: { color: "#94a3b8" },
-  threadChip: { borderWidth: 1, borderColor: "#334155", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, marginRight: 8 },
-  threadChipActive: { borderColor: "#4f46e5", backgroundColor: "rgba(79,70,229,0.2)" },
-  threadText: { color: "#cbd5e1" },
-  chatCard: { flex: 1, marginTop: 10, backgroundColor: "#0f172a", borderRadius: 10, borderWidth: 1, borderColor: "#1e293b", padding: 10 },
+  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
+  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 8 },
+  subtle: { color: colors.textSecondary },
+  threadChip: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, marginRight: 8 },
+  threadChipActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  threadText: { color: colors.textSection },
+  chatCard: { flex: 1, marginTop: 10, backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.borderStrong, padding: 10 },
   threadHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  threadTitle: { color: "#fff", fontWeight: "700" },
-  callDisabledText: { color: "#94a3b8", fontSize: 12 },
-  messageRow: { borderBottomColor: "#1e293b", borderBottomWidth: 1, paddingVertical: 8 },
-  messageText: { color: "#e2e8f0" },
-  messageImage: { width: 180, height: 180, borderRadius: 8, backgroundColor: "#020617" },
-  callEventText: { color: "#cbd5e1", fontStyle: "italic", textAlign: "center" },
-  messageTime: { color: "#94a3b8", fontSize: 12, marginTop: 2 },
-  input: { borderWidth: 1, borderColor: "#334155", borderRadius: 8, color: "#fff", paddingHorizontal: 10, paddingVertical: 8, marginTop: 8 },
+  threadTitle: { color: colors.textPrimary, fontWeight: "700" },
+  callDisabledText: { color: colors.textSecondary, fontSize: 12 },
+  messageRow: { borderBottomColor: colors.borderStrong, borderBottomWidth: 1, paddingVertical: 8 },
+  messageText: { color: colors.textBody },
+  messageImage: { width: 180, height: 180, borderRadius: 8, backgroundColor: colors.bgDeep },
+  callEventText: { color: colors.textSection, fontStyle: "italic", textAlign: "center" },
+  messageTime: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
+  input: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 8, color: colors.textPrimary, paddingHorizontal: 10, paddingVertical: 8, marginTop: 8 },
   composerRow: { flexDirection: "row", gap: 8, marginTop: 8 },
-  imageButton: { borderRadius: 8, alignItems: "center", justifyContent: "center", paddingHorizontal: 12, backgroundColor: "#334155" },
-  imageButtonText: { color: "#fff", fontWeight: "700" },
-  sendButton: { flex: 1, backgroundColor: "#4f46e5", borderRadius: 8, alignItems: "center", paddingVertical: 10 },
-  sendText: { color: "#fff", fontWeight: "700" },
+  imageButton: { borderRadius: 8, alignItems: "center", justifyContent: "center", paddingHorizontal: 12, backgroundColor: colors.chipBorder },
+  imageButtonText: { color: colors.textPrimary, fontWeight: "700" },
+  sendButton: { flex: 1, backgroundColor: colors.primary, borderRadius: 8, alignItems: "center", paddingVertical: 10 },
+  sendText: { color: colors.textPrimary, fontWeight: "700" },
 });

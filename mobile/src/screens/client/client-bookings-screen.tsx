@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { getBookings, payBooking } from "../../services/bookings";
 import { useAuth } from "../../state/auth-context";
+import { colors } from "../../theme";
 
 export function ClientBookingsScreen() {
   const { token } = useAuth();
@@ -47,12 +48,12 @@ export function ClientBookingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#020817", padding: 14 },
-  heading: { color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 6 },
-  subtle: { color: "#94a3b8" },
-  card: { backgroundColor: "#0f172a", borderColor: "#1e293b", borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 10 },
-  title: { color: "#fff", fontWeight: "700" },
-  badge: { color: "#93c5fd", marginTop: 5, textTransform: "uppercase" },
-  button: { marginTop: 8, borderRadius: 8, paddingVertical: 8, alignItems: "center", backgroundColor: "#4f46e5" },
-  buttonText: { color: "#fff", fontWeight: "700" },
+  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
+  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 6 },
+  subtle: { color: colors.textSecondary },
+  card: { backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 10 },
+  title: { color: colors.textPrimary, fontWeight: "700" },
+  badge: { color: colors.primaryMuted, marginTop: 5, textTransform: "uppercase" },
+  button: { marginTop: 8, borderRadius: 8, paddingVertical: 8, alignItems: "center", backgroundColor: colors.primary },
+  buttonText: { color: colors.textPrimary, fontWeight: "700" },
 });

@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useState } from "react";
 import { useAuth } from "../state/auth-context";
+import { colors, Font, vaultfitNavigationTheme } from "../theme";
 import { LoginScreen } from "../screens/auth/login-screen";
 import { RegisterScreen } from "../screens/auth/register-screen";
 import { PlaceholderScreen } from "../screens/common/placeholder-screen";
@@ -31,13 +32,18 @@ const DiscoverStack = createNativeStackNavigator();
 const ClientMoreStack = createNativeStackNavigator();
 const TrainerMoreStack = createNativeStackNavigator();
 
+const stackScreenOptions = {
+  headerStyle: { backgroundColor: colors.navHeader },
+  headerTintColor: colors.textPrimary,
+  headerTitleStyle: { fontFamily: Font.outfitSemiBold },
+  contentStyle: { backgroundColor: colors.bgMain },
+};
+
 function ClientDiscoverStack() {
   return (
     <DiscoverStack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: "#0f172a" },
-        headerTintColor: "#fff",
-        contentStyle: { backgroundColor: "#020817" },
+        ...stackScreenOptions,
       }}
     >
       <DiscoverStack.Screen name="DiscoverHome" component={ClientDiscoverScreen} options={{ title: "Discover" }} />
@@ -50,9 +56,7 @@ function ClientMoreMenuStack() {
   return (
     <ClientMoreStack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: "#0f172a" },
-        headerTintColor: "#fff",
-        contentStyle: { backgroundColor: "#020817" },
+        ...stackScreenOptions,
       }}
     >
       <ClientMoreStack.Screen name="ClientMoreHome" component={ClientMoreScreen} options={{ title: "More" }} />
@@ -67,9 +71,7 @@ function TrainerMoreMenuStack() {
   return (
     <TrainerMoreStack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: "#0f172a" },
-        headerTintColor: "#fff",
-        contentStyle: { backgroundColor: "#020817" },
+        ...stackScreenOptions,
       }}
     >
       <TrainerMoreStack.Screen name="TrainerMoreHome" component={TrainerMoreScreen} options={{ title: "More" }} />
@@ -125,21 +127,19 @@ export function AppNavigator() {
   if (!isReady) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator />
+        <ActivityIndicator color={colors.vaultTeal} />
       </View>
     );
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={vaultfitNavigationTheme}>
       {!isAuthenticated ? (
         <AuthFlow />
       ) : (
         <Stack.Navigator
           screenOptions={{
-            headerStyle: { backgroundColor: "#0f172a" },
-            headerTintColor: "#fff",
-            contentStyle: { backgroundColor: "#020817" },
+            ...stackScreenOptions,
             headerRight: () => (
               <Pressable onPress={() => void logout()}>
                 <Text style={styles.logoutText}>Logout</Text>
@@ -163,14 +163,14 @@ export function AppNavigator() {
 const baseTabOptions = {
   headerShown: false,
   tabBarStyle: {
-    backgroundColor: "#0f172a",
-    borderTopColor: "#1e293b",
+    backgroundColor: colors.tabBar,
+    borderTopColor: colors.borderStrong,
   },
-  tabBarActiveTintColor: "#a5b4fc",
-  tabBarInactiveTintColor: "#94a3b8",
+  tabBarActiveTintColor: colors.primaryMuted,
+  tabBarInactiveTintColor: colors.textSecondary,
 };
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#020817" },
-  logoutText: { color: "#fda4af", fontWeight: "600" },
+  loading: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bgMain },
+  logoutText: { color: colors.dangerSoft, fontFamily: Font.outfitSemiBold },
 });

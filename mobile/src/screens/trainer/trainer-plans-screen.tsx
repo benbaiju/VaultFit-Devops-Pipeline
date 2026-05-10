@@ -4,6 +4,7 @@ import { useState } from "react";
 import { getBookings } from "../../services/bookings";
 import { createPlan, getPlans } from "../../services/plans";
 import { useAuth } from "../../state/auth-context";
+import { colors } from "../../theme";
 
 export function TrainerPlansScreen() {
   const { token } = useAuth();
@@ -43,7 +44,7 @@ export function TrainerPlansScreen() {
     <View style={styles.container}>
       <Text style={styles.heading}>Client Plans</Text>
       <Text style={styles.subtle}>Create and review plans assigned to clients.</Text>
-      <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Plan title" placeholderTextColor="#64748b" />
+      <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Plan title" placeholderTextColor={colors.textMuted} />
       <FlatList
         horizontal
         data={clientOptions}
@@ -76,15 +77,15 @@ export function TrainerPlansScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#020817", padding: 14 },
-  heading: { color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 6 },
-  subtle: { color: "#94a3b8" },
-  input: { borderWidth: 1, borderColor: "#334155", borderRadius: 8, color: "#fff", paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
-  chip: { borderWidth: 1, borderColor: "#334155", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, marginRight: 6, marginBottom: 8 },
-  chipActive: { borderColor: "#4f46e5", backgroundColor: "rgba(79,70,229,0.25)" },
-  chipText: { color: "#cbd5e1" },
-  button: { backgroundColor: "#4f46e5", borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 10 },
-  buttonText: { color: "#fff", fontWeight: "700" },
-  card: { backgroundColor: "#0f172a", borderColor: "#1e293b", borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 8 },
-  title: { color: "#fff", fontWeight: "700" },
+  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
+  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 6 },
+  subtle: { color: colors.textSecondary },
+  input: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 8, color: colors.textPrimary, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
+  chip: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, marginRight: 6, marginBottom: 8 },
+  chipActive: { borderColor: colors.primary, backgroundColor: colors.primarySoftStrong },
+  chipText: { color: colors.textSection },
+  button: { backgroundColor: colors.primary, borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 10 },
+  buttonText: { color: colors.textPrimary, fontWeight: "700" },
+  card: { backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 8 },
+  title: { color: colors.textPrimary, fontWeight: "700" },
 });

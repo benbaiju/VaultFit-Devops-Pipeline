@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-nativ
 import { useEffect, useState } from "react";
 import { getMyProfile, sendPhoneOtp, updateMyProfile, verifyPhoneOtp } from "../../services/profiles";
 import { useAuth } from "../../state/auth-context";
+import { colors } from "../../theme";
 
 export function ClientProfileScreen() {
   const { token, user } = useAuth();
@@ -73,11 +74,11 @@ export function ClientProfileScreen() {
         value={fullName}
         onChangeText={setFullName}
         placeholder="Full name"
-        placeholderTextColor="#64748b"
+        placeholderTextColor={colors.textMuted}
         editable={!nameLocked}
       />
       {nameLocked ? <Text style={styles.subtle}>Name is locked after initial setup for client accounts.</Text> : null}
-      <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="Phone" placeholderTextColor="#64748b" />
+      <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="Phone" placeholderTextColor={colors.textMuted} />
       <Pressable
         style={styles.secondaryButton}
         disabled={!phone.trim() || sendOtpMutation.isPending || phoneAlreadyVerifiedForCurrentInput}
@@ -93,7 +94,7 @@ export function ClientProfileScreen() {
         onChangeText={setOtpCode}
         placeholder="Enter 6-digit OTP"
         maxLength={6}
-        placeholderTextColor="#64748b"
+        placeholderTextColor={colors.textMuted}
       />
       <Pressable
         style={styles.secondaryButton}
@@ -106,7 +107,7 @@ export function ClientProfileScreen() {
       </Pressable>
       {otpStatus ? <Text style={styles.subtle}>{otpStatus}</Text> : null}
       {otpPreview ? <Text style={styles.subtle}>Dev OTP: {otpPreview}</Text> : null}
-      <TextInput style={styles.input} value={timezone} onChangeText={setTimezone} placeholder="Timezone" placeholderTextColor="#64748b" />
+      <TextInput style={styles.input} value={timezone} onChangeText={setTimezone} placeholder="Timezone" placeholderTextColor={colors.textMuted} />
       <Pressable style={styles.button} onPress={() => updateMutation.mutate()} disabled={updateMutation.isPending}>
         <Text style={styles.buttonText}>{updateMutation.isPending ? "Saving..." : "Save profile"}</Text>
       </Pressable>
@@ -116,12 +117,12 @@ export function ClientProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#020817", padding: 14 },
-  heading: { color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 8 },
-  subtle: { color: "#94a3b8", marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: "#334155", borderRadius: 8, color: "#fff", paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
+  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
+  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 8 },
+  subtle: { color: colors.textSecondary, marginBottom: 8 },
+  input: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 8, color: colors.textPrimary, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
   inputLocked: { opacity: 0.7 },
-  secondaryButton: { backgroundColor: "#334155", borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 8 },
-  button: { backgroundColor: "#4f46e5", borderRadius: 8, alignItems: "center", paddingVertical: 10 },
-  buttonText: { color: "#fff", fontWeight: "700" },
+  secondaryButton: { backgroundColor: colors.chipBorder, borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 8 },
+  button: { backgroundColor: colors.primary, borderRadius: 8, alignItems: "center", paddingVertical: 10 },
+  buttonText: { color: colors.textPrimary, fontWeight: "700" },
 });

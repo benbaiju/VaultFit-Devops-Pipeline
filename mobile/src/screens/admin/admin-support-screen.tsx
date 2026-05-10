@@ -4,6 +4,7 @@ import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "r
 import { addTicketComment, getAdminTicketTimeline, getAdminTickets, updateAdminTicket } from "../../services/tickets";
 import { useAuth } from "../../state/auth-context";
 import type { TicketPriority, TicketStatus } from "../../types/api";
+import { colors } from "../../theme";
 
 const STATUSES: TicketStatus[] = ["open", "in_progress", "waiting_user", "resolved", "closed"];
 const PRIORITIES: TicketPriority[] = ["low", "normal", "high", "urgent"];
@@ -134,7 +135,7 @@ export function AdminSupportScreen() {
             value={reply}
             onChangeText={setReply}
             placeholder="Reply to user..."
-            placeholderTextColor="#64748b"
+            placeholderTextColor={colors.textMuted}
           />
           <Pressable style={styles.replyButton} onPress={() => commentMutation.mutate()} disabled={!reply.trim()}>
             <Text style={styles.replyText}>Post reply</Text>
@@ -146,32 +147,32 @@ export function AdminSupportScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#020817", padding: 14 },
-  heading: { color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 6 },
-  subtle: { color: "#94a3b8" },
+  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
+  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 6 },
+  subtle: { color: colors.textSecondary },
   filterRow: { marginBottom: 8 },
-  filterChip: { borderWidth: 1, borderColor: "#334155", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, marginRight: 6 },
-  filterChipActive: { borderColor: "#4f46e5", backgroundColor: "rgba(79,70,229,0.25)" },
-  filterText: { color: "#cbd5e1" },
-  card: { backgroundColor: "#0f172a", borderColor: "#1e293b", borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 8 },
-  cardActive: { borderColor: "#4f46e5" },
-  title: { color: "#fff", fontWeight: "700" },
-  badge: { color: "#93c5fd", marginTop: 4, textTransform: "uppercase", fontSize: 12 },
-  detail: { backgroundColor: "#0b1220", borderColor: "#1e293b", borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 10, maxHeight: 340 },
+  filterChip: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, marginRight: 6 },
+  filterChipActive: { borderColor: colors.primary, backgroundColor: colors.primarySoftStrong },
+  filterText: { color: colors.textSection },
+  card: { backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 8 },
+  cardActive: { borderColor: colors.primary },
+  title: { color: colors.textPrimary, fontWeight: "700" },
+  badge: { color: colors.primaryMuted, marginTop: 4, textTransform: "uppercase", fontSize: 12 },
+  detail: { backgroundColor: colors.surfaceMuted, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 10, maxHeight: 340 },
   row: { flexDirection: "row", gap: 8, marginTop: 8, marginBottom: 8 },
-  action: { backgroundColor: "#1d4ed8", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
-  actionText: { color: "#fff", fontWeight: "700" },
-  timelineItem: { borderBottomColor: "#1e293b", borderBottomWidth: 1, paddingVertical: 6 },
-  timelineMeta: { color: "#e2e8f0", fontWeight: "600", marginBottom: 3 },
+  action: { backgroundColor: colors.blueAction, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
+  actionText: { color: colors.textPrimary, fontWeight: "700" },
+  timelineItem: { borderBottomColor: colors.borderStrong, borderBottomWidth: 1, paddingVertical: 6 },
+  timelineMeta: { color: colors.textBody, fontWeight: "600", marginBottom: 3 },
   input: {
     borderWidth: 1,
-    borderColor: "#334155",
+    borderColor: colors.chipBorder,
     borderRadius: 8,
-    color: "#fff",
+    color: colors.textPrimary,
     paddingHorizontal: 10,
     paddingVertical: 8,
     marginTop: 8,
   },
-  replyButton: { backgroundColor: "#4f46e5", borderRadius: 8, alignItems: "center", paddingVertical: 10, marginTop: 8 },
-  replyText: { color: "#fff", fontWeight: "700" },
+  replyButton: { backgroundColor: colors.primary, borderRadius: 8, alignItems: "center", paddingVertical: 10, marginTop: 8 },
+  replyText: { color: colors.textPrimary, fontWeight: "700" },
 });

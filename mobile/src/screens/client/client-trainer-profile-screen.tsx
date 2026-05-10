@@ -7,6 +7,7 @@ import { getTrainerReviews } from "../../services/reviews";
 import { getServices } from "../../services/services";
 import { getTrainerById } from "../../services/trainers";
 import { useAuth } from "../../state/auth-context";
+import { colors } from "../../theme";
 
 function toIsoDate(daysOffset = 0): string {
   const date = new Date();
@@ -159,20 +160,20 @@ export function ClientTrainerProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#020817", padding: 14 },
-  heading: { color: "#fff", fontSize: 24, fontWeight: "700" },
-  subtle: { color: "#94a3b8" },
-  bio: { color: "#cbd5e1", marginTop: 8, marginBottom: 8 },
+  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
+  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700" },
+  subtle: { color: colors.textSecondary },
+  bio: { color: colors.textSection, marginTop: 8, marginBottom: 8 },
   section: { marginTop: 12, marginBottom: 6 },
-  sectionTitle: { color: "#fff", fontSize: 16, fontWeight: "700", marginBottom: 6 },
-  reviewItem: { borderWidth: 1, borderColor: "#1e293b", borderRadius: 8, padding: 8, marginTop: 6, backgroundColor: "#0f172a" },
-  reviewTitle: { color: "#e2e8f0", fontWeight: "700" },
-  serviceChip: { borderWidth: 1, borderColor: "#334155", borderRadius: 8, padding: 8, marginBottom: 6 },
-  serviceChipActive: { borderColor: "#4f46e5", backgroundColor: "rgba(79,70,229,0.2)" },
-  serviceText: { color: "#e2e8f0" },
-  slot: { borderWidth: 1, borderColor: "#334155", borderRadius: 8, padding: 10, marginTop: 8 },
-  slotActive: { borderColor: "#4f46e5", backgroundColor: "rgba(79,70,229,0.2)" },
-  slotText: { color: "#cbd5e1" },
-  bookButton: { marginTop: 12, marginBottom: 24, borderRadius: 8, paddingVertical: 10, alignItems: "center", backgroundColor: "#4f46e5" },
-  bookButtonText: { color: "#fff", fontWeight: "700" },
+  sectionTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: "700", marginBottom: 6 },
+  reviewItem: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 8, padding: 8, marginTop: 6, backgroundColor: colors.surface },
+  reviewTitle: { color: colors.textBody, fontWeight: "700" },
+  serviceChip: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 8, padding: 8, marginBottom: 6 },
+  serviceChipActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  serviceText: { color: colors.textBody },
+  slot: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 8, padding: 10, marginTop: 8 },
+  slotActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  slotText: { color: colors.textSection },
+  bookButton: { marginTop: 12, marginBottom: 24, borderRadius: 8, paddingVertical: 10, alignItems: "center", backgroundColor: colors.primary },
+  bookButtonText: { color: colors.textPrimary, fontWeight: "700" },
 });

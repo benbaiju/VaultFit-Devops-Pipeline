@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { Pressable } from "react-native";
 import { getTrainers } from "../../services/trainers";
+import { colors, Font } from "../../theme";
 
 type Props = {
   navigation: { navigate: (name: string, params?: Record<string, string>) => void };
@@ -35,11 +36,18 @@ export function ClientDiscoverScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#020817", padding: 14 },
-  heading: { color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 6 },
-  subtle: { color: "#94a3b8" },
-  card: { backgroundColor: "#0f172a", borderColor: "#1e293b", borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 10 },
-  title: { color: "#fff", fontWeight: "700" },
-  badge: { color: "#93c5fd", marginTop: 5 },
-  link: { color: "#a5b4fc", marginTop: 6, fontWeight: "600" },
+  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
+  heading: { color: colors.textPrimary, fontSize: 24, fontFamily: Font.outfitBold, marginBottom: 6, letterSpacing: -0.4 },
+  subtle: { color: colors.textSecondary, fontFamily: Font.outfitRegular },
+  card: {
+    backgroundColor: colors.surface,
+    borderColor: colors.borderStrong,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 10,
+  },
+  title: { color: colors.textPrimary, fontFamily: Font.outfitSemiBold },
+  badge: { color: colors.primaryMuted, marginTop: 5, fontFamily: Font.outfitMedium },
+  link: { color: colors.primaryMuted, marginTop: 6, fontFamily: Font.outfitSemiBold },
 });

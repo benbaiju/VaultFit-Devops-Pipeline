@@ -4,6 +4,7 @@ import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "r
 import { addTicketComment, createTicket, getMyTickets, getTicketTimeline } from "../../services/tickets";
 import type { TicketCategory, TicketPriority } from "../../types/api";
 import { useAuth } from "../../state/auth-context";
+import { colors } from "../../theme";
 
 const CATEGORIES: TicketCategory[] = ["booking", "payment", "verification", "account", "technical", "other"];
 const PRIORITIES: TicketPriority[] = ["low", "normal", "high", "urgent"];
@@ -54,13 +55,13 @@ export function ClientSupportScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Support</Text>
-      <TextInput style={styles.input} value={subject} onChangeText={setSubject} placeholder="Subject" placeholderTextColor="#64748b" />
+      <TextInput style={styles.input} value={subject} onChangeText={setSubject} placeholder="Subject" placeholderTextColor={colors.textMuted} />
       <TextInput
         style={[styles.input, styles.textarea]}
         value={description}
         onChangeText={setDescription}
         placeholder="Describe your issue"
-        placeholderTextColor="#64748b"
+        placeholderTextColor={colors.textMuted}
         multiline
       />
       <View style={styles.row}>
@@ -129,7 +130,7 @@ export function ClientSupportScreen() {
             value={reply}
             onChangeText={setReply}
             placeholder="Reply to support"
-            placeholderTextColor="#64748b"
+            placeholderTextColor={colors.textMuted}
           />
           <Pressable style={styles.button} disabled={!reply.trim() || commentMutation.isPending} onPress={() => commentMutation.mutate()}>
             <Text style={styles.buttonText}>{commentMutation.isPending ? "Posting..." : "Post comment"}</Text>
@@ -141,21 +142,21 @@ export function ClientSupportScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#020817", padding: 14 },
-  heading: { color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 8 },
-  subtle: { color: "#94a3b8" },
+  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
+  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 8 },
+  subtle: { color: colors.textSecondary },
   row: { marginBottom: 8 },
-  chip: { borderWidth: 1, borderColor: "#334155", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, marginRight: 6 },
-  chipActive: { borderColor: "#4f46e5", backgroundColor: "rgba(79,70,229,0.25)" },
-  chipText: { color: "#cbd5e1" },
-  input: { borderWidth: 1, borderColor: "#334155", borderRadius: 8, color: "#fff", paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
+  chip: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, marginRight: 6 },
+  chipActive: { borderColor: colors.primary, backgroundColor: colors.primarySoftStrong },
+  chipText: { color: colors.textSection },
+  input: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 8, color: colors.textPrimary, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
   textarea: { minHeight: 72, textAlignVertical: "top" },
-  button: { backgroundColor: "#4f46e5", borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 10 },
-  buttonText: { color: "#fff", fontWeight: "700" },
-  ticketCard: { backgroundColor: "#0f172a", borderColor: "#1e293b", borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 8 },
-  ticketCardActive: { borderColor: "#4f46e5" },
-  title: { color: "#fff", fontWeight: "700" },
-  timelineWrap: { marginTop: 8, backgroundColor: "#0f172a", borderColor: "#1e293b", borderWidth: 1, borderRadius: 10, padding: 10, maxHeight: 300 },
-  timelineItem: { borderBottomWidth: 1, borderBottomColor: "#1e293b", paddingVertical: 7 },
-  timelineMeta: { color: "#e2e8f0", fontWeight: "600" },
+  button: { backgroundColor: colors.primary, borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 10 },
+  buttonText: { color: colors.textPrimary, fontWeight: "700" },
+  ticketCard: { backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 8 },
+  ticketCardActive: { borderColor: colors.primary },
+  title: { color: colors.textPrimary, fontWeight: "700" },
+  timelineWrap: { marginTop: 8, backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10, maxHeight: 300 },
+  timelineItem: { borderBottomWidth: 1, borderBottomColor: colors.borderStrong, paddingVertical: 7 },
+  timelineMeta: { color: colors.textBody, fontWeight: "600" },
 });

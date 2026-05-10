@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { getBookings, updateBookingStatus } from "../../services/bookings";
 import { useAuth } from "../../state/auth-context";
+import { colors } from "../../theme";
 
 export function TrainerBookingsScreen() {
   const { token } = useAuth();
@@ -53,14 +54,14 @@ export function TrainerBookingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#020817", padding: 14 },
-  heading: { color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 6 },
-  subtle: { color: "#94a3b8" },
-  card: { backgroundColor: "#0f172a", borderColor: "#1e293b", borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 8 },
-  title: { color: "#fff", fontWeight: "700" },
-  badge: { color: "#93c5fd", marginTop: 5, textTransform: "uppercase" },
+  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
+  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 6 },
+  subtle: { color: colors.textSecondary },
+  card: { backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 8 },
+  title: { color: colors.textPrimary, fontWeight: "700" },
+  badge: { color: colors.primaryMuted, marginTop: 5, textTransform: "uppercase" },
   row: { flexDirection: "row", gap: 8, marginTop: 10 },
-  button: { backgroundColor: "#1d4ed8", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
-  cancelButton: { backgroundColor: "#7f1d1d" },
-  buttonText: { color: "#fff", fontWeight: "700" },
+  button: { backgroundColor: colors.blueAction, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
+  cancelButton: { backgroundColor: colors.dangerDark },
+  buttonText: { color: colors.textPrimary, fontWeight: "700" },
 });

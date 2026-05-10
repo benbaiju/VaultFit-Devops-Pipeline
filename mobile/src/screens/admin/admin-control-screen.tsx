@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { getAdminReviewTimeline, getAdminTrainers, getAdminUsers, setTrainerVerifiedState, setUserAccess } from "../../services/admin";
 import { useAuth } from "../../state/auth-context";
+import { colors } from "../../theme";
 
 export function AdminControlScreen() {
   const { token } = useAuth();
@@ -100,23 +101,23 @@ export function AdminControlScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#020817", padding: 14 },
-  heading: { color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 6 },
-  section: { color: "#cbd5e1", fontSize: 16, fontWeight: "700", marginTop: 14, marginBottom: 8 },
-  subtle: { color: "#94a3b8" },
+  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
+  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 6 },
+  section: { color: colors.textSection, fontSize: 16, fontWeight: "700", marginTop: 14, marginBottom: 8 },
+  subtle: { color: colors.textSecondary },
   card: {
-    backgroundColor: "#0f172a",
-    borderColor: "#1e293b",
+    backgroundColor: colors.surface,
+    borderColor: colors.borderStrong,
     borderWidth: 1,
     borderRadius: 12,
     padding: 10,
     marginBottom: 8,
   },
-  title: { color: "#fff", fontWeight: "700" },
+  title: { color: colors.textPrimary, fontWeight: "700" },
   button: { marginTop: 8, borderRadius: 8, paddingVertical: 8, alignItems: "center" },
   successButton: { backgroundColor: "#166534" },
-  warnButton: { backgroundColor: "#7f1d1d" },
-  buttonText: { color: "#fff", fontWeight: "700" },
-  timelineRow: { borderBottomColor: "#1e293b", borderBottomWidth: 1, paddingVertical: 8 },
-  timelineAction: { color: "#e2e8f0", fontWeight: "600" },
+  warnButton: { backgroundColor: colors.dangerDark },
+  buttonText: { color: colors.textPrimary, fontWeight: "700" },
+  timelineRow: { borderBottomColor: colors.borderStrong, borderBottomWidth: 1, paddingVertical: 8 },
+  timelineAction: { color: colors.textBody, fontWeight: "600" },
 });

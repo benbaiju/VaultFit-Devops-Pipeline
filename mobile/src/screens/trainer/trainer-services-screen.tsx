@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createService, getServices } from "../../services/services";
 import { getMyTrainerProfile } from "../../services/trainers";
 import { useAuth } from "../../state/auth-context";
+import { colors } from "../../theme";
 
 export function TrainerServicesScreen() {
   const { token } = useAuth();
@@ -45,16 +46,16 @@ export function TrainerServicesScreen() {
       <Text style={styles.heading}>Services</Text>
       <Text style={styles.subtle}>Create and manage your service offerings.</Text>
 
-      <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Service title" placeholderTextColor="#64748b" />
+      <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Service title" placeholderTextColor={colors.textMuted} />
       <TextInput
         style={styles.input}
         value={durationMinutes}
         onChangeText={setDurationMinutes}
         keyboardType="number-pad"
         placeholder="Duration (minutes)"
-        placeholderTextColor="#64748b"
+        placeholderTextColor={colors.textMuted}
       />
-      <TextInput style={styles.input} value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="Price" placeholderTextColor="#64748b" />
+      <TextInput style={styles.input} value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="Price" placeholderTextColor={colors.textMuted} />
       <Pressable style={styles.button} disabled={!title.trim() || createMutation.isPending || !trainerId} onPress={() => createMutation.mutate()}>
         <Text style={styles.buttonText}>{createMutation.isPending ? "Creating..." : "Create service"}</Text>
       </Pressable>
@@ -78,13 +79,13 @@ export function TrainerServicesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#020817", padding: 14 },
-  heading: { color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 6 },
-  subtle: { color: "#94a3b8" },
-  input: { borderWidth: 1, borderColor: "#334155", borderRadius: 8, color: "#fff", paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
-  button: { backgroundColor: "#4f46e5", borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 12 },
-  buttonText: { color: "#fff", fontWeight: "700" },
-  card: { backgroundColor: "#0f172a", borderColor: "#1e293b", borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 8 },
-  title: { color: "#fff", fontWeight: "700" },
-  badge: { color: "#93c5fd", marginTop: 5, textTransform: "uppercase" },
+  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
+  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 6 },
+  subtle: { color: colors.textSecondary },
+  input: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 8, color: colors.textPrimary, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
+  button: { backgroundColor: colors.primary, borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 12 },
+  buttonText: { color: colors.textPrimary, fontWeight: "700" },
+  card: { backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 8 },
+  title: { color: colors.textPrimary, fontWeight: "700" },
+  badge: { color: colors.primaryMuted, marginTop: 5, textTransform: "uppercase" },
 });

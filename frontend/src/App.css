@@ -252,6 +252,48 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   padding: 2.5rem;
 }
 
+/* VaultFit wordmark + icon (use <VaultFitLogo /> everywhere) */
+.vaultfit-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  --vf-vault-text: #f8fafc;
+  --vf-accent: #2dd4bf;
+}
+.vaultfit-logo--tone-admin {
+  --vf-accent: #2ea043;
+}
+.vaultfit-logo__icon {
+  color: var(--vf-accent);
+  flex-shrink: 0;
+  display: block;
+}
+.vaultfit-logo__wordmark {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+}
+.vaultfit-logo--sm .vaultfit-logo__wordmark {
+  font-size: 1.1rem;
+}
+.vaultfit-logo--md .vaultfit-logo__wordmark {
+  font-size: 1.3rem;
+}
+.vaultfit-logo--lg .vaultfit-logo__wordmark {
+  font-size: 1.8rem;
+}
+.vaultfit-logo__vault {
+  color: var(--vf-vault-text);
+}
+.vaultfit-logo__fit {
+  color: var(--vf-accent);
+}
+
 /* Register — VaultFit marketing-style (dark + white fields + orange CTA) */
 .auth-page--vaultfit {
   background: #050a14;
@@ -267,23 +309,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .auth-vaultfit-brand {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-}
-.auth-vaultfit-logo-icon {
-  color: #2dd4bf;
-  flex-shrink: 0;
-}
-.auth-vaultfit-wordmark {
-  font-size: 1.65rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1;
-}
-.auth-vaultfit-wordmark-vault {
-  color: #f8fafc;
-}
-.auth-vaultfit-wordmark-fit {
-  color: #2dd4bf;
+  justify-content: center;
 }
 .auth-vaultfit-form {
   width: 100%;

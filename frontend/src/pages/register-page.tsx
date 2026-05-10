@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Dumbbell } from "lucide-react";
+import { VaultFitLogo } from "../components/vaultfit-logo";
 import { postLoginPath } from "../lib/navigation";
 import { useAuth } from "../state/auth-context";
 
@@ -36,12 +36,8 @@ export function RegisterPage() {
   return (
     <main className="auth-page auth-page--vaultfit">
       <div className="auth-vaultfit-stack">
-        <div className="auth-vaultfit-brand" aria-hidden>
-          <Dumbbell className="auth-vaultfit-logo-icon" size={36} strokeWidth={2} />
-          <span className="auth-vaultfit-wordmark">
-            <span className="auth-vaultfit-wordmark-vault">Vault</span>
-            <span className="auth-vaultfit-wordmark-fit">Fit</span>
-          </span>
+        <div className="auth-vaultfit-brand">
+          <VaultFitLogo size="lg" />
         </div>
         <form className="auth-vaultfit-form" onSubmit={onSubmit}>
           <h1 className="auth-vaultfit-title">Create an account</h1>

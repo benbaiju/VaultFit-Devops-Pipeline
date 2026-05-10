@@ -5,7 +5,6 @@ import { ROUTES } from "../lib/navigation";
 import { getMyTrainerProfile } from "../services/trainers";
 import { useAuth } from "../state/auth-context";
 import {
-  Dumbbell,
   LayoutDashboard,
   User,
   Calendar,
@@ -25,6 +24,7 @@ import {
   Headset,
   Home,
 } from "lucide-react";
+import { VaultFitLogo } from "./vaultfit-logo";
 
 type ShellVariant = "client" | "trainer" | "admin";
 
@@ -87,8 +87,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <Dumbbell className={`sidebar-logo-icon ${variant === "admin" ? "sidebar-logo-icon--admin" : ""}`} />
-            <span className="sidebar-logo-text">VaultFit</span>
+            <VaultFitLogo size="md" tone={variant === "admin" ? "admin" : "default"} />
           </div>
           <div className="sidebar-header-controls">
             <span className="sidebar-role-badge">{user?.role ?? variant}</span>
@@ -291,12 +290,9 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
         .sidebar-logo {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          color: #fff;
+          gap: 0.5rem;
+          min-width: 0;
         }
-        .sidebar-logo-icon { color: var(--primary); }
-        .sidebar-logo-icon--admin { color: #2ea043 !important; }
-        .sidebar-logo-text { font-weight: 700; font-size: 1.2rem; letter-spacing: -0.02em; }
         .sidebar-role-badge {
           font-size: 0.65rem;
           text-transform: uppercase;

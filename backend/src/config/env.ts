@@ -14,6 +14,12 @@ for (const key of required) {
   }
 }
 
+/**
+ * Optional: `SUPABASE_JWT_SECRET` — copy **JWT Secret** from Supabase Dashboard → Project Settings → API.
+ * When set on the API process, `requireAuth` verifies Bearer JWTs locally (HS256) instead of calling
+ * Supabase Auth `getUser`, avoiding ~10s timeouts when Auth is unreachable (requests still need DB for suspended checks).
+ */
+
 export const env = {
   port: Number(process.env.PORT ?? 4000),
   /** Default binds all interfaces; use 127.0.0.1 to listen on loopback only. */

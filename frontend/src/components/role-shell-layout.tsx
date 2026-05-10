@@ -53,7 +53,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
     if (p.startsWith(ROUTES.client.messages)) return "Messages";
     if (p.startsWith(ROUTES.client.notifications)) return "Notifications";
     if (p.startsWith(ROUTES.client.support)) return "Support";
-    if (p.startsWith(ROUTES.client.profile)) return "My profile";
+    if (p.startsWith(ROUTES.client.profile)) return "User Profile";
     if (p.startsWith(ROUTES.client.trainers)) return "Trainers";
     return "Discover";
   })();
@@ -101,7 +101,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
                 <NavItem to={ROUTES.client.root} icon={<Search size={18}/>} label="Discover" end />
                 <NavItem to={ROUTES.client.trainers} icon={<User size={18}/>} label="Trainers" />
                 <NavItem to={ROUTES.client.nutritionists} icon={<Activity size={18}/>} label="Nutritionists" />
-                <NavItem to={ROUTES.client.profile} icon={<User size={18}/>} label="My Profile" />
+                <NavItem to={ROUTES.client.profile} icon={<User size={18}/>} label="Profile" />
                 <NavItem to={ROUTES.client.book} icon={<CalendarDays size={18}/>} label="Book Session" />
                 <NavItem to={ROUTES.client.plans} icon={<Activity size={18}/>} label="My Plans" />
                 <NavItem to={ROUTES.client.reviews} icon={<Bookmark size={18}/>} label="My Reviews" />

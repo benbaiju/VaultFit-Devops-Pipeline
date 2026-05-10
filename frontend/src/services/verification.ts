@@ -1,5 +1,11 @@
 import { apiRequest } from "../lib/api-client";
-import type { AdminReviewTimelineResponse, AdminTrainer, AdminUser, VerificationRequest } from "../types/api";
+import type {
+  AdminReviewTimelineResponse,
+  AdminStats,
+  AdminTrainer,
+  AdminUser,
+  VerificationRequest,
+} from "../types/api";
 
 export async function submitVerificationRequest(
   token: string,
@@ -82,6 +88,10 @@ export async function reviewVerificationRequest(
 
 export async function getAdminUsers(token: string): Promise<AdminUser[]> {
   return apiRequest<AdminUser[]>("/admin/users", {}, token);
+}
+
+export async function getAdminStats(token: string): Promise<AdminStats> {
+  return apiRequest<AdminStats>("/admin/stats", {}, token);
 }
 
 export async function getAdminReviewTimeline(token: string): Promise<AdminReviewTimelineResponse> {

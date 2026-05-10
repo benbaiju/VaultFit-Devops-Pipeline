@@ -4,11 +4,16 @@ import { ROUTES } from "../lib/navigation";
 import { getMyTrainerProfile } from "../services/trainers";
 import { getBookings } from "../services/bookings";
 import { useAuth } from "../state/auth-context";
-import { 
-  Users, Activity, CalendarClock, DollarSign, 
-  ArrowRight, CheckCircle, Clock, Search 
+import {
+  Users,
+  Activity,
+  CalendarClock,
+  DollarSign,
+  ArrowRight,
+  CheckCircle,
+  Clock,
 } from "lucide-react";
-import { format, isToday, parseISO } from "date-fns";
+import { isToday, parseISO } from "date-fns";
 
 const MOD_CARDS = [
   { to: ROUTES.trainer.profile, title: "My Profile", body: "View/update profile and current verification status." },

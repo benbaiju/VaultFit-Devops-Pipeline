@@ -11,7 +11,7 @@ import {
   setUserAccess,
 } from "../services/verification";
 import { useAuth } from "../state/auth-context";
-import type { AdminReviewTimelineItem, AdminTrainer, VerificationRequest } from "../types/api";
+import type { AdminTrainer, VerificationRequest } from "../types/api";
 
 type AdminTab = "pending" | "history" | "trainers" | "users";
 type TrainerView = "all" | "nutritionists" | "other";
@@ -40,7 +40,7 @@ function timelineActionLabel(action: string): string {
   return map[action] ?? action;
 }
 
-export function AdminPage() {
+export function AdminVerificationsPage() {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<AdminTab>("pending");
@@ -171,10 +171,10 @@ export function AdminPage() {
   }
 
   return (
-    <section>
-      <h2>Admin console</h2>
-      <p className="muted">
-        Review verification requests, set verified for trainers and nutritionists, and suspend user access when needed.
+    <section className="admin-surface-section">
+      <h2 className="admin-page-title">Verifications</h2>
+      <p className="muted admin-page-lead">
+        Review verification requests, set verified for trainers and nutritionists, and manage review history.
       </p>
 
       <div className="admin-tabs" role="tablist" aria-label="Admin sections">
@@ -271,7 +271,9 @@ export function AdminPage() {
                     <tr key={row.id}>
                       <td>
                         <span className="font-medium">{timelineActionLabel(row.action)}</span>
-                        {row.detail.admin_notes && <span className="block text-xs muted mt-1">{String(row.detail.admin_notes)}</span>}
+                        {row.detail.admin_notes != null && String(row.detail.admin_notes).trim() !== "" ? (
+                          <span className="block text-xs muted mt-1">{String(row.detail.admin_notes)}</span>
+                        ) : null}
                       </td>
                       <td>
                         <div className="small-mono">{row.target_type}</div>

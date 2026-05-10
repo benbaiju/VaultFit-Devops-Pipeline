@@ -1,13 +1,27 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { ROUTES } from "../lib/navigation";
 import { getMyTrainerProfile } from "../services/trainers";
 import { useAuth } from "../state/auth-context";
-import { 
-  Dumbbell, LayoutDashboard, User, CalendarDays, ClipboardCheck, 
-  MessageSquare, Bell, LogOut, Settings, ShieldCheck, Home, 
-  Search, Bookmark, Activity, Menu 
+import {
+  Dumbbell,
+  LayoutDashboard,
+  User,
+  CalendarDays,
+  ClipboardCheck,
+  MessageSquare,
+  Bell,
+  LogOut,
+  Settings,
+  ShieldCheck,
+  Search,
+  Bookmark,
+  Activity,
+  Menu,
+  Users,
+  BadgeCheck,
+  Headset,
 } from "lucide-react";
 
 type ShellVariant = "client" | "trainer" | "admin";
@@ -15,6 +29,18 @@ type ShellVariant = "client" | "trainer" | "admin";
 export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
   const { user, token, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const location = useLocation();
+
+  const adminHeaderTitle = (() => {
+    const p = location.pathname;
+    if (p.startsWith(ROUTES.admin.users)) return "Users";
+    if (p.startsWith(ROUTES.admin.verifications)) return "Verifications";
+    if (p.startsWith(ROUTES.admin.support)) return "Support";
+    if (p.startsWith(ROUTES.admin.settings)) return "Profile settings";
+    return "Overview";
+  })();
+
+  const adminDisplayName = user?.full_name?.trim() || user?.email?.split("@")[0] || "Admin";
   
   const trainerMeQuery = useQuery({
     queryKey: ["trainer-me"],
@@ -36,13 +62,15 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
   );
 
   return (
-    <div className={`dashboard-layout ${sidebarOpen ? "" : "sidebar-hidden"}`}>
+    <div
+      className={`dashboard-layout ${variant === "admin" ? "dashboard-layout--admin" : ""} ${sidebarOpen ? "" : "sidebar-hidden"}`}
+    >
       {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <Dumbbell className="sidebar-logo-icon" />
-            <span className="sidebar-logo-text">VaultFit Pro</span>
+            <Dumbbell className={`sidebar-logo-icon ${variant === "admin" ? "sidebar-logo-icon--admin" : ""}`} />
+            <span className="sidebar-logo-text">VaultFit</span>
           </div>
           <div className="sidebar-header-controls">
             <span className="sidebar-role-badge">{user?.role ?? variant}</span>
@@ -95,9 +123,13 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
             
             {variant === "admin" && (
               <>
-                <p className="sidebar-heading">Admin Console</p>
-                <NavItem to={ROUTES.admin.root} icon={<ShieldCheck size={18}/>} label="Control Center" end />
-                <NavItem to={ROUTES.admin.support} icon={<ClipboardCheck size={18}/>} label="Support Tickets" />
+                <p className="sidebar-heading">Admin</p>
+                <NavItem to={ROUTES.admin.root} icon={<LayoutDashboard size={18} />} label="Dashboard" end />
+                <NavItem to={ROUTES.admin.users} icon={<Users size={18} />} label="Users" />
+                <NavItem to={ROUTES.admin.verifications} icon={<BadgeCheck size={18} />} label="Verifications" />
+                <NavItem to={ROUTES.admin.support} icon={<Headset size={18} />} label="Support" />
+                <p className="sidebar-heading">Account</p>
+                <NavItem to={ROUTES.admin.settings} icon={<Settings size={18} />} label="Profile settings" />
               </>
             )}
           </nav>
@@ -121,7 +153,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
 
       {/* MAIN CONTENT AREA */}
       <main className="dashboard-main">
-        <header className="dashboard-header">
+        <header className={`dashboard-header ${variant === "admin" ? "dashboard-header--admin" : ""}`}>
           <button
             className="dashboard-menu-btn"
             type="button"
@@ -131,15 +163,31 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
           >
             <Menu size={18} />
           </button>
-          <div className="dashboard-header-title">
-            <h2>
-              {variant === "trainer" && user?.role === "nutritionist"
-                ? "Nutritionist Dashboard"
-                : `${variant.charAt(0).toUpperCase() + variant.slice(1)} Dashboard`}
-            </h2>
-          </div>
+          {variant === "admin" ? (
+            <>
+              <span className="dashboard-header-admin-crumb">{adminHeaderTitle}</span>
+              <div className="dashboard-header-admin-spacer" />
+              <div className="dashboard-header-admin-user">
+                <div className="dashboard-header-admin-text">
+                  <span className="dashboard-header-admin-name">{adminDisplayName}</span>
+                  <span className="dashboard-header-admin-role">Super Admin</span>
+                </div>
+                <div className="dashboard-header-admin-avatar" aria-hidden>
+                  {adminDisplayName.charAt(0).toUpperCase()}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="dashboard-header-title">
+              <h2>
+                {variant === "trainer" && user?.role === "nutritionist"
+                  ? "Nutritionist Dashboard"
+                  : `${variant.charAt(0).toUpperCase() + variant.slice(1)} Dashboard`}
+              </h2>
+            </div>
+          )}
         </header>
-        <div className="dashboard-content">
+        <div className={`dashboard-content ${variant === "admin" ? "dashboard-content--admin" : ""}`}>
           <Outlet />
         </div>
       </main>
@@ -183,6 +231,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
           color: #fff;
         }
         .sidebar-logo-icon { color: var(--primary); }
+        .sidebar-logo-icon--admin { color: #2ea043 !important; }
         .sidebar-logo-text { font-weight: 700; font-size: 1.2rem; letter-spacing: -0.02em; }
         .sidebar-role-badge {
           font-size: 0.65rem;
@@ -343,6 +392,53 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
           background: rgba(255, 255, 255, 0.08);
         }
         .dashboard-header h2 { margin: 0; font-size: 1.1rem; }
+
+        .dashboard-header--admin {
+          border-bottom-color: rgba(139, 148, 158, 0.12);
+          background: rgba(11, 14, 20, 0.85);
+        }
+        .dashboard-header-admin-crumb {
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #e6edf3;
+          letter-spacing: 0.02em;
+        }
+        .dashboard-header-admin-spacer { flex: 1; }
+        .dashboard-header-admin-user {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+        .dashboard-header-admin-text {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 0.1rem;
+        }
+        .dashboard-header-admin-name {
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: #e6edf3;
+        }
+        .dashboard-header-admin-role {
+          font-size: 0.72rem;
+          color: #8b949e;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+        .dashboard-header-admin-avatar {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          background: linear-gradient(145deg, #238636, #2ea043);
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.95rem;
+          border: 1px solid rgba(139, 148, 158, 0.25);
+        }
         
         .dashboard-content {
           flex: 1;
@@ -351,6 +447,26 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
           max-width: 1200px;
           margin: 0 auto;
           width: 100%;
+        }
+        .dashboard-content--admin {
+          max-width: none;
+          margin: 0;
+          padding: 1.5rem 2rem 2.5rem;
+        }
+        .dashboard-layout--admin {
+          background: #0b0e14;
+        }
+        .dashboard-layout--admin .sidebar {
+          background: #0d1117;
+          border-right-color: rgba(139, 148, 158, 0.12);
+        }
+        .dashboard-layout--admin .sidebar-link.active {
+          background: rgba(56, 139, 253, 0.12);
+          border-left: 3px solid #58a6ff;
+          color: #e6edf3;
+        }
+        .dashboard-layout--admin .sidebar-link.active svg {
+          color: #58a6ff;
         }
         .dashboard-layout.sidebar-hidden .sidebar {
           width: 0;

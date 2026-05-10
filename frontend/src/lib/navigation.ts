@@ -32,7 +32,10 @@ export const ROUTES = {
   },
   admin: {
     root: "/admin",
+    users: "/admin/users",
+    verifications: "/admin/verifications",
     support: "/admin/support",
+    settings: "/admin/settings",
   },
 } as const;
 

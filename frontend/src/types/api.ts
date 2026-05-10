@@ -175,6 +175,13 @@ export interface VerificationRequest {
   reviewed_at: string | null;
 }
 
+export interface AdminStats {
+  total_users: number;
+  trainer_profiles: number;
+  total_bookings: number;
+  open_support_tickets: number;
+}
+
 export interface AdminUser {
   id: string;
   email: string;

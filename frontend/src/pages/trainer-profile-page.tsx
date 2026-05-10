@@ -304,12 +304,14 @@ export function TrainerProfilePage() {
                   className="secondary-btn"
                   type="button"
                   onClick={() => {
+                    const d = meQuery.data;
+                    if (!d) return;
                     setIsEditing(false);
                     setError("");
-                    setBio(meQuery.data.bio ?? "");
-                    setSpecialty(meQuery.data.specialty ?? "");
-                    setExperienceYears(meQuery.data.experience_years ?? 0);
-                    setHourlyRate(meQuery.data.hourly_rate ?? 0);
+                    setBio(d.bio ?? "");
+                    setSpecialty(d.specialty ?? "");
+                    setExperienceYears(d.experience_years ?? 0);
+                    setHourlyRate(d.hourly_rate ?? 0);
                   }}
                 >
                   Cancel

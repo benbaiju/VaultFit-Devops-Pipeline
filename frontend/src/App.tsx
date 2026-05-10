@@ -1,5 +1,8 @@
 import { Route, Routes } from "react-router-dom";
-import { AdminPage } from "./pages/admin-page.tsx";
+import { AdminDashboardPage } from "./pages/admin-dashboard-page.tsx";
+import { AdminSettingsPage } from "./pages/admin-settings-page.tsx";
+import { AdminUsersPage } from "./pages/admin-users-page.tsx";
+import { AdminVerificationsPage } from "./pages/admin-verifications-page.tsx";
 import { AuthHomeRedirect } from "./components/root-redirect.tsx";
 import { ProtectedRoute, RoleRoute, TrainerVerifiedRoute } from "./components/protected-route.tsx";
 import { RoleShellLayout } from "./components/role-shell-layout.tsx";
@@ -156,8 +159,11 @@ function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<AdminPage />} />
+        <Route index element={<AdminDashboardPage />} />
+        <Route path="users" element={<AdminUsersPage />} />
+        <Route path="verifications" element={<AdminVerificationsPage />} />
         <Route path="support" element={<AdminSupportPage />} />
+        <Route path="settings" element={<AdminSettingsPage />} />
       </Route>
       <Route path="*" element={<AuthHomeRedirect />} />
     </Routes>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Dumbbell } from "lucide-react";
 import { postLoginPath } from "../lib/navigation";
 import { useAuth } from "../state/auth-context";
 
@@ -33,38 +34,87 @@ export function RegisterPage() {
   }
 
   return (
-    <main className="auth-page">
-      <form className="card auth-card" onSubmit={onSubmit}>
-        <p className="brand-pill">Get started</p>
-        <h2>Create account</h2>
-        <p className="muted">Create your VaultFit account in under a minute.</p>
-        <label>Full name</label>
-        <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Jane Doe" required />
-        <label>I am signing up as</label>
-        <select value={role} onChange={(e) => setRole(e.target.value as SignupRole)}>
-          <option value="client">Client — book sessions with trainers</option>
-          <option value="trainer">Trainer — list services and take bookings</option>
-          <option value="nutritionist">Nutritionist — offer nutrition coaching and meal plans</option>
-        </select>
-        <label>Email</label>
-        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
-        <label>Password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-          minLength={8}
-          required
-        />
-        <button className="primary-btn" disabled={loading}>
-          {loading ? "Creating..." : "Create account"}
-        </button>
-        {error ? <p className="error">{error}</p> : null}
-        <p className="muted">
-          Already have an account? <Link to="/login">Sign in</Link>
-        </p>
-      </form>
+    <main className="auth-page auth-page--vaultfit">
+      <div className="auth-vaultfit-stack">
+        <div className="auth-vaultfit-brand" aria-hidden>
+          <Dumbbell className="auth-vaultfit-logo-icon" size={36} strokeWidth={2} />
+          <span className="auth-vaultfit-wordmark">
+            <span className="auth-vaultfit-wordmark-vault">Vault</span>
+            <span className="auth-vaultfit-wordmark-fit">Fit</span>
+          </span>
+        </div>
+        <form className="auth-vaultfit-form" onSubmit={onSubmit}>
+          <h1 className="auth-vaultfit-title">Create an account</h1>
+
+          <label className="auth-vaultfit-label" htmlFor="reg-name">
+            Name
+          </label>
+          <input
+            id="reg-name"
+            className="auth-vaultfit-input"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="What should we call you?"
+            autoComplete="name"
+            required
+          />
+
+          <label className="auth-vaultfit-label" htmlFor="reg-role">
+            Join as
+          </label>
+          <select
+            id="reg-role"
+            className="auth-vaultfit-input auth-vaultfit-select"
+            value={role}
+            onChange={(e) => setRole(e.target.value as SignupRole)}
+          >
+            <option value="client">Client</option>
+            <option value="trainer">Trainer</option>
+            <option value="nutritionist">Nutritionist</option>
+          </select>
+
+          <label className="auth-vaultfit-label" htmlFor="reg-email">
+            Email
+          </label>
+          <input
+            id="reg-email"
+            className="auth-vaultfit-input"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@domain.com"
+            autoComplete="email"
+            required
+          />
+
+          <label className="auth-vaultfit-label" htmlFor="reg-password">
+            Password
+          </label>
+          <input
+            id="reg-password"
+            className="auth-vaultfit-input"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            minLength={8}
+            autoComplete="new-password"
+            required
+          />
+          <p className="auth-vaultfit-hint">Must be at least 8 characters</p>
+
+          <button className="auth-vaultfit-submit" type="submit" disabled={loading}>
+            {loading ? "Creating..." : "Create account"}
+          </button>
+          {error ? <p className="error auth-vaultfit-error">{error}</p> : null}
+          <p className="auth-vaultfit-footer">
+            Already a member?{" "}
+            <Link className="auth-vaultfit-footer-link" to="/login">
+              Log in
+            </Link>
+          </p>
+        </form>
+      </div>
     </main>
   );
 }

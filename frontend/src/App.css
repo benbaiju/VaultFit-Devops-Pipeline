@@ -252,6 +252,142 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   padding: 2.5rem;
 }
 
+/* Register — VaultFit marketing-style (dark + white fields + orange CTA) */
+.auth-page--vaultfit {
+  background: #050a14;
+  place-items: center;
+}
+.auth-vaultfit-stack {
+  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.75rem;
+}
+.auth-vaultfit-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.auth-vaultfit-logo-icon {
+  color: #2dd4bf;
+  flex-shrink: 0;
+}
+.auth-vaultfit-wordmark {
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.auth-vaultfit-wordmark-vault {
+  color: #f8fafc;
+}
+.auth-vaultfit-wordmark-fit {
+  color: #2dd4bf;
+}
+.auth-vaultfit-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.auth-vaultfit-title {
+  margin: 0 0 1.35rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  text-align: center;
+}
+.auth-vaultfit-label {
+  display: block;
+  margin: 0 0 0.35rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #64748b;
+}
+.auth-vaultfit-form .auth-vaultfit-label:not(:first-of-type) {
+  margin-top: 1rem;
+}
+.auth-vaultfit-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 1rem;
+  margin: 0;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+.auth-vaultfit-input::placeholder {
+  color: #94a3b8;
+}
+.auth-vaultfit-input:focus {
+  outline: none;
+  border-color: #2dd4bf;
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.2);
+}
+.auth-vaultfit-select {
+  cursor: pointer;
+  appearance: auto;
+}
+.auth-vaultfit-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+.auth-vaultfit-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 1.35rem;
+  padding: 0.85rem 1.25rem;
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%);
+  box-shadow: 0 4px 18px rgba(234, 88, 12, 0.35);
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.auth-vaultfit-submit:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+.auth-vaultfit-submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.auth-vaultfit-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.auth-vaultfit-footer {
+  margin: 1.25rem 0 0;
+  text-align: center;
+  font-size: 0.92rem;
+  color: #94a3b8;
+}
+.auth-vaultfit-footer-link {
+  color: #fb923c;
+  font-weight: 600;
+  text-decoration: none;
+}
+.auth-vaultfit-footer-link:hover {
+  text-decoration: underline;
+}
+.auth-page--vaultfit .auth-vaultfit-error::before {
+  content: none;
+  display: none;
+}
+.auth-page--vaultfit .auth-vaultfit-error {
+  margin-top: 0.75rem;
+  justify-content: center;
+}
+
 /* CUSTOM APP SHELL EXPERIMENTS */
 .dashboard-link-card { cursor: pointer; }
 

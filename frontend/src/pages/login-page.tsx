@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Dumbbell } from "lucide-react";
 import { postLoginPath } from "../lib/navigation";
 import { useAuth } from "../state/auth-context";
 
@@ -20,7 +21,6 @@ export function LoginPage() {
     setLoading(true);
     try {
       const signedIn = await login(email, password);
-      // Run after auth state is committed (flushSync in login); avoids ProtectedRoute seeing an empty token.
       queueMicrotask(() => {
         navigate(postLoginPath(signedIn.role, from), { replace: true });
       });
@@ -32,29 +32,58 @@ export function LoginPage() {
   }
 
   return (
-    <main className="auth-page">
-      <form className="card auth-card" onSubmit={onSubmit}>
-        <p className="brand-pill">Welcome back</p>
-        <h2>Sign in to VaultFit</h2>
-        <p className="muted">Use your account to manage bookings and trainers.</p>
-        <label>Email</label>
-        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
-        <label>Password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-          required
-        />
-        <button className="primary-btn" disabled={loading}>
-          {loading ? "Signing in..." : "Sign in"}
-        </button>
-        {error ? <p className="error">{error}</p> : null}
-        <p className="muted">
-          New here? <Link to="/register">Create account</Link>
-        </p>
-      </form>
+    <main className="auth-page auth-page--vaultfit">
+      <div className="auth-vaultfit-stack">
+        <div className="auth-vaultfit-brand" aria-hidden>
+          <Dumbbell className="auth-vaultfit-logo-icon" size={36} strokeWidth={2} />
+          <span className="auth-vaultfit-wordmark">
+            <span className="auth-vaultfit-wordmark-vault">Vault</span>
+            <span className="auth-vaultfit-wordmark-fit">Fit</span>
+          </span>
+        </div>
+        <form className="auth-vaultfit-form" onSubmit={onSubmit}>
+          <h1 className="auth-vaultfit-title">Log in</h1>
+
+          <label className="auth-vaultfit-label" htmlFor="login-email">
+            Email
+          </label>
+          <input
+            id="login-email"
+            className="auth-vaultfit-input"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@domain.com"
+            autoComplete="email"
+            required
+          />
+
+          <label className="auth-vaultfit-label" htmlFor="login-password">
+            Password
+          </label>
+          <input
+            id="login-password"
+            className="auth-vaultfit-input"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            autoComplete="current-password"
+            required
+          />
+
+          <button className="auth-vaultfit-submit" type="submit" disabled={loading}>
+            {loading ? "Signing in..." : "Log in"}
+          </button>
+          {error ? <p className="error auth-vaultfit-error">{error}</p> : null}
+          <p className="auth-vaultfit-footer">
+            Not a member yet?{" "}
+            <Link className="auth-vaultfit-footer-link" to="/register">
+              Sign up
+            </Link>
+          </p>
+        </form>
+      </div>
     </main>
   );
 }

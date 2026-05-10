@@ -99,24 +99,25 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
             
             {variant === "trainer" && (
               <>
-                <p className="sidebar-heading">{user?.role === "nutritionist" ? "Nutritionist Console" : "Trainer Console"}</p>
-                <NavItem to={ROUTES.trainer.root} icon={<LayoutDashboard size={18}/>} label="Overview" end />
-                <NavItem to={ROUTES.trainer.profile} icon={<User size={18}/>} label="My Profile" />
-                {trainerVerified && (
+                <p className="sidebar-heading">Main menu</p>
+                <NavItem to={ROUTES.trainer.root} icon={<LayoutDashboard size={18} />} label="Dashboard" end />
+                <NavItem to={ROUTES.trainer.profile} icon={<User size={18} />} label="Profile" />
+                <NavItem to={ROUTES.trainer.verification} icon={<ShieldCheck size={18} />} label="Verification" />
+                {trainerVerified ? (
                   <>
-                    <NavItem to={ROUTES.trainer.servicesCreate} icon={<Settings size={18}/>} label="Services Setup" />
-                    <NavItem to={ROUTES.trainer.bookings} icon={<CalendarDays size={18}/>} label="Session Requests" />
-                    <NavItem to={ROUTES.trainer.plans} icon={<ClipboardCheck size={18}/>} label="Client Plans" />
+                    <p className="sidebar-heading">Management</p>
+                    <NavItem to={ROUTES.trainer.services} icon={<Settings size={18} />} label="Services" />
+                    <NavItem to={ROUTES.trainer.bookings} icon={<CalendarDays size={18} />} label="Bookings" />
+                    <NavItem to={ROUTES.trainer.plans} icon={<ClipboardCheck size={18} />} label="Plans" />
                     <p className="sidebar-heading">Communication</p>
-                    <NavItem to={ROUTES.trainer.messages} icon={<MessageSquare size={18}/>} label="Messages" />
-                    <NavItem to={ROUTES.trainer.notifications} icon={<Bell size={18}/>} label="Notifications" />
-                    <NavItem to={ROUTES.trainer.support} icon={<ClipboardCheck size={18}/>} label="Support" />
+                    <NavItem to={ROUTES.trainer.messages} icon={<MessageSquare size={18} />} label="Messages" />
+                    <NavItem to={ROUTES.trainer.notifications} icon={<Bell size={18} />} label="Notifications" />
+                    <NavItem to={ROUTES.trainer.support} icon={<Headset size={18} />} label="Support" />
                   </>
-                )}
-                {!trainerVerified && (
+                ) : (
                   <div className="sidebar-locked-msg">
                     <ShieldCheck size={16} />
-                    <span>Get verified to unlock all modules.</span>
+                    <span>Get verified to unlock services, bookings, plans, and messaging.</span>
                   </div>
                 )}
               </>
@@ -137,12 +138,43 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
         
         <div className="sidebar-footer">
           <div className="sidebar-user">
-            <div className="sidebar-avatar">
-              {user?.email?.charAt(0).toUpperCase() || 'U'}
-            </div>
+            {variant === "trainer" && trainerMeQuery.data?.profiles?.avatar_url ? (
+              <div className="sidebar-avatar sidebar-avatar--img">
+                <img src={trainerMeQuery.data.profiles.avatar_url} alt="" />
+              </div>
+            ) : (
+              <div className="sidebar-avatar">
+                {(variant === "trainer"
+                  ? trainerMeQuery.data?.profiles?.full_name?.trim() || user?.email
+                  : user?.email
+                )
+                  ?.charAt(0)
+                  .toUpperCase() || "U"}
+              </div>
+            )}
             <div className="sidebar-user-info">
-              <span className="sidebar-user-email">{user?.email}</span>
-              <span className="sidebar-user-status">Online</span>
+              {variant === "trainer" ? (
+                <>
+                  <span className="sidebar-user-email">
+                    {trainerMeQuery.data?.profiles?.full_name?.trim() ||
+                      user?.full_name?.trim() ||
+                      user?.email?.split("@")[0] ||
+                      "Trainer"}
+                  </span>
+                  <span className="sidebar-user-role-line">
+                    {user?.role === "nutritionist"
+                      ? "Nutritionist"
+                      : trainerVerified
+                        ? "Elite trainer"
+                        : "Pending verification"}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="sidebar-user-email">{user?.email}</span>
+                  <span className="sidebar-user-status">Online</span>
+                </>
+              )}
             </div>
           </div>
           <button className="sidebar-logout" onClick={logout} aria-label="Logout">
@@ -177,13 +209,20 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
                 </div>
               </div>
             </>
+          ) : variant === "trainer" ? (
+            <>
+              <div className="dashboard-header-trainer-spacer" />
+              <NavLink
+                to={trainerVerified ? ROUTES.trainer.messages : ROUTES.trainer.verification}
+                className="dashboard-header-icon-btn"
+                aria-label={trainerVerified ? "Messages" : "Verification"}
+              >
+                <Search size={18} />
+              </NavLink>
+            </>
           ) : (
             <div className="dashboard-header-title">
-              <h2>
-                {variant === "trainer" && user?.role === "nutritionist"
-                  ? "Nutritionist Dashboard"
-                  : `${variant.charAt(0).toUpperCase() + variant.slice(1)} Dashboard`}
-              </h2>
+              <h2>{`${variant.charAt(0).toUpperCase() + variant.slice(1)} Dashboard`}</h2>
             </div>
           )}
         </header>
@@ -325,6 +364,26 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
           align-items: center;
           justify-content: center;
           font-weight: 700;
+          flex-shrink: 0;
+          overflow: hidden;
+        }
+        .sidebar-avatar--img {
+          padding: 0;
+          background: #0f1629;
+          border: 1px solid rgba(129, 140, 248, 0.35);
+        }
+        .sidebar-avatar--img img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .sidebar-user-role-line {
+          font-size: 0.65rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: #6ee7b7;
+          margin-top: 0.15rem;
         }
         .sidebar-user-info {
           display: flex;
@@ -392,6 +451,27 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
           background: rgba(255, 255, 255, 0.08);
         }
         .dashboard-header h2 { margin: 0; font-size: 1.1rem; }
+        .dashboard-header-trainer-spacer {
+          flex: 1;
+          min-width: 0;
+        }
+        .dashboard-header-icon-btn {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          border: 1px solid var(--border-light);
+          background: rgba(255, 255, 255, 0.04);
+          color: var(--text-secondary);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .dashboard-header-icon-btn:hover {
+          color: #fff;
+          border-color: rgba(129, 140, 248, 0.45);
+          background: rgba(99, 102, 241, 0.12);
+        }
 
         .dashboard-header--admin {
           border-bottom-color: rgba(139, 148, 158, 0.12);

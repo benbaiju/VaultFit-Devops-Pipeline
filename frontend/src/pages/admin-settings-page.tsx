@@ -2,7 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, LogOut, Shield, Trash2 } from "lucide-react";
 import { changePassword } from "../services/auth";
-import { getMyProfile, updateMyProfile, type UpdateProfileInput } from "../services/profiles";
+import {
+  getMyProfile,
+  sendPhoneOtp,
+  updateMyProfile,
+  verifyPhoneOtp,
+  type UpdateProfileInput,
+} from "../services/profiles";
 import { useAuth } from "../state/auth-context";
 
 const TIMEZONES = [
@@ -31,6 +37,9 @@ export function AdminSettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpStatus, setOtpStatus] = useState("");
+  const [otpPreview, setOtpPreview] = useState("");
   const avatarFileRef = useRef<HTMLInputElement>(null);
 
   const profileQuery = useQuery({
@@ -46,6 +55,13 @@ export function AdminSettingsPage() {
     }
     return TIMEZONES;
   }, [profileQuery.data?.timezone]);
+
+  const normalizedCurrentPhone = phone.trim().replace(/[\s\-()]/g, "");
+  const normalizedSavedPhone = (profileQuery.data?.phone ?? "").trim().replace(/[\s\-()]/g, "");
+  const phoneAlreadyVerifiedForCurrentInput =
+    Boolean(profileQuery.data?.phone_verified) &&
+    Boolean(normalizedCurrentPhone) &&
+    normalizedCurrentPhone === normalizedSavedPhone;
 
   useEffect(() => {
     const p = profileQuery.data;
@@ -118,6 +134,29 @@ export function AdminSettingsPage() {
     onError: (e) => setPasswordError((e as Error).message),
   });
 
+  const sendOtpMutation = useMutation({
+    mutationFn: () => sendPhoneOtp(token, phone.trim()),
+    onSuccess: (payload) => {
+      setError("");
+      setOtpStatus("OTP sent to your phone number.");
+      setOtpPreview(payload.otpPreview ?? "");
+      void queryClient.invalidateQueries({ queryKey: ["profile-me"] });
+    },
+    onError: (e) => setError((e as Error).message),
+  });
+
+  const verifyOtpMutation = useMutation({
+    mutationFn: () => verifyPhoneOtp(token, otpCode.trim()),
+    onSuccess: () => {
+      setError("");
+      setOtpStatus("Phone number verified.");
+      setOtpCode("");
+      setOtpPreview("");
+      void queryClient.invalidateQueries({ queryKey: ["profile-me"] });
+    },
+    onError: (e) => setError((e as Error).message),
+  });
+
   if (user?.role !== "admin") {
     return (
       <section className="admin-surface-section admin-settings">
@@ -176,14 +215,72 @@ export function AdminSettingsPage() {
             className="admin-settings-input"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="Optional"
+            placeholder="+61… (E.164 recommended)"
             autoComplete="tel"
           />
-          {phone ? (
-            <p className="admin-settings-hint">
-              {phoneVerified ? "Verified" : "Not verified — use the client or trainer profile flow to verify with OTP."}
+          {phone.trim() ? (
+            <p className="admin-settings-hint" style={{ marginTop: "0.35rem" }}>
+              {phoneVerified && phoneAlreadyVerifiedForCurrentInput ? (
+                <>
+                  <span className="admin-settings-badge">Verified</span>{" "}
+                  Save profile if you changed your number before sending a new code.
+                </>
+              ) : phoneVerified && !phoneAlreadyVerifiedForCurrentInput ? (
+                "Number changed from your verified phone — save profile, then send a new OTP to verify."
+              ) : (
+                "Enter your number in international format, then send the code and verify."
+              )}
             </p>
+          ) : (
+            <p className="admin-settings-hint" style={{ marginTop: "0.35rem" }}>
+              Optional. Use international format (e.g. +61400111222) for SMS verification.
+            </p>
+          )}
+          {phone.trim() ? (
+            <div className="admin-settings-phone-otp-row">
+              <button
+                className="secondary-btn admin-settings-otp-btn"
+                type="button"
+                disabled={!phone.trim() || sendOtpMutation.isPending || phoneAlreadyVerifiedForCurrentInput}
+                onClick={() => sendOtpMutation.mutate()}
+              >
+                {sendOtpMutation.isPending
+                  ? "Sending…"
+                  : phoneAlreadyVerifiedForCurrentInput
+                    ? "Already verified"
+                    : "Send OTP"}
+              </button>
+              <input
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                placeholder="6-digit code"
+                maxLength={6}
+                className="admin-settings-input admin-settings-otp-input"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                aria-label="One-time code"
+              />
+              <button
+                className="secondary-btn admin-settings-otp-btn"
+                type="button"
+                disabled={
+                  otpCode.trim().length !== 6 || verifyOtpMutation.isPending || phoneAlreadyVerifiedForCurrentInput
+                }
+                onClick={() => verifyOtpMutation.mutate()}
+              >
+                {verifyOtpMutation.isPending
+                  ? "Verifying…"
+                  : phoneAlreadyVerifiedForCurrentInput
+                    ? "Verified"
+                    : "Verify OTP"}
+              </button>
+            </div>
           ) : null}
+          {phone.trim() && phoneAlreadyVerifiedForCurrentInput ? (
+            <p className="admin-settings-hint">This phone is already verified. Send a new code only if you change the number (save first).</p>
+          ) : null}
+          {otpStatus ? <p className="admin-settings-hint">{otpStatus}</p> : null}
+          {otpPreview ? <p className="admin-settings-hint">Dev OTP: {otpPreview}</p> : null}
 
           <label className="admin-settings-label" htmlFor="admin-settings-tz">
             Timezone

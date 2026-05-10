@@ -819,6 +819,23 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   color: #6e7681;
   line-height: 1.35;
 }
+.admin-settings-phone-otp-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+  margin: 0.5rem 0 0.15rem;
+}
+.admin-settings-otp-btn {
+  padding: 0 0.72rem;
+  font-size: 0.8rem;
+  min-height: 34px;
+  border-radius: 8px;
+}
+.admin-settings-otp-input {
+  max-width: 170px;
+  min-height: 34px;
+}
 .admin-settings-body {
   margin: 0 0 0.75rem;
   font-size: 0.88rem;

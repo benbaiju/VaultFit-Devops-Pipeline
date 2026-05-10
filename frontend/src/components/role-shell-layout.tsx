@@ -42,7 +42,22 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
   })();
 
   const adminDisplayName = user?.full_name?.trim() || user?.email?.split("@")[0] || "Admin";
-  
+
+  const clientHeaderTitle = (() => {
+    const p = location.pathname;
+    if (p === ROUTES.client.root || p === `${ROUTES.client.root}/`) return "Discover";
+    if (p.startsWith(ROUTES.client.nutritionists)) return "Nutritionists";
+    if (p.startsWith(ROUTES.client.book)) return "Book session";
+    if (p.startsWith(ROUTES.client.plans)) return "My plans";
+    if (p.startsWith(ROUTES.client.reviews)) return "My reviews";
+    if (p.startsWith(ROUTES.client.messages)) return "Messages";
+    if (p.startsWith(ROUTES.client.notifications)) return "Notifications";
+    if (p.startsWith(ROUTES.client.support)) return "Support";
+    if (p.startsWith(ROUTES.client.profile)) return "My profile";
+    if (p.startsWith(ROUTES.client.trainers)) return "Trainers";
+    return "Discover";
+  })();
+
   const trainerMeQuery = useQuery({
     queryKey: ["trainer-me"],
     queryFn: () => getMyTrainerProfile(token),
@@ -222,9 +237,15 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
               </NavLink>
             </>
           ) : (
-            <div className="dashboard-header-title">
-              <h2>{`${variant.charAt(0).toUpperCase() + variant.slice(1)} Dashboard`}</h2>
-            </div>
+            <>
+              <div className="dashboard-header-title dashboard-header-title--client">
+                <h2>{clientHeaderTitle}</h2>
+              </div>
+              <div className="dashboard-header-trainer-spacer" />
+              <NavLink to={ROUTES.client.notifications} className="dashboard-header-icon-btn" aria-label="Notifications">
+                <Bell size={18} />
+              </NavLink>
+            </>
           )}
         </header>
         <div className={`dashboard-content ${variant === "admin" ? "dashboard-content--admin" : ""}`}>
@@ -452,6 +473,12 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
           background: rgba(255, 255, 255, 0.08);
         }
         .dashboard-header h2 { margin: 0; font-size: 1.1rem; }
+        .dashboard-header-title--client h2 {
+          font-size: 1.35rem;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          color: var(--text-primary);
+        }
         .dashboard-header-trainer-spacer {
           flex: 1;
           min-width: 0;

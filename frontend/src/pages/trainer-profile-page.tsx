@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Award, CheckCircle2, Globe, GraduationCap, Pencil, Share2, Star } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Award, Calendar, CheckCircle2, Globe, GraduationCap, Pencil, Share2, Star } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { format, isBefore, parseISO, startOfDay } from "date-fns";
 import { ROUTES } from "../lib/navigation";
@@ -16,6 +16,20 @@ import { useAuth } from "../state/auth-context";
 import type { AvailabilitySlot, Trainer } from "../types/api";
 
 const WEEKDAY_MON0 = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function publicTrainerProfileUrl(trainerId: string): string {
+  const path = `${ROUTES.client.trainers}/${trainerId}`;
+  if (typeof window !== "undefined") return `${window.location.origin}${path}`;
+  return path;
+}
+
+function formatBookingListDate(isoDate: string): string {
+  try {
+    return format(parseISO(isoDate), "EEE, MMM d, yyyy");
+  } catch {
+    return isoDate;
+  }
+}
 
 function fmtClock(t: string): string {
   return t.slice(0, 5);
@@ -70,6 +84,7 @@ export function TrainerProfilePage() {
   const [expertiseTags, setExpertiseTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [fullName, setFullName] = useState("");
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
 
   const meQuery = useQuery({
     queryKey: ["trainer-me"],
@@ -234,6 +249,19 @@ export function TrainerProfilePage() {
     );
   });
 
+  const completedBookingsSorted = useMemo(() => {
+    return [...completedBookings].sort((a, b) => {
+      try {
+        const da = parseISO(a.booking_date).getTime();
+        const db = parseISO(b.booking_date).getTime();
+        if (da !== db) return db - da;
+      } catch {
+        /* keep order */
+      }
+      return b.start_time.localeCompare(a.start_time);
+    });
+  }, [completedBookings]);
+
   const reviews = reviewsQuery.data ?? [];
   const avgRating = useMemo(() => {
     if (reviews.length === 0) return null;
@@ -316,6 +344,35 @@ export function TrainerProfilePage() {
     });
     setTagInput("");
   }
+  const trainerIdForPublic = meQuery.data?.id;
+
+  const handleSharePublicProfile = useCallback(async () => {
+    if (!trainerIdForPublic) return;
+    const url = publicTrainerProfileUrl(trainerIdForPublic);
+    const shareTitle = `${profileDisplayName} · VaultFit`;
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: "View my trainer profile on VaultFit.",
+          url,
+        });
+        setShareFeedback(null);
+        return;
+      } catch (e) {
+        if ((e as Error).name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareFeedback("Link copied to clipboard");
+      window.setTimeout(() => setShareFeedback(null), 2800);
+    } catch {
+      setShareFeedback(`Copy blocked — open link: ${url}`);
+      window.setTimeout(() => setShareFeedback(null), 8000);
+    }
+  }, [trainerIdForPublic, profileDisplayName]);
+
   const verifiedOnLabel = (() => {
     if (!isVerified) return null;
     const raw = approvedVerification?.reviewed_at;
@@ -419,10 +476,32 @@ export function TrainerProfilePage() {
                               )}
                             </div>
                           </div>
-                          <div className="tprof-social" title="Social links coming soon">
-                            <Share2 size={20} className="tprof-social-ic" aria-hidden />
-                            <Globe size={20} className="tprof-social-ic" aria-hidden />
-                          </div>
+                          {trainerIdForPublic ? (
+                            <div className="tprof-social-wrap">
+                              <div className="tprof-social" role="group" aria-label="Public profile link">
+                                <button
+                                  type="button"
+                                  className="tprof-social-btn"
+                                  onClick={() => void handleSharePublicProfile()}
+                                  title="Share your public profile (device share or copy link)"
+                                  aria-label="Share public profile link"
+                                >
+                                  <Share2 size={20} aria-hidden />
+                                </button>
+                                <a
+                                  href={publicTrainerProfileUrl(trainerIdForPublic)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="tprof-social-btn"
+                                  title="Open how clients see your profile"
+                                  aria-label="Open public profile in new tab"
+                                >
+                                  <Globe size={20} aria-hidden />
+                                </a>
+                              </div>
+                              {shareFeedback ? <p className="tprof-share-feedback">{shareFeedback}</p> : null}
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -489,32 +568,73 @@ export function TrainerProfilePage() {
                     </Link>
                   </article>
 
-                  <article className="tprof-card">
-                    <h3 className="tprof-card-h">Service history</h3>
-                    <p className="muted tprof-card-sub">Completed sessions and latest client plans.</p>
+                  <article className="tprof-card tprof-service-history">
+                    <div className="tprof-history-header">
+                      <div>
+                        <h3 className="tprof-card-h">Service history</h3>
+                        <p className="muted tprof-card-sub">Completed sessions, newest first. Latest client plan shown when available.</p>
+                      </div>
+                      <Link to={ROUTES.trainer.bookings} className="tprof-history-bookings-link">
+                        All bookings
+                      </Link>
+                    </div>
                     {bookingsQuery.isLoading || plansQuery.isLoading || servicesQuery.isLoading ? (
                       <p className="muted">Loading…</p>
                     ) : null}
-                    {!bookingsQuery.isLoading && completedBookings.length === 0 ? (
-                      <p className="muted">No completed services yet.</p>
-                    ) : null}
-                    <ul className="tprof-compact-list">
-                      {completedBookings.slice(0, 5).map((booking) => {
-                        const serviceTitle = booking.service_id
-                          ? (serviceTitleById.get(booking.service_id) ?? "Session")
-                          : "Session";
-                        const clientKey = booking.client_id ?? "";
-                        const latestPlan = clientKey ? (planRowsByClientId.get(clientKey) ?? [])[0] : undefined;
-                        return (
-                          <li key={booking.id}>
-                            <b>{serviceTitle}</b> · {booking.booking_date}
-                            {latestPlan ? (
-                              <span className="muted"> — {latestPlan.title}</span>
-                            ) : null}
-                          </li>
-                        );
-                      })}
-                    </ul>
+                    {!bookingsQuery.isLoading && completedBookingsSorted.length === 0 ? (
+                      <div className="tprof-history-empty">
+                        <Calendar size={28} className="muted" aria-hidden />
+                        <p className="tprof-history-empty-title">No completed sessions yet</p>
+                        <p className="muted tprof-history-empty-text">When clients finish sessions, they will appear here with date, time, and service.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="tprof-history-list" role="list">
+                          {completedBookingsSorted.slice(0, 25).map((booking) => {
+                            const serviceTitle = booking.service_id
+                              ? (serviceTitleById.get(booking.service_id) ?? "Session")
+                              : "Session";
+                            const clientKey = booking.client_id ?? "";
+                            const latestPlan = clientKey ? (planRowsByClientId.get(clientKey) ?? [])[0] : undefined;
+                            const timeRange = `${booking.start_time.slice(0, 5)}–${booking.end_time.slice(0, 5)}`;
+                            return (
+                              <div key={booking.id} className="tprof-history-row" role="listitem">
+                                <div className="tprof-history-datecol">
+                                  <Calendar size={16} className="tprof-history-cal-ic" aria-hidden />
+                                  <div>
+                                    <p className="tprof-history-date-primary">{formatBookingListDate(booking.booking_date)}</p>
+                                    <p className="muted tprof-history-time">{timeRange}</p>
+                                  </div>
+                                </div>
+                                <div className="tprof-history-body">
+                                  <div className="tprof-history-title-row">
+                                    <h4 className="tprof-history-service">{serviceTitle}</h4>
+                                    <span className="tprof-history-badge">Completed</span>
+                                  </div>
+                                  {latestPlan ? (
+                                    <p className="muted tprof-history-plan">
+                                      Latest plan: <strong className="tprof-history-plan-name">{latestPlan.title}</strong>
+                                      <span className="tprof-history-plan-meta">
+                                        {" "}
+                                        · {latestPlan.taskCount} task{latestPlan.taskCount === 1 ? "" : "s"}
+                                      </span>
+                                    </p>
+                                  ) : (
+                                    <p className="muted tprof-history-plan">No plan on file for this client yet.</p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {completedBookingsSorted.length > 25 ? (
+                          <p className="muted tprof-history-more">
+                            Showing 25 of {completedBookingsSorted.length} completed sessions.{" "}
+                            <Link to={ROUTES.trainer.bookings}>Open Bookings</Link> for the full list.
+                          </p>
+                        ) : null}
+                      </>
+                    )}
                   </article>
 
                   <article className="tprof-card">
@@ -905,13 +1025,43 @@ export function TrainerProfilePage() {
           font-weight: 800;
           font-size: 0.95rem;
         }
+        .tprof-social-wrap {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 0.25rem;
+          max-width: 12rem;
+        }
         .tprof-social {
           display: flex;
-          gap: 0.5rem;
-          opacity: 0.45;
+          gap: 0.4rem;
         }
-        .tprof-social-ic {
-          color: var(--text-muted);
+        .tprof-social-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          border: 1px solid var(--border-light);
+          background: rgba(255, 255, 255, 0.06);
+          color: var(--text-secondary);
+          cursor: pointer;
+          text-decoration: none;
+          padding: 0;
+        }
+        .tprof-social-btn:hover {
+          color: #fff;
+          border-color: rgba(129, 140, 248, 0.45);
+          background: rgba(99, 102, 241, 0.15);
+        }
+        .tprof-share-feedback {
+          margin: 0;
+          font-size: 0.72rem;
+          line-height: 1.3;
+          color: #86efac;
+          text-align: right;
+          word-break: break-word;
         }
         .tprof-bio {
           margin: 0;
@@ -974,6 +1124,147 @@ export function TrainerProfilePage() {
         .tprof-inline-link {
           font-weight: 600;
           font-size: 0.88rem;
+        }
+        .tprof-history-header {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 0.75rem 1rem;
+          margin-bottom: 0.65rem;
+        }
+        .tprof-history-bookings-link {
+          font-size: 0.86rem;
+          font-weight: 700;
+          text-decoration: none;
+          color: #7dd3fc;
+          padding: 0.35rem 0.65rem;
+          border-radius: 8px;
+          border: 1px solid rgba(56, 189, 248, 0.35);
+          background: rgba(56, 189, 248, 0.08);
+          white-space: nowrap;
+        }
+        .tprof-history-bookings-link:hover {
+          background: rgba(56, 189, 248, 0.15);
+          color: #bae6fd;
+        }
+        .tprof-history-empty {
+          text-align: center;
+          padding: 1.75rem 1rem;
+          border: 1px dashed var(--border-light);
+          border-radius: 14px;
+          background: rgba(0, 0, 0, 0.12);
+        }
+        .tprof-history-empty-title {
+          margin: 0.5rem 0 0.25rem;
+          font-weight: 700;
+          font-size: 1rem;
+        }
+        .tprof-history-empty-text {
+          margin: 0;
+          font-size: 0.88rem;
+          max-width: 26rem;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .tprof-history-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.6rem;
+          max-height: 28rem;
+          overflow-y: auto;
+          padding: 0.15rem 0.35rem 0.15rem 0;
+          margin-top: 0.35rem;
+        }
+        .tprof-history-row {
+          display: grid;
+          grid-template-columns: minmax(0, 9.5rem) minmax(0, 1fr);
+          gap: 0.65rem 1rem;
+          padding: 0.9rem 1rem;
+          border-radius: 12px;
+          border: 1px solid var(--border-light);
+          background: rgba(255, 255, 255, 0.03);
+          align-items: start;
+        }
+        @media (max-width: 560px) {
+          .tprof-history-row {
+            grid-template-columns: 1fr;
+          }
+          .tprof-history-datecol {
+            flex-direction: row;
+            align-items: center;
+            text-align: left;
+          }
+        }
+        .tprof-history-datecol {
+          display: flex;
+          gap: 0.5rem;
+          align-items: flex-start;
+          min-width: 0;
+        }
+        .tprof-history-cal-ic {
+          color: #38bdf8;
+          flex-shrink: 0;
+          margin-top: 0.15rem;
+        }
+        .tprof-history-date-primary {
+          margin: 0;
+          font-size: 0.78rem;
+          font-weight: 700;
+          line-height: 1.25;
+          color: var(--text-primary);
+        }
+        .tprof-history-time {
+          margin: 0.15rem 0 0;
+          font-size: 0.72rem;
+          font-weight: 600;
+        }
+        .tprof-history-body {
+          min-width: 0;
+        }
+        .tprof-history-title-row {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 0.45rem 0.65rem;
+        }
+        .tprof-history-service {
+          margin: 0;
+          font-size: 1rem;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          line-height: 1.25;
+        }
+        .tprof-history-badge {
+          font-size: 0.65rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          padding: 0.2rem 0.45rem;
+          border-radius: 6px;
+          background: rgba(52, 211, 153, 0.15);
+          color: #4ade80;
+          border: 1px solid rgba(74, 222, 128, 0.35);
+        }
+        .tprof-history-plan {
+          margin: 0.45rem 0 0;
+          font-size: 0.84rem;
+          line-height: 1.45;
+        }
+        .tprof-history-plan-name {
+          color: var(--text-primary);
+          font-weight: 700;
+        }
+        .tprof-history-plan-meta {
+          font-weight: 500;
+        }
+        .tprof-history-more {
+          margin: 0.75rem 0 0;
+          font-size: 0.82rem;
+        }
+        .tprof-history-more a {
+          font-weight: 700;
+          color: #7dd3fc;
         }
         .tprof-compact-list {
           margin: 0;

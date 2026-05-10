@@ -150,7 +150,7 @@ export interface SupportTicket {
   closed_at?: string | null;
   created_at: string;
   updated_at: string;
-  created_by?: { full_name?: string | null; email?: string | null } | null;
+  created_by?: { full_name?: string | null; email?: string | null; role?: Role } | null;
   assigned_admin?: { full_name?: string | null; email?: string | null } | null;
 }
 

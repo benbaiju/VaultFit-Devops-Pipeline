@@ -62,7 +62,7 @@ ticketsRouter.get("/tickets", requireAuth, async (req, res) => {
   const isAdmin = req.user?.role === "admin";
   let query = supabaseAdmin
     .from("support_tickets")
-    .select("*, created_by:created_by_user_id(full_name, email), assigned_admin:assigned_admin_user_id(full_name, email)")
+    .select("*, created_by:created_by_user_id(full_name, email, role), assigned_admin:assigned_admin_user_id(full_name, email)")
     .order("created_at", { ascending: false });
   if (!isAdmin) {
     query = query.eq("created_by_user_id", req.user!.id);
@@ -109,7 +109,7 @@ ticketsRouter.get("/admin/tickets", requireAuth, requireRole(["admin"]), async (
   const filters = listAdminTicketsSchema.parse(req.query);
   let query = supabaseAdmin
     .from("support_tickets")
-    .select("*, created_by:created_by_user_id(full_name, email), assigned_admin:assigned_admin_user_id(full_name, email)")
+    .select("*, created_by:created_by_user_id(full_name, email, role), assigned_admin:assigned_admin_user_id(full_name, email)")
     .order("created_at", { ascending: false });
   if (filters.status) query = query.eq("status", filters.status);
   if (filters.priority) query = query.eq("priority", filters.priority);
@@ -201,7 +201,7 @@ ticketsRouter.get("/admin/tickets/:id/timeline", requireAuth, requireRole(["admi
 async function getTicketForUser(ticketId: string, userId: string, isAdmin: boolean | undefined) {
   const { data, error } = await supabaseAdmin
     .from("support_tickets")
-    .select("*, created_by:created_by_user_id(full_name, email), assigned_admin:assigned_admin_user_id(full_name, email)")
+    .select("*, created_by:created_by_user_id(full_name, email, role), assigned_admin:assigned_admin_user_id(full_name, email)")
     .eq("id", ticketId)
     .single();
   if (error || !data) throw new HttpError(404, "Ticket not found", "TICKET_NOT_FOUND");

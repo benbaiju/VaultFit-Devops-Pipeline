@@ -35,7 +35,7 @@ export function RoleShellLayout({ variant }: { variant: ShellVariant }) {
     const p = location.pathname;
     if (p.startsWith(ROUTES.admin.users)) return "Users";
     if (p.startsWith(ROUTES.admin.verifications)) return "Verifications";
-    if (p.startsWith(ROUTES.admin.support)) return "Support";
+    if (p.startsWith(ROUTES.admin.support)) return "Support queue";
     if (p.startsWith(ROUTES.admin.settings)) return "Profile settings";
     return "Overview";
   })();

@@ -13,6 +13,7 @@ api/.env
 api/.env.*
 !api/.env.example
 !frontend/.env.example
+!mobile/.env.example
 
 # Logs
 *.log

@@ -1,17 +1,15 @@
-import { StyleSheet, Text, View } from "react-native";
-import { colors, Font } from "../../theme";
+import { Text, View } from "react-native";
+import { ScreenGradient, vf } from "../../ui/vaultfit-ui";
 
 export function PlaceholderScreen({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
-    </View>
+    <ScreenGradient>
+      <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 28 }}>
+        <View style={[vf.card, { alignItems: "center", marginBottom: 0 }]}>
+          <Text style={vf.h2}>{title}</Text>
+          <Text style={[vf.lead, { marginBottom: 0, textAlign: "center" }]}>{subtitle}</Text>
+        </View>
+      </View>
+    </ScreenGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgMain, padding: 20, justifyContent: "center" },
-  title: { fontSize: 26, fontFamily: Font.outfitBold, color: colors.textPrimary, marginBottom: 8, letterSpacing: -0.3 },
-  subtitle: { color: colors.textSecondary, fontSize: 15, fontFamily: Font.outfitRegular },
-});

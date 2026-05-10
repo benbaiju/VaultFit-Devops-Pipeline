@@ -4,7 +4,9 @@ import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "r
 import { addTicketComment, createTicket, getMyTickets, getTicketTimeline } from "../../services/tickets";
 import type { TicketCategory, TicketPriority } from "../../types/api";
 import { useAuth } from "../../state/auth-context";
-import { colors } from "../../theme";
+import { colors } from "../../theme/colors";
+import { Font } from "../../theme/fonts";
+import { ScreenGradient, vf } from "../../ui/vaultfit-ui";
 
 const CATEGORIES: TicketCategory[] = ["booking", "payment", "verification", "account", "technical", "other"];
 const PRIORITIES: TicketPriority[] = ["low", "normal", "high", "urgent"];
@@ -53,17 +55,13 @@ export function ClientSupportScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Support</Text>
-      <TextInput style={styles.input} value={subject} onChangeText={setSubject} placeholder="Subject" placeholderTextColor={colors.textMuted} />
-      <TextInput
-        style={[styles.input, styles.textarea]}
-        value={description}
-        onChangeText={setDescription}
-        placeholder="Describe your issue"
-        placeholderTextColor={colors.textMuted}
-        multiline
-      />
+    <ScreenGradient>
+    <View style={styles.shell}>
+      <Text style={vf.h2}>Support</Text>
+      <Text style={[vf.lead, { marginBottom: 12 }]}>Open tickets — same flows as web support.</Text>
+      <Text style={vf.label}>Subject</Text>
+      <TextInput style={[vf.input]} value={subject} onChangeText={setSubject} placeholder="Subject" placeholderTextColor={colors.textMuted} />
+      <TextInput style={[vf.input, styles.textarea]} value={description} onChangeText={setDescription} placeholder="Describe your issue" placeholderTextColor={colors.textMuted} multiline />
       <View style={styles.row}>
         <FlatList
           horizontal
@@ -89,21 +87,26 @@ export function ClientSupportScreen() {
         />
       </View>
       <Pressable
-        style={styles.button}
+        style={[vf.primaryBtn, { marginBottom: 16 }]}
         disabled={subject.trim().length < 3 || description.trim().length < 5 || createMutation.isPending}
         onPress={() => createMutation.mutate()}
       >
-        <Text style={styles.buttonText}>{createMutation.isPending ? "Submitting..." : "Submit ticket"}</Text>
+        <Text style={vf.btnLabel}>{createMutation.isPending ? "Submitting..." : "Submit ticket"}</Text>
       </Pressable>
 
+      <Text style={vf.h3}>Your tickets</Text>
       <FlatList
         data={ticketsQuery.data ?? []}
         keyExtractor={(item) => item.id}
-        ListEmptyComponent={ticketsQuery.isLoading ? <Text style={styles.subtle}>Loading tickets...</Text> : <Text style={styles.subtle}>No tickets yet.</Text>}
+        scrollEnabled={false}
+        ListEmptyComponent={ticketsQuery.isLoading ? <Text style={vf.muted}>Loading tickets...</Text> : <Text style={vf.muted}>No tickets yet.</Text>}
         renderItem={({ item }) => (
-          <Pressable style={[styles.ticketCard, selectedTicketId === item.id ? styles.ticketCardActive : null]} onPress={() => setSelectedTicketId(item.id)}>
-            <Text style={styles.title}>{item.subject}</Text>
-            <Text style={styles.subtle}>
+          <Pressable
+            style={[vf.card, selectedTicketId === item.id ? { borderColor: colors.primary } : null]}
+            onPress={() => setSelectedTicketId(item.id)}
+          >
+            <Text style={vf.cardTitle}>{item.subject}</Text>
+            <Text style={vf.muted}>
               {item.status} · {item.priority}
             </Text>
           </Pressable>
@@ -111,52 +114,50 @@ export function ClientSupportScreen() {
       />
 
       {selectedTicket ? (
-        <View style={styles.timelineWrap}>
+        <View style={[vf.card, { maxHeight: 320 }]}>
           <FlatList
             data={timelineQuery.data ?? []}
             keyExtractor={(item) => item.id}
-            ListEmptyComponent={timelineQuery.isLoading ? <Text style={styles.subtle}>Loading conversation...</Text> : <Text style={styles.subtle}>No conversation items.</Text>}
+            scrollEnabled
+            nestedScrollEnabled
+            ListEmptyComponent={
+              timelineQuery.isLoading ? <Text style={vf.muted}>Loading conversation...</Text> : <Text style={vf.muted}>No conversation items.</Text>
+            }
             renderItem={({ item }) => (
               <View style={styles.timelineItem}>
-                <Text style={styles.timelineMeta}>
+                <Text style={[styles.timelineMeta, { fontFamily: Font.outfitSemiBold }]}>
                   {item.event_type} · {new Date(item.created_at).toLocaleString()}
                 </Text>
-                {typeof item.detail?.comment === "string" ? <Text style={styles.subtle}>{item.detail.comment}</Text> : null}
+                {typeof item.detail?.comment === "string" ? <Text style={vf.muted}>{item.detail.comment}</Text> : null}
               </View>
             )}
           />
-          <TextInput
-            style={styles.input}
-            value={reply}
-            onChangeText={setReply}
-            placeholder="Reply to support"
-            placeholderTextColor={colors.textMuted}
-          />
-          <Pressable style={styles.button} disabled={!reply.trim() || commentMutation.isPending} onPress={() => commentMutation.mutate()}>
-            <Text style={styles.buttonText}>{commentMutation.isPending ? "Posting..." : "Post comment"}</Text>
+          <TextInput style={vf.input} value={reply} onChangeText={setReply} placeholder="Reply to support" placeholderTextColor={colors.textMuted} />
+          <Pressable style={[vf.primaryBtn, { marginTop: 8 }]} disabled={!reply.trim() || commentMutation.isPending} onPress={() => commentMutation.mutate()}>
+            <Text style={vf.btnLabel}>{commentMutation.isPending ? "Posting..." : "Post comment"}</Text>
           </Pressable>
         </View>
       ) : null}
     </View>
+    </ScreenGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
-  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 8 },
-  subtle: { color: colors.textSecondary },
+  shell: { flex: 1, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 24 },
   row: { marginBottom: 8 },
-  chip: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, marginRight: 6 },
+  chip: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginRight: 6,
+    backgroundColor: "rgba(0,0,0,0.15)",
+  },
   chipActive: { borderColor: colors.primary, backgroundColor: colors.primarySoftStrong },
-  chipText: { color: colors.textSection },
-  input: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 8, color: colors.textPrimary, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
-  textarea: { minHeight: 72, textAlignVertical: "top" },
-  button: { backgroundColor: colors.primary, borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 10 },
-  buttonText: { color: colors.textPrimary, fontWeight: "700" },
-  ticketCard: { backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 8 },
-  ticketCardActive: { borderColor: colors.primary },
-  title: { color: colors.textPrimary, fontWeight: "700" },
-  timelineWrap: { marginTop: 8, backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10, maxHeight: 300 },
-  timelineItem: { borderBottomWidth: 1, borderBottomColor: colors.borderStrong, paddingVertical: 7 },
-  timelineMeta: { color: colors.textBody, fontWeight: "600" },
+  chipText: { color: colors.textSection, fontFamily: Font.outfitMedium },
+  textarea: { minHeight: 88, textAlignVertical: "top" },
+  timelineItem: { borderBottomWidth: 1, borderBottomColor: colors.borderStrong, paddingVertical: 8 },
+  timelineMeta: { color: colors.textBody, marginBottom: 4 },
 });

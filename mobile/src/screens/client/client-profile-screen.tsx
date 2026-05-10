@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useEffect, useState } from "react";
 import { getMyProfile, sendPhoneOtp, updateMyProfile, verifyPhoneOtp } from "../../services/profiles";
 import { useAuth } from "../../state/auth-context";
-import { colors } from "../../theme";
+import { colors } from "../../theme/colors";
+import { ScreenGradient, vf } from "../../ui/vaultfit-ui";
 
 export function ClientProfileScreen() {
   const { token, user } = useAuth();
@@ -66,63 +67,61 @@ export function ClientProfileScreen() {
   });
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>My Profile</Text>
-      <Text style={styles.subtle}>Signed in as {user?.email}</Text>
-      <TextInput
-        style={[styles.input, nameLocked ? styles.inputLocked : null]}
-        value={fullName}
-        onChangeText={setFullName}
-        placeholder="Full name"
-        placeholderTextColor={colors.textMuted}
-        editable={!nameLocked}
-      />
-      {nameLocked ? <Text style={styles.subtle}>Name is locked after initial setup for client accounts.</Text> : null}
-      <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="Phone" placeholderTextColor={colors.textMuted} />
-      <Pressable
-        style={styles.secondaryButton}
-        disabled={!phone.trim() || sendOtpMutation.isPending || phoneAlreadyVerifiedForCurrentInput}
-        onPress={() => sendOtpMutation.mutate()}
-      >
-        <Text style={styles.buttonText}>
-          {sendOtpMutation.isPending ? "Sending OTP..." : phoneAlreadyVerifiedForCurrentInput ? "Already verified" : "Send OTP"}
-        </Text>
-      </Pressable>
-      <TextInput
-        style={styles.input}
-        value={otpCode}
-        onChangeText={setOtpCode}
-        placeholder="Enter 6-digit OTP"
-        maxLength={6}
-        placeholderTextColor={colors.textMuted}
-      />
-      <Pressable
-        style={styles.secondaryButton}
-        disabled={otpCode.trim().length !== 6 || verifyOtpMutation.isPending || phoneAlreadyVerifiedForCurrentInput}
-        onPress={() => verifyOtpMutation.mutate()}
-      >
-        <Text style={styles.buttonText}>
-          {verifyOtpMutation.isPending ? "Verifying..." : phoneAlreadyVerifiedForCurrentInput ? "Verified" : "Verify OTP"}
-        </Text>
-      </Pressable>
-      {otpStatus ? <Text style={styles.subtle}>{otpStatus}</Text> : null}
-      {otpPreview ? <Text style={styles.subtle}>Dev OTP: {otpPreview}</Text> : null}
-      <TextInput style={styles.input} value={timezone} onChangeText={setTimezone} placeholder="Timezone" placeholderTextColor={colors.textMuted} />
-      <Pressable style={styles.button} onPress={() => updateMutation.mutate()} disabled={updateMutation.isPending}>
-        <Text style={styles.buttonText}>{updateMutation.isPending ? "Saving..." : "Save profile"}</Text>
-      </Pressable>
-      {profileQuery.isLoading ? <Text style={styles.subtle}>Loading profile...</Text> : null}
-    </View>
+    <ScreenGradient>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={vf.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={vf.h2}>Profile</Text>
+        <Text style={vf.lead}>Signed in as {user?.email}</Text>
+        <View style={vf.card}>
+          <Text style={vf.label}>Full name</Text>
+          <TextInput
+            style={[vf.input, nameLocked ? { opacity: 0.75 } : null]}
+            value={fullName}
+            onChangeText={setFullName}
+            placeholder="Full name"
+            placeholderTextColor={colors.textMuted}
+            editable={!nameLocked}
+          />
+          {nameLocked ? <Text style={vf.muted}>Name is locked after initial setup for client accounts.</Text> : null}
+          <Text style={vf.label}>Phone</Text>
+          <TextInput style={vf.input} value={phone} onChangeText={setPhone} placeholder="Phone" placeholderTextColor={colors.textMuted} />
+          <Pressable
+            style={vf.secondaryBtn}
+            disabled={!phone.trim() || sendOtpMutation.isPending || phoneAlreadyVerifiedForCurrentInput}
+            onPress={() => sendOtpMutation.mutate()}
+          >
+            <Text style={vf.btnLabel}>
+              {sendOtpMutation.isPending ? "Sending OTP..." : phoneAlreadyVerifiedForCurrentInput ? "Already verified" : "Send OTP"}
+            </Text>
+          </Pressable>
+          <Text style={vf.label}>Verification code</Text>
+          <TextInput
+            style={vf.input}
+            value={otpCode}
+            onChangeText={setOtpCode}
+            placeholder="Enter 6-digit OTP"
+            maxLength={6}
+            placeholderTextColor={colors.textMuted}
+            keyboardType="number-pad"
+          />
+          <Pressable
+            style={vf.secondaryBtn}
+            disabled={otpCode.trim().length !== 6 || verifyOtpMutation.isPending || phoneAlreadyVerifiedForCurrentInput}
+            onPress={() => verifyOtpMutation.mutate()}
+          >
+            <Text style={vf.btnLabel}>
+              {verifyOtpMutation.isPending ? "Verifying..." : phoneAlreadyVerifiedForCurrentInput ? "Verified" : "Verify OTP"}
+            </Text>
+          </Pressable>
+          {otpStatus ? <Text style={vf.muted}>{otpStatus}</Text> : null}
+          {otpPreview ? <Text style={vf.muted}>Dev OTP: {otpPreview}</Text> : null}
+          <Text style={[vf.label, { marginTop: 8 }]}>Timezone</Text>
+          <TextInput style={vf.input} value={timezone} onChangeText={setTimezone} placeholder="Timezone" placeholderTextColor={colors.textMuted} />
+          <Pressable style={vf.primaryBtn} onPress={() => updateMutation.mutate()} disabled={updateMutation.isPending}>
+            <Text style={vf.btnLabel}>{updateMutation.isPending ? "Saving..." : "Save profile"}</Text>
+          </Pressable>
+        </View>
+        {profileQuery.isLoading ? <Text style={vf.muted}>Loading profile...</Text> : null}
+      </ScrollView>
+    </ScreenGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
-  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 8 },
-  subtle: { color: colors.textSecondary, marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 8, color: colors.textPrimary, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
-  inputLocked: { opacity: 0.7 },
-  secondaryButton: { backgroundColor: colors.chipBorder, borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 8 },
-  button: { backgroundColor: colors.primary, borderRadius: 8, alignItems: "center", paddingVertical: 10 },
-  buttonText: { color: colors.textPrimary, fontWeight: "700" },
-});

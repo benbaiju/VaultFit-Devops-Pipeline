@@ -3,8 +3,8 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../state/auth-context";
-import { colors, Font, vaultfitNavigationTheme } from "../theme";
 import { LoginScreen } from "../screens/auth/login-screen";
 import { RegisterScreen } from "../screens/auth/register-screen";
 import { PlaceholderScreen } from "../screens/common/placeholder-screen";
@@ -12,7 +12,7 @@ import { AdminControlScreen } from "../screens/admin/admin-control-screen";
 import { AdminSupportScreen } from "../screens/admin/admin-support-screen";
 import { ClientDiscoverScreen } from "../screens/client/client-discover-screen";
 import { ClientBookingsScreen } from "../screens/client/client-bookings-screen";
-import { ClientMessagesScreen } from "../screens/client/client-messages-screen";
+import { MessagesStackNavigator } from "../screens/client/messages-stack";
 import { ClientSupportScreen } from "../screens/client/client-support-screen";
 import { ClientProfileScreen } from "../screens/client/client-profile-screen";
 import { ClientTrainerProfileScreen } from "../screens/client/client-trainer-profile-screen";
@@ -25,6 +25,11 @@ import { TrainerBookingsScreen } from "../screens/trainer/trainer-bookings-scree
 import { TrainerPlansScreen } from "../screens/trainer/trainer-plans-screen";
 import { TrainerProfileScreen } from "../screens/trainer/trainer-profile-screen";
 import { TrainerMoreScreen } from "../screens/trainer/trainer-more-screen";
+import { colors, Font, vaultfitNavigationTheme } from "../theme";
+
+function TabIcon({ name, focused }: { name: keyof typeof Ionicons.glyphMap; focused: boolean }) {
+  return <Ionicons name={name} size={21} color={focused ? colors.primaryMuted : colors.textSecondary} />;
+}
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -41,11 +46,7 @@ const stackScreenOptions = {
 
 function ClientDiscoverStack() {
   return (
-    <DiscoverStack.Navigator
-      screenOptions={{
-        ...stackScreenOptions,
-      }}
-    >
+    <DiscoverStack.Navigator screenOptions={{ ...stackScreenOptions }}>
       <DiscoverStack.Screen name="DiscoverHome" component={ClientDiscoverScreen} options={{ title: "Discover" }} />
       <DiscoverStack.Screen name="TrainerProfile" component={ClientTrainerProfileScreen} options={{ title: "Trainer Profile" }} />
     </DiscoverStack.Navigator>
@@ -54,11 +55,7 @@ function ClientDiscoverStack() {
 
 function ClientMoreMenuStack() {
   return (
-    <ClientMoreStack.Navigator
-      screenOptions={{
-        ...stackScreenOptions,
-      }}
-    >
+    <ClientMoreStack.Navigator screenOptions={{ ...stackScreenOptions }}>
       <ClientMoreStack.Screen name="ClientMoreHome" component={ClientMoreScreen} options={{ title: "More" }} />
       <ClientMoreStack.Screen name="ClientReviews" component={ClientReviewsScreen} options={{ title: "Reviews" }} />
       <ClientMoreStack.Screen name="ClientNotifications" component={NotificationsScreen} options={{ title: "Notifications" }} />
@@ -69,11 +66,7 @@ function ClientMoreMenuStack() {
 
 function TrainerMoreMenuStack() {
   return (
-    <TrainerMoreStack.Navigator
-      screenOptions={{
-        ...stackScreenOptions,
-      }}
-    >
+    <TrainerMoreStack.Navigator screenOptions={{ ...stackScreenOptions }}>
       <TrainerMoreStack.Screen name="TrainerMoreHome" component={TrainerMoreScreen} options={{ title: "More" }} />
       <TrainerMoreStack.Screen name="TrainerServices" component={TrainerServicesScreen} options={{ title: "Services" }} />
       <TrainerMoreStack.Screen name="TrainerPlans" component={TrainerPlansScreen} options={{ title: "Plans" }} />
@@ -85,34 +78,138 @@ function TrainerMoreMenuStack() {
 
 function ClientTabs() {
   return (
-    <Tabs.Navigator screenOptions={baseTabOptions}>
-      <Tabs.Screen name="Discover" component={ClientDiscoverStack} />
-      <Tabs.Screen name="Bookings" component={ClientBookingsScreen} />
-      <Tabs.Screen name="Messages" component={ClientMessagesScreen} />
-      <Tabs.Screen name="Profile" component={ClientProfileScreen} />
-      <Tabs.Screen name="More" component={ClientMoreMenuStack} />
+    <Tabs.Navigator screenOptions={{ ...baseTabOptions, tabBarLabelStyle: { fontFamily: Font.outfitMedium, fontSize: 11 } }}>
+      <Tabs.Screen
+        name="Discover"
+        component={ClientDiscoverStack}
+        options={{
+          tabBarLabel: "Explore",
+          tabBarIcon: ({ focused }) => <TabIcon name="search" focused={focused} />,
+          tabBarAccessibilityLabel: "Explore trainers and nutritionists",
+        }}
+      />
+      <Tabs.Screen
+        name="Bookings"
+        component={ClientBookingsScreen}
+        options={{
+          tabBarLabel: "Sessions",
+          tabBarIcon: ({ focused }) => <TabIcon name="calendar-outline" focused={focused} />,
+          tabBarAccessibilityLabel: "My bookings and sessions",
+        }}
+      />
+      <Tabs.Screen
+        name="Messages"
+        component={MessagesStackNavigator}
+        options={{
+          tabBarLabel: "Chat",
+          tabBarIcon: ({ focused }) => <TabIcon name="chatbubble-ellipses-outline" focused={focused} />,
+          tabBarAccessibilityLabel: "Messages",
+        }}
+      />
+      <Tabs.Screen
+        name="Profile"
+        component={ClientProfileScreen}
+        options={{
+          tabBarLabel: "Profile",
+          tabBarIcon: ({ focused }) => <TabIcon name="person-outline" focused={focused} />,
+          tabBarAccessibilityLabel: "My profile",
+        }}
+      />
+      <Tabs.Screen
+        name="More"
+        component={ClientMoreMenuStack}
+        options={{
+          tabBarLabel: "Hub",
+          tabBarIcon: ({ focused }) => <TabIcon name="grid-outline" focused={focused} />,
+          tabBarAccessibilityLabel: "More tools and settings",
+        }}
+      />
     </Tabs.Navigator>
   );
 }
 
 function TrainerTabs() {
   return (
-    <Tabs.Navigator screenOptions={baseTabOptions}>
-      <Tabs.Screen name="Overview" component={TrainerOverviewScreen} />
-      <Tabs.Screen name="Bookings" component={TrainerBookingsScreen} />
-      <Tabs.Screen name="Messages" component={ClientMessagesScreen} />
-      <Tabs.Screen name="Profile" component={TrainerProfileScreen} />
-      <Tabs.Screen name="More" component={TrainerMoreMenuStack} />
+    <Tabs.Navigator screenOptions={{ ...baseTabOptions, tabBarLabelStyle: { fontFamily: Font.outfitMedium, fontSize: 11 } }}>
+      <Tabs.Screen
+        name="Overview"
+        component={TrainerOverviewScreen}
+        options={{
+          tabBarLabel: "Home",
+          tabBarIcon: ({ focused }) => <TabIcon name="home-outline" focused={focused} />,
+          tabBarAccessibilityLabel: "Trainer dashboard",
+        }}
+      />
+      <Tabs.Screen
+        name="Bookings"
+        component={TrainerBookingsScreen}
+        options={{
+          tabBarLabel: "Schedule",
+          tabBarIcon: ({ focused }) => <TabIcon name="calendar-outline" focused={focused} />,
+          tabBarAccessibilityLabel: "Client bookings",
+        }}
+      />
+      <Tabs.Screen
+        name="Messages"
+        component={MessagesStackNavigator}
+        options={{
+          tabBarLabel: "Chat",
+          tabBarIcon: ({ focused }) => <TabIcon name="chatbubble-ellipses-outline" focused={focused} />,
+          tabBarAccessibilityLabel: "Messages",
+        }}
+      />
+      <Tabs.Screen
+        name="Profile"
+        component={TrainerProfileScreen}
+        options={{
+          tabBarLabel: "Profile",
+          tabBarIcon: ({ focused }) => <TabIcon name="person-outline" focused={focused} />,
+          tabBarAccessibilityLabel: "Trainer profile",
+        }}
+      />
+      <Tabs.Screen
+        name="More"
+        component={TrainerMoreMenuStack}
+        options={{
+          tabBarLabel: "Hub",
+          tabBarIcon: ({ focused }) => <TabIcon name="settings-outline" focused={focused} />,
+          tabBarAccessibilityLabel: "Services, plans, and support",
+        }}
+      />
     </Tabs.Navigator>
   );
 }
 
 function AdminTabs() {
   return (
-    <Tabs.Navigator screenOptions={baseTabOptions}>
-      <Tabs.Screen name="Control" component={AdminControlScreen} />
-      <Tabs.Screen name="Support" component={AdminSupportScreen} />
-      <Tabs.Screen name="Profile" children={() => <PlaceholderScreen title="Admin Profile" subtitle="Account and session settings." />} />
+    <Tabs.Navigator screenOptions={{ ...baseTabOptions, tabBarLabelStyle: { fontFamily: Font.outfitMedium, fontSize: 11 } }}>
+      <Tabs.Screen
+        name="Control"
+        component={AdminControlScreen}
+        options={{
+          tabBarLabel: "Console",
+          tabBarIcon: ({ focused }) => <TabIcon name="shield-checkmark-outline" focused={focused} />,
+          tabBarAccessibilityLabel: "Admin control",
+        }}
+      />
+      <Tabs.Screen
+        name="Support"
+        component={AdminSupportScreen}
+        options={{
+          tabBarLabel: "Tickets",
+          tabBarIcon: ({ focused }) => <TabIcon name="help-buoy-outline" focused={focused} />,
+          tabBarAccessibilityLabel: "Support tickets",
+        }}
+      />
+      <Tabs.Screen
+        name="Profile"
+        children={() => <PlaceholderScreen title="Admin Profile" subtitle="Account and session settings." />}
+        options={{
+          tabBarLabel: "Account",
+          tabBarIcon: ({ focused }) => <TabIcon name="person-circle-outline" focused={focused} />,
+          tabBarAccessibilityLabel: "Admin account",
+        }}
+      />
     </Tabs.Navigator>
   );
 }

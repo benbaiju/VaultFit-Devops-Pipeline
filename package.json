@@ -4,6 +4,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "concurrently -k -n api,web -c blue,green \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "dev:cloudflare": "concurrently -k -n api,web,cf-api,cf-web -c blue,green,magenta,cyan \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\" \"cloudflared tunnel --url http://127.0.0.1:4000\" \"cloudflared tunnel --url http://127.0.0.1:5173\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

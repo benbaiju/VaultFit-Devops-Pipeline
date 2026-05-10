@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, Pressable, Text, View } from "react-native";
 import { getBookings, payBooking } from "../../services/bookings";
 import { useAuth } from "../../state/auth-context";
-import { colors } from "../../theme";
+import { Font } from "../../theme/fonts";
+import { ScreenGradient, vf, statusTone } from "../../ui/vaultfit-ui";
 
 export function ClientBookingsScreen() {
   const { token } = useAuth();
@@ -21,39 +22,43 @@ export function ClientBookingsScreen() {
   });
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>My Bookings</Text>
-      <Text style={styles.subtle}>Track and pay for your upcoming services.</Text>
+    <ScreenGradient>
       <FlatList
         data={bookingsQuery.data ?? []}
         keyExtractor={(item) => item.id}
-        ListEmptyComponent={bookingsQuery.isLoading ? <Text style={styles.subtle}>Loading bookings...</Text> : <Text style={styles.subtle}>No bookings yet.</Text>}
+        contentContainerStyle={vf.listPad}
+        ListHeaderComponent={
+          <View style={{ marginBottom: 14 }}>
+            <Text style={vf.h2}>My bookings</Text>
+            <Text style={vf.lead}>Track sessions and settle payments.</Text>
+          </View>
+        }
+        ListEmptyComponent={
+          bookingsQuery.isLoading ? (
+            <Text style={vf.muted}>Loading bookings...</Text>
+          ) : (
+            <Text style={vf.muted}>No bookings yet.</Text>
+          )
+        }
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.title}>{item.booking_date}</Text>
-            <Text style={styles.subtle}>
-              {item.start_time} - {item.end_time}
+          <View style={vf.card}>
+            <Text style={vf.cardTitle}>{item.booking_date}</Text>
+            <Text style={vf.body}>
+              {item.start_time} – {item.end_time}
             </Text>
-            <Text style={styles.badge}>{item.status}</Text>
+            <Text
+              style={[vf.muted, statusTone(String(item.status)), { textTransform: "uppercase", marginTop: 8, fontFamily: Font.outfitSemiBold }]}
+            >
+              {item.status}
+            </Text>
             {item.status === "pending" ? (
-              <Pressable style={styles.button} onPress={() => payMutation.mutate(item.id)}>
-                <Text style={styles.buttonText}>Pay now</Text>
+              <Pressable style={vf.primaryBtn} onPress={() => payMutation.mutate(item.id)}>
+                <Text style={vf.btnLabel}>Pay now</Text>
               </Pressable>
             ) : null}
           </View>
         )}
       />
-    </View>
+    </ScreenGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
-  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 6 },
-  subtle: { color: colors.textSecondary },
-  card: { backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 10 },
-  title: { color: colors.textPrimary, fontWeight: "700" },
-  badge: { color: colors.primaryMuted, marginTop: 5, textTransform: "uppercase" },
-  button: { marginTop: 8, borderRadius: 8, paddingVertical: 8, alignItems: "center", backgroundColor: colors.primary },
-  buttonText: { color: colors.textPrimary, fontWeight: "700" },
-});

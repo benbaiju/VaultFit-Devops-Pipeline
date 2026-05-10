@@ -8,6 +8,7 @@ export const colors = {
   surface: "#0f172a",
   surfaceMuted: "#0b1220",
   border: "rgba(255, 255, 255, 0.08)",
+  borderLight: "rgba(255, 255, 255, 0.04)",
   borderStrong: "#1e293b",
   textPrimary: "#f8fafc",
   textSecondary: "#94a3b8",

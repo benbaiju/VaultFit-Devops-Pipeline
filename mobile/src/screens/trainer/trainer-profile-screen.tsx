@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useEffect, useState } from "react";
 import { getMyProfile, sendPhoneOtp, updateMyProfile, verifyPhoneOtp } from "../../services/profiles";
 import { createMyTrainerProfile, getMyTrainerProfile, updateMyTrainerProfile } from "../../services/trainers";
 import { getMyVerificationRequests, submitVerificationRequest } from "../../services/verification";
 import { useAuth } from "../../state/auth-context";
-import { colors } from "../../theme";
+import { colors } from "../../theme/colors";
+import { ScreenGradient, VerifiedBadge, vf } from "../../ui/vaultfit-ui";
 
 export function TrainerProfileScreen() {
   const { token, user } = useAuth();
@@ -98,82 +99,93 @@ export function TrainerProfileScreen() {
   });
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>My Profile</Text>
-      <Text style={styles.subtle}>
-        {user?.email} · {trainerQuery.data?.verified ? "Verified" : "Not verified"}
-      </Text>
-      <TextInput style={styles.input} value={specialty} onChangeText={setSpecialty} placeholder="Specialty" placeholderTextColor={colors.textMuted} />
-      <TextInput
-        style={[styles.input, styles.textarea]}
-        value={bio}
-        onChangeText={setBio}
-        multiline
-        placeholder="Bio"
-        placeholderTextColor={colors.textMuted}
-      />
-      <Pressable style={styles.button} onPress={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-        <Text style={styles.buttonText}>{saveMutation.isPending ? "Saving..." : "Save profile"}</Text>
-      </Pressable>
-      <Text style={styles.section}>Phone verification</Text>
-      <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="Phone" placeholderTextColor={colors.textMuted} />
-      <Pressable style={styles.secondaryButton} disabled={!phone.trim() || profileUpdateMutation.isPending} onPress={() => profileUpdateMutation.mutate()}>
-        <Text style={styles.buttonText}>{profileUpdateMutation.isPending ? "Saving phone..." : "Save phone"}</Text>
-      </Pressable>
-      <Pressable
-        style={styles.secondaryButton}
-        disabled={!phone.trim() || sendOtpMutation.isPending || phoneAlreadyVerifiedForCurrentInput}
-        onPress={() => sendOtpMutation.mutate()}
-      >
-        <Text style={styles.buttonText}>
-          {sendOtpMutation.isPending ? "Sending OTP..." : phoneAlreadyVerifiedForCurrentInput ? "Already verified" : "Send OTP"}
-        </Text>
-      </Pressable>
-      <TextInput
-        style={styles.input}
-        value={otpCode}
-        onChangeText={setOtpCode}
-        placeholder="Enter 6-digit OTP"
-        maxLength={6}
-        placeholderTextColor={colors.textMuted}
-      />
-      <Pressable
-        style={styles.secondaryButton}
-        disabled={otpCode.trim().length !== 6 || verifyOtpMutation.isPending || phoneAlreadyVerifiedForCurrentInput}
-        onPress={() => verifyOtpMutation.mutate()}
-      >
-        <Text style={styles.buttonText}>
-          {verifyOtpMutation.isPending ? "Verifying..." : phoneAlreadyVerifiedForCurrentInput ? "Verified" : "Verify OTP"}
-        </Text>
-      </Pressable>
-      {otpStatus ? <Text style={styles.subtle}>{otpStatus}</Text> : null}
-      {otpPreview ? <Text style={styles.subtle}>Dev OTP: {otpPreview}</Text> : null}
-      <Text style={styles.section}>Verification</Text>
-      <TextInput
-        style={styles.input}
-        value={credentialUrl}
-        onChangeText={setCredentialUrl}
-        placeholder="Credential URL"
-        placeholderTextColor={colors.textMuted}
-      />
-      <Pressable style={styles.button} disabled={!credentialUrl.trim() || verifyMutation.isPending} onPress={() => verifyMutation.mutate()}>
-        <Text style={styles.buttonText}>{verifyMutation.isPending ? "Submitting..." : "Submit verification"}</Text>
-      </Pressable>
-      <Text style={styles.subtle}>
-        Latest verification: {(verificationQuery.data ?? [])[0]?.status ?? "none"}
-      </Text>
-    </View>
+    <ScreenGradient>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={vf.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={vf.h2}>My Profile</Text>
+        <Text style={vf.lead}>{user?.email}</Text>
+        <View style={vf.card}>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+            <VerifiedBadge verified={Boolean(trainerQuery.data?.verified)} />
+          </View>
+          <Text style={vf.label}>Specialty</Text>
+          <TextInput style={vf.input} value={specialty} onChangeText={setSpecialty} placeholder="Specialty" placeholderTextColor={colors.textMuted} />
+          <Text style={vf.label}>Bio</Text>
+          <TextInput
+            style={[vf.input, styles.textarea]}
+            value={bio}
+            onChangeText={setBio}
+            multiline
+            placeholder="Bio"
+            placeholderTextColor={colors.textMuted}
+          />
+          <Pressable style={vf.primaryBtn} onPress={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            <Text style={vf.btnLabel}>{saveMutation.isPending ? "Saving..." : "Save profile"}</Text>
+          </Pressable>
+        </View>
+        <View style={vf.card}>
+          <Text style={vf.h3}>Phone verification</Text>
+          <Text style={vf.label}>Phone</Text>
+          <TextInput style={vf.input} value={phone} onChangeText={setPhone} placeholder="Phone" placeholderTextColor={colors.textMuted} />
+          <Pressable
+            style={vf.secondaryBtn}
+            disabled={!phone.trim() || profileUpdateMutation.isPending}
+            onPress={() => profileUpdateMutation.mutate()}
+          >
+            <Text style={vf.btnLabel}>{profileUpdateMutation.isPending ? "Saving phone..." : "Save phone"}</Text>
+          </Pressable>
+          <Pressable
+            style={vf.secondaryBtn}
+            disabled={!phone.trim() || sendOtpMutation.isPending || phoneAlreadyVerifiedForCurrentInput}
+            onPress={() => sendOtpMutation.mutate()}
+          >
+            <Text style={vf.btnLabel}>
+              {sendOtpMutation.isPending ? "Sending OTP..." : phoneAlreadyVerifiedForCurrentInput ? "Already verified" : "Send OTP"}
+            </Text>
+          </Pressable>
+          <Text style={vf.label}>Verification code</Text>
+          <TextInput
+            style={vf.input}
+            value={otpCode}
+            onChangeText={setOtpCode}
+            placeholder="Enter 6-digit OTP"
+            maxLength={6}
+            placeholderTextColor={colors.textMuted}
+            keyboardType="number-pad"
+          />
+          <Pressable
+            style={vf.secondaryBtn}
+            disabled={otpCode.trim().length !== 6 || verifyOtpMutation.isPending || phoneAlreadyVerifiedForCurrentInput}
+            onPress={() => verifyOtpMutation.mutate()}
+          >
+            <Text style={vf.btnLabel}>
+              {verifyOtpMutation.isPending ? "Verifying..." : phoneAlreadyVerifiedForCurrentInput ? "Verified" : "Verify OTP"}
+            </Text>
+          </Pressable>
+          {otpStatus ? <Text style={vf.muted}>{otpStatus}</Text> : null}
+          {otpPreview ? <Text style={vf.muted}>Dev OTP: {otpPreview}</Text> : null}
+        </View>
+        <View style={vf.card}>
+          <Text style={vf.h3}>Professional verification</Text>
+          <Text style={vf.label}>Credential URL</Text>
+          <TextInput
+            style={vf.input}
+            value={credentialUrl}
+            onChangeText={setCredentialUrl}
+            placeholder="Credential URL"
+            placeholderTextColor={colors.textMuted}
+          />
+          <Pressable style={vf.primaryBtn} disabled={!credentialUrl.trim() || verifyMutation.isPending} onPress={() => verifyMutation.mutate()}>
+            <Text style={vf.btnLabel}>{verifyMutation.isPending ? "Submitting..." : "Submit verification"}</Text>
+          </Pressable>
+          <Text style={vf.muted}>
+            Latest verification: {(verificationQuery.data ?? [])[0]?.status ?? "none"}
+          </Text>
+        </View>
+      </ScrollView>
+    </ScreenGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
-  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 6 },
-  subtle: { color: colors.textSecondary },
-  section: { color: colors.textSection, marginTop: 12, marginBottom: 8, fontWeight: "700" },
-  input: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 8, color: colors.textPrimary, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
-  textarea: { minHeight: 80, textAlignVertical: "top" },
-  button: { backgroundColor: colors.primary, borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 8 },
-  secondaryButton: { backgroundColor: colors.chipBorder, borderRadius: 8, alignItems: "center", paddingVertical: 10, marginBottom: 8 },
-  buttonText: { color: colors.textPrimary, fontWeight: "700" },
+  textarea: { minHeight: 100, textAlignVertical: "top" },
 });

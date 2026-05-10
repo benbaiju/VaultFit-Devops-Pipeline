@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, Text, View } from "react-native";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "../../services/messaging";
 import { useAuth } from "../../state/auth-context";
-import { colors } from "../../theme";
+import { colors } from "../../theme/colors";
+import { Font } from "../../theme/fonts";
+import { ScreenGradient, vf } from "../../ui/vaultfit-ui";
 
 export function NotificationsScreen() {
   const { token } = useAuth();
@@ -30,53 +32,45 @@ export function NotificationsScreen() {
   const notifications = notificationsQuery.data ?? [];
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.heading}>Notifications</Text>
-        <Pressable style={styles.headerButton} onPress={() => markAllMutation.mutate()} disabled={markAllMutation.isPending}>
-          <Text style={styles.headerButtonText}>{markAllMutation.isPending ? "Working..." : "Mark all read"}</Text>
-        </Pressable>
-      </View>
-
+    <ScreenGradient>
       <FlatList
         data={notifications}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={vf.listPad}
+        ListHeaderComponent={
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 12 }}>
+            <Text style={vf.h2}>Notifications</Text>
+            <Pressable
+              style={[vf.secondaryBtn, { marginBottom: 0, alignSelf: "flex-start" }]}
+              onPress={() => markAllMutation.mutate()}
+              disabled={markAllMutation.isPending}
+            >
+              <Text style={vf.btnLabel}>{markAllMutation.isPending ? "…" : "Mark all read"}</Text>
+            </Pressable>
+          </View>
+        }
         ListEmptyComponent={
-          <Text style={styles.subtle}>{notificationsQuery.isLoading ? "Loading notifications..." : "No notifications yet."}</Text>
+          <Text style={vf.muted}>{notificationsQuery.isLoading ? "Loading notifications..." : "No notifications yet."}</Text>
         }
         renderItem={({ item }) => (
-          <View style={styles.item}>
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.body}>{item.body}</Text>
-            <View style={styles.row}>
-              <Text style={[styles.badge, item.is_read ? styles.read : styles.unread]}>{item.is_read ? "Read" : "Unread"}</Text>
+          <View style={vf.card}>
+            <Text style={[vf.cardTitle, { marginBottom: 6 }]}>{item.title}</Text>
+            <Text style={vf.body}>{item.body}</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+              <Text
+                style={[vf.muted, { fontFamily: Font.outfitSemiBold }, !item.is_read ? { color: colors.successBright } : null]}
+              >
+                {item.is_read ? "Read" : "Unread"}
+              </Text>
               {!item.is_read ? (
-                <Pressable style={styles.smallButton} onPress={() => markOneMutation.mutate(item.id)} disabled={markOneMutation.isPending}>
-                  <Text style={styles.smallButtonText}>Mark read</Text>
+                <Pressable style={[vf.secondaryBtn, { paddingVertical: 8, marginBottom: 0 }]} onPress={() => markOneMutation.mutate(item.id)}>
+                  <Text style={vf.btnLabel}>Mark read</Text>
                 </Pressable>
               ) : null}
             </View>
           </View>
         )}
       />
-    </View>
+    </ScreenGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
-  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700" },
-  headerButton: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 },
-  headerButtonText: { color: colors.textSection, fontWeight: "600" },
-  subtle: { color: colors.textSecondary },
-  item: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 10, padding: 10, marginBottom: 8, backgroundColor: colors.surface },
-  title: { color: colors.textPrimary, fontWeight: "700", marginBottom: 4 },
-  body: { color: colors.textSection },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 },
-  badge: { fontSize: 12, fontWeight: "700" },
-  read: { color: colors.textSecondary },
-  unread: { color: colors.successBright },
-  smallButton: { borderWidth: 1, borderColor: colors.primary, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
-  smallButtonText: { color: colors.linkSoft, fontWeight: "700" },
-});

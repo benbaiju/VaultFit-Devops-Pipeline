@@ -1,5 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { colors } from "../../theme";
+import { Pressable, ScrollView, Text } from "react-native";
+import { ScreenGradient, vf } from "../../ui/vaultfit-ui";
 
 type Props = {
   navigation: { navigate: (name: string) => void };
@@ -7,37 +7,31 @@ type Props = {
 
 export function TrainerMoreScreen({ navigation }: Props) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>More</Text>
-      <Text style={styles.subtle}>Extra trainer tools.</Text>
+    <ScreenGradient>
+      <ScrollView contentContainerStyle={vf.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={vf.h2}>More</Text>
+        <Text style={vf.lead}>Trainer tools aligned with web navigation.</Text>
 
-      <Pressable style={styles.card} onPress={() => navigation.navigate("TrainerServices")}>
-        <Text style={styles.title}>Services</Text>
-        <Text style={styles.subtle}>Create and manage your services.</Text>
-      </Pressable>
+        <Pressable style={({ pressed }) => [vf.cardTouchable, pressed && { opacity: 0.95 }]} onPress={() => navigation.navigate("TrainerServices")}>
+          <Text style={vf.cardTitle}>Services</Text>
+          <Text style={vf.body}>Programs, availability, pricing.</Text>
+        </Pressable>
 
-      <Pressable style={styles.card} onPress={() => navigation.navigate("TrainerPlans")}>
-        <Text style={styles.title}>Plans</Text>
-        <Text style={styles.subtle}>Create and track client plans.</Text>
-      </Pressable>
+        <Pressable style={({ pressed }) => [vf.cardTouchable, pressed && { opacity: 0.95 }]} onPress={() => navigation.navigate("TrainerPlans")}>
+          <Text style={vf.cardTitle}>Plans</Text>
+          <Text style={vf.body}>Fitness and nutrition plans.</Text>
+        </Pressable>
 
-      <Pressable style={styles.card} onPress={() => navigation.navigate("TrainerNotifications")}>
-        <Text style={styles.title}>Notifications</Text>
-        <Text style={styles.subtle}>View and mark notifications as read.</Text>
-      </Pressable>
+        <Pressable style={({ pressed }) => [vf.cardTouchable, pressed && { opacity: 0.95 }]} onPress={() => navigation.navigate("TrainerNotifications")}>
+          <Text style={vf.cardTitle}>Notifications</Text>
+          <Text style={vf.body}>Alerts and reminders.</Text>
+        </Pressable>
 
-      <Pressable style={styles.card} onPress={() => navigation.navigate("TrainerSupport")}>
-        <Text style={styles.title}>Support</Text>
-        <Text style={styles.subtle}>Open and follow support tickets.</Text>
-      </Pressable>
-    </View>
+        <Pressable style={({ pressed }) => [vf.cardTouchable, pressed && { opacity: 0.95 }]} onPress={() => navigation.navigate("TrainerSupport")}>
+          <Text style={vf.cardTitle}>Support</Text>
+          <Text style={vf.body}>Helpdesk threads.</Text>
+        </Pressable>
+      </ScrollView>
+    </ScreenGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
-  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 6 },
-  subtle: { color: colors.textSecondary, marginBottom: 8 },
-  card: { backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 10 },
-  title: { color: colors.textPrimary, fontWeight: "700", marginBottom: 4 },
-});

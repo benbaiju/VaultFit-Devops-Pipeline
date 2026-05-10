@@ -5,7 +5,9 @@ import { getBookings } from "../../services/bookings";
 import { createReview, deleteReview, getTrainerReviews } from "../../services/reviews";
 import { getTrainers } from "../../services/trainers";
 import { useAuth } from "../../state/auth-context";
-import { colors } from "../../theme";
+import { colors } from "../../theme/colors";
+import { Font } from "../../theme/fonts";
+import { ScreenGradient, vf } from "../../ui/vaultfit-ui";
 
 export function ClientReviewsScreen() {
   const { token, user } = useAuth();
@@ -68,60 +70,76 @@ export function ClientReviewsScreen() {
   });
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>My Reviews</Text>
+    <ScreenGradient>
       <FlatList
         data={completedBookings}
         keyExtractor={(item) => item.id}
-        ListEmptyComponent={bookingsQuery.isLoading ? <Text style={styles.subtle}>Loading completed services...</Text> : <Text style={styles.subtle}>No completed services yet.</Text>}
+        contentContainerStyle={vf.listPad}
+        ListHeaderComponent={
+          <View style={{ marginBottom: 14 }}>
+            <Text style={vf.h2}>My reviews</Text>
+            <Text style={vf.lead}>Reflect on completed bookings — mirrors the web portal.</Text>
+          </View>
+        }
+        ListEmptyComponent={
+          bookingsQuery.isLoading ? (
+            <Text style={vf.muted}>Loading completed services...</Text>
+          ) : (
+            <Text style={vf.muted}>No completed services yet.</Text>
+          )
+        }
         renderItem={({ item }) => {
           const existing = myReviewByBookingId.get(item.id);
           const trainerName = item.trainer_id ? (trainerNameById.get(item.trainer_id) ?? "Trainer") : "Trainer";
           return (
-            <View style={styles.card}>
-              <Text style={styles.title}>
-                {item.booking_date} {item.start_time.slice(0, 5)}-{item.end_time.slice(0, 5)}
+            <View style={vf.card}>
+              <Text style={vf.cardTitle}>
+                {item.booking_date} {item.start_time.slice(0, 5)}–{item.end_time.slice(0, 5)}
               </Text>
-              <Text style={styles.subtle}>{trainerName}</Text>
+              <Text style={vf.body}>{trainerName}</Text>
               {existing ? (
-                <Text style={styles.subtle}>
-                  Your review: {existing.rating}/5 {existing.comment ? `- ${existing.comment}` : ""}
+                <Text style={[vf.muted, { marginTop: 8 }]}>
+                  Your review: {existing.rating}/5 {existing.comment ? `— ${existing.comment}` : ""}
                 </Text>
               ) : null}
               <View style={styles.row}>
                 {!existing ? (
-                  <Pressable style={styles.button} onPress={() => setActiveBookingId((prev) => (prev === item.id ? "" : item.id))}>
-                    <Text style={styles.buttonText}>{activeBookingId === item.id ? "Cancel" : "Review now"}</Text>
+                  <Pressable style={[vf.primaryBtn, { marginTop: 8 }]} onPress={() => setActiveBookingId((prev) => (prev === item.id ? "" : item.id))}>
+                    <Text style={vf.btnLabel}>{activeBookingId === item.id ? "Cancel" : "Review now"}</Text>
                   </Pressable>
                 ) : (
-                  <Pressable style={styles.button} onPress={() => deleteReviewMutation.mutate(existing.id)} disabled={deleteReviewMutation.isPending}>
-                    <Text style={styles.buttonText}>Delete review</Text>
+                  <Pressable
+                    style={[vf.secondaryBtn, { marginTop: 8 }]}
+                    onPress={() => deleteReviewMutation.mutate(existing.id)}
+                    disabled={deleteReviewMutation.isPending}
+                  >
+                    <Text style={vf.btnLabel}>Delete review</Text>
                   </Pressable>
                 )}
               </View>
               {activeBookingId === item.id && !existing ? (
                 <View style={styles.form}>
-                  <Text style={styles.subtle}>Rating (1-5)</Text>
+                  <Text style={vf.label}>Rating (1–5)</Text>
                   <View style={styles.ratingRow}>
                     {[1, 2, 3, 4, 5].map((value) => (
                       <Pressable key={value} style={[styles.ratingPill, draftRating === value ? styles.ratingPillActive : null]} onPress={() => setDraftRating(value)}>
-                        <Text style={styles.ratingText}>{value}</Text>
+                        <Text style={[styles.ratingText, { fontFamily: Font.outfitSemiBold }]}>{value}</Text>
                       </Pressable>
                     ))}
                   </View>
                   <TextInput
-                    style={styles.input}
+                    style={[vf.input, { marginBottom: 0 }]}
                     value={draftComment}
                     onChangeText={setDraftComment}
                     placeholder="Share your experience"
                     placeholderTextColor={colors.textMuted}
                   />
                   <Pressable
-                    style={styles.button}
+                    style={[vf.primaryBtn, { marginTop: 4 }]}
                     onPress={() => createReviewMutation.mutate({ bookingId: item.id, rating: draftRating, comment: draftComment.trim() || undefined })}
                     disabled={createReviewMutation.isPending}
                   >
-                    <Text style={styles.buttonText}>{createReviewMutation.isPending ? "Submitting..." : "Submit review"}</Text>
+                    <Text style={vf.btnLabel}>{createReviewMutation.isPending ? "Submitting..." : "Submit review"}</Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -129,23 +147,15 @@ export function ClientReviewsScreen() {
           );
         }}
       />
-    </View>
+    </ScreenGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgMain, padding: 14 },
-  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: "700", marginBottom: 8 },
-  subtle: { color: colors.textSecondary },
-  card: { backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 10 },
-  title: { color: colors.textPrimary, fontWeight: "700" },
   row: { flexDirection: "row", gap: 8, marginTop: 8 },
-  button: { borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, alignItems: "center", backgroundColor: colors.primary },
-  buttonText: { color: colors.textPrimary, fontWeight: "700" },
-  form: { marginTop: 8, gap: 8 },
-  input: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 8, color: colors.textPrimary, paddingHorizontal: 10, paddingVertical: 8 },
-  ratingRow: { flexDirection: "row", gap: 6 },
-  ratingPill: { borderWidth: 1, borderColor: colors.chipBorder, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  form: { marginTop: 12, gap: 8 },
+  ratingRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
+  ratingPill: { borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "rgba(0,0,0,0.15)" },
   ratingPillActive: { borderColor: colors.primary, backgroundColor: colors.primarySoftStrong },
-  ratingText: { color: colors.textBody, fontWeight: "700" },
+  ratingText: { color: colors.textBody, fontSize: 15 },
 });

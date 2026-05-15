@@ -18,12 +18,29 @@ pipeline {
                   if [ ! -f .env ]; then
                     if [ -f .env.docker.example ]; then
                       cp .env.docker.example .env
-                      echo "WARNING: Using .env.docker.example placeholders. Add a Jenkins Secret file credential named vaultfit-env and copy it to .env for production."
+                      echo "WARNING: Using .env.docker.example placeholders."
                     else
-                      echo "ERROR: No .env file. Create one from .env.docker.example on the Jenkins agent or bind a Secret file credential."
+                      echo "ERROR: No .env file."
                       exit 1
                     fi
                   fi
+                '''
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Running backend tests'
+                sh '''
+                  cd backend
+                  npm ci
+                  npm test
+                '''
+                echo 'Running frontend tests'
+                sh '''
+                  cd frontend
+                  npm ci
+                  npm test
                 '''
             }
         }
@@ -38,7 +55,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying application'
-                sh 'docker compose up -d'
+                sh 'docker compose up -d --remove-orphans'
             }
         }
 
@@ -46,24 +63,37 @@ pipeline {
             steps {
                 echo 'Health checks'
                 sh '''
-                  sleep 10
+                  set -e
+                  docker compose ps
+
+                  for i in $(seq 1 30); do
+                    BACKEND_OK=$(docker inspect -f '{{.State.Health.Status}}' vaultfit-backend 2>/dev/null || echo "missing")
+                    FRONTEND_OK=$(docker inspect -f '{{.State.Health.Status}}' vaultfit-frontend 2>/dev/null || echo "missing")
+                    echo "Attempt $i: backend=$BACKEND_OK frontend=$FRONTEND_OK"
+                    if [ "$BACKEND_OK" = "healthy" ] && [ "$FRONTEND_OK" = "healthy" ]; then
+                      break
+                    fi
+                    sleep 3
+                  done
+
                   curl -fsS http://127.0.0.1:4000/health
                   echo ""
-                  curl -fsS http://127.0.0.1:3000/api/health
+                  docker compose exec -T frontend wget -qO- http://127.0.0.1/api/health
                   echo ""
-                  docker compose ps
+
+                  for i in $(seq 1 10); do
+                    if curl -fsS http://127.0.0.1:3000/api/health; then
+                      echo ""
+                      exit 0
+                    fi
+                    sleep 3
+                  done
+                  docker port vaultfit-frontend || true
+                  docker compose logs --tail=30 frontend || true
+                  exit 1
                 '''
             }
         }
-        stage('Test') {
-            steps {
-                echo 'Running backend tests'
-                sh 'cd backend && npm test'
-
-                echo 'Running frontend tests'
-                sh 'cd frontend && npm test'
-            }
-}
     }
 
     post {

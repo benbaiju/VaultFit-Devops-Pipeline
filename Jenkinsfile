@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        sonarQube 'SonarScanner'
+    }
+
     stages {
 
         stage('Checkout') {
@@ -42,6 +46,22 @@ pipeline {
                   npm ci
                   npm test
                 '''
+            }
+        }
+
+        stage('Code Quality') {
+            steps {
+                echo 'Running SonarCloud analysis'
+                withSonarQubeEnv('SonarCloud') {
+                    sh '''
+                        sonar-scanner \
+                          -Dsonar.organization=benbaiju \
+                          -Dsonar.projectKey=benbaiju_VaultFit-Devops-Pipeline \
+                          -Dsonar.host.url=https://sonarcloud.io \
+                          -Dsonar.sources=. \
+                          -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,**/.git/**,**/mobile/**,**/*.pdf,**/agent-transcripts/**
+                    '''
+                }
             }
         }
 

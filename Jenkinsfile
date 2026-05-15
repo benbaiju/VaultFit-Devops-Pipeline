@@ -18,6 +18,7 @@ pipeline {
         stage('Prepare environment') {
             steps {
                 echo 'Ensuring .env exists for docker compose'
+
                 sh '''
                   if [ ! -f .env ]; then
                     if [ -f .env.docker.example ]; then
@@ -35,6 +36,7 @@ pipeline {
         stage('Test') {
             steps {
                 echo 'Running backend tests'
+
                 sh '''
                   cd backend
                   npm ci
@@ -42,6 +44,7 @@ pipeline {
                 '''
 
                 echo 'Running frontend tests'
+
                 sh '''
                   cd frontend
                   npm ci
@@ -70,13 +73,26 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Building Docker containers'
+
                 sh 'docker compose build'
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                echo 'Running Trivy security scan'
+
+                sh '''
+                  trivy image vaultfit-backend:latest || true
+                  trivy image vaultfit-frontend:latest || true
+                '''
             }
         }
 
         stage('Deploy') {
             steps {
                 echo 'Deploying application'
+
                 sh 'docker compose up -d --remove-orphans'
             }
         }

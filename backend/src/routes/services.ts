@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { ensureVerifiedTrainerUser, requireAuth, requireRole } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
+import { tagRouteModule } from "../middleware/route-module.js";
 
 const createServiceSchema = z.object({
   title: z.string().min(2).max(200),
@@ -15,6 +16,7 @@ const createServiceSchema = z.object({
 const updateServiceSchema = createServiceSchema.partial();
 
 export const servicesRouter = Router();
+servicesRouter.use(tagRouteModule("services"));
 
 servicesRouter.get("/:trainerId/services", async (req, res) => {
   const { data, error } = await supabaseAdmin

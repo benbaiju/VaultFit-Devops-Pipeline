@@ -1,3 +1,4 @@
+import { beforeAll, describe, expect, it, jest } from "@jest/globals";
 import request from "supertest";
 import type { Express } from "express";
 
@@ -5,7 +6,8 @@ describe("HTTP smoke", () => {
   let app: Express;
 
   beforeAll(async () => {
-    const mod = await import("../src/app.js");
+    jest.resetModules();
+    const mod = await import("../../../src/app.js");
     app = mod.app;
   });
 

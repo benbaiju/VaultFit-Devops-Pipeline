@@ -4,6 +4,7 @@ import { env } from "../config/env.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
+import { tagRouteModule } from "../middleware/route-module.js";
 
 const initiateSchema = z.object({
   bookingId: z.uuid(),
@@ -12,6 +13,7 @@ const initiateSchema = z.object({
 });
 
 export const paymentsRouter = Router();
+paymentsRouter.use(tagRouteModule("payments"));
 
 paymentsRouter.post("/initiate", requireAuth, async (req, res) => {
   const payload = initiateSchema.parse(req.body);

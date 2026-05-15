@@ -1,8 +1,6 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
-import morgan from "morgan";
-import { env } from "./config/env.js";
 import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
 import { availabilityRouter } from "./routes/availability.js";
@@ -18,13 +16,14 @@ import { ticketsRouter } from "./routes/tickets.js";
 import { trainersRouter } from "./routes/trainers.js";
 import { verificationRouter } from "./routes/verification.js";
 import { errorHandler } from "./middleware/error-handler.js";
+import { httpLogger } from "./middleware/http-logger.js";
 
 export const app = express();
 
 app.use(helmet());
 app.use(cors());
+app.use(httpLogger);
 app.use(express.json({ limit: "2mb" }));
-app.use(morgan("dev"));
 
 app.get("/", (_req, res) => {
   res.json({ service: "vaultfit-api", status: "ok" });

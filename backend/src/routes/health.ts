@@ -2,10 +2,12 @@ import { Router } from "express";
 import { supabaseAnon } from "../lib/supabase.js";
 import { withTimeout } from "../lib/with-timeout.js";
 import { HttpError } from "../middleware/error-handler.js";
+import { tagRouteModule } from "../middleware/route-module.js";
 
 const READY_TIMEOUT_MS = Number(process.env.HEALTH_READY_TIMEOUT_MS ?? 8_000);
 
 export const healthRouter = Router();
+healthRouter.use(tagRouteModule("health"));
 
 /**
  * Liveness: process is up; does not call Supabase (fast for Postman / load balancers).

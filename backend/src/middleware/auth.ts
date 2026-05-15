@@ -1,8 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import type { AppRole } from "../types/auth.js";
+import { createModuleLogger } from "../lib/logger.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { HttpError } from "./error-handler.js";
+
+const log = createModuleLogger("middleware", "auth");
 
 /** True when Supabase Auth could not be reached (timeout, DNS, TLS) — not a bad JWT. */
 function isAuthProviderNetworkFailure(err: unknown): boolean {
@@ -67,6 +70,7 @@ async function ensureAccessNotSuspended(userId: string): Promise<void> {
 
     if (accessError) {
       if (accessError.message?.includes("access_suspended") || accessError.message?.includes("column")) {
+        log.error({ event: "access_check_schema_outdated" }, "profiles.access_suspended column missing");
         throw new HttpError(
           500,
           "Database is missing the access_suspended column. Apply backend/supabase/migrations/20260225000000_profiles_access_suspended.sql",
@@ -74,6 +78,7 @@ async function ensureAccessNotSuspended(userId: string): Promise<void> {
         );
       }
       if (isAuthProviderNetworkFailure(accessError)) {
+        log.warn({ event: "access_check_db_unreachable" }, "Profile access check: database unreachable");
         throw new HttpError(
           503,
           "Database is temporarily unreachable (network timeout). Retry shortly; check VPN/firewall and Supabase status.",
@@ -84,11 +89,13 @@ async function ensureAccessNotSuspended(userId: string): Promise<void> {
     }
 
     if (accessRow?.access_suspended) {
+      log.warn({ event: "request_blocked_suspended_user" }, "Authenticated user has suspended access");
       throw new HttpError(403, "Account access has been suspended", "ACCOUNT_SUSPENDED");
     }
   } catch (e) {
     if (e instanceof HttpError) throw e;
     if (isAuthProviderNetworkFailure(e)) {
+      log.warn({ event: "access_check_network_failure" }, "Profile access check: network failure");
       throw new HttpError(
         503,
         "Database is temporarily unreachable (network timeout). Retry shortly; check VPN/firewall and Supabase status.",
@@ -124,6 +131,7 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
       error = res.error;
     } catch (e) {
       if (isAuthProviderNetworkFailure(e)) {
+        log.warn({ event: "get_user_network_failure" }, "Supabase getUser: network failure");
         throw new HttpError(
           503,
           "Authentication service is temporarily unreachable (network timeout). Retry shortly; check VPN/firewall and Supabase project status.",
@@ -135,6 +143,7 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
 
     if (error) {
       if (isAuthProviderNetworkFailure(error)) {
+        log.warn({ event: "get_user_provider_unreachable" }, "Supabase getUser: provider unreachable");
         throw new HttpError(
           503,
           "Authentication service is temporarily unreachable (network timeout). Retry shortly; check VPN/firewall and Supabase project status.",

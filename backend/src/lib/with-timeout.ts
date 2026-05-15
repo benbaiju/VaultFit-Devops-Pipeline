@@ -1,4 +1,7 @@
+import { createModuleLogger } from "./logger.js";
 import { HttpError } from "../middleware/error-handler.js";
+
+const log = createModuleLogger("lib", "with-timeout");
 
 /**
  * Fails fast when upstream (e.g. Supabase over HTTPS) hangs due to network, VPN, or firewall.
@@ -7,6 +10,7 @@ export async function withTimeout<T>(promise: Promise<T>, ms: number, operation:
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {
+      log.warn({ operation, ms, msg: "upstream_timeout" }, "Upstream operation timed out");
       reject(
         new HttpError(
           504,

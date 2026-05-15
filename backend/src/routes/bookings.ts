@@ -4,6 +4,7 @@ import { supabaseAdmin } from "../lib/supabase.js";
 import { ensureVerifiedTrainerUser } from "../middleware/auth.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
+import { tagRouteModule } from "../middleware/route-module.js";
 
 const createBookingSchema = z.object({
   trainerId: z.uuid(),
@@ -19,6 +20,7 @@ const updateStatusSchema = z.object({
 });
 
 export const bookingsRouter = Router();
+bookingsRouter.use(tagRouteModule("bookings"));
 
 bookingsRouter.get("/", requireAuth, async (req, res) => {
   const { data: trainer } = await supabaseAdmin.from("trainers").select("id").eq("user_id", req.user!.id).maybeSingle();

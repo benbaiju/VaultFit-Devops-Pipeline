@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin, supabaseAnon } from "../lib/supabase.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
+import { tagRouteModule } from "../middleware/route-module.js";
 import { withTimeout } from "../lib/with-timeout.js";
 import { performLogin, performRegister } from "./auth-handlers.js";
 
@@ -29,6 +30,7 @@ const LOGIN_UPSTREAM_MS = Number(process.env.AUTH_LOGIN_TIMEOUT_MS ?? 22_000);
 const REGISTER_UPSTREAM_MS = Number(process.env.AUTH_REGISTER_TIMEOUT_MS ?? 45_000);
 
 export const authRouter = Router();
+authRouter.use(tagRouteModule("auth"));
 
 authRouter.post("/register", async (req, res) => {
   const payload = registerSchema.parse(req.body);

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
+import { tagRouteModule } from "../middleware/route-module.js";
 
 const dataImagePrefix = /^data:image\/(png|jpeg|jpg|webp);base64,/i;
 const updateProfileSchema = z.object({
@@ -28,6 +29,7 @@ const verifyPhoneOtpSchema = z.object({
 });
 
 export const profilesRouter = Router();
+profilesRouter.use(tagRouteModule("profiles"));
 
 profilesRouter.get("/me", requireAuth, async (req, res) => {
   const { data, error } = await supabaseAdmin.from("profiles").select("*").eq("id", req.user!.id).single();

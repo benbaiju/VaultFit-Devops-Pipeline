@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { ensureVerifiedTrainerUser, requireAuth, requireRole } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
+import { tagRouteModule } from "../middleware/route-module.js";
 
 const availabilitySchema = z.object({
   serviceId: z.uuid(),
@@ -26,6 +27,7 @@ const openSlotsQuerySchema = z
   .refine((v) => v.from <= v.to, { message: "'from' must be before or equal to 'to'" });
 
 export const availabilityRouter = Router();
+availabilityRouter.use(tagRouteModule("availability"));
 
 availabilityRouter.get("/:trainerId/availability", async (req, res) => {
   const serviceId = String(req.query.serviceId ?? "");

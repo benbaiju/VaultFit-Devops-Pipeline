@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it, jest } from "@jest/globals";
 import jwt from "jsonwebtoken";
 import request from "supertest";
 import type { Express } from "express";
-import { createAdminStatsSupabaseMocks } from "./supabase-mock.js";
+import { createAdminStatsSupabaseMocks } from "../../shared/supabase-mock.js";
 
 describe("admin routes", () => {
   let app: Express;
@@ -10,11 +10,11 @@ describe("admin routes", () => {
   beforeAll(async () => {
     jest.resetModules();
     const { supabaseAdmin, supabaseAnon } = createAdminStatsSupabaseMocks();
-    await jest.unstable_mockModule("../src/lib/supabase.js", () => ({
+    await jest.unstable_mockModule("../../../src/lib/supabase.js", () => ({
       supabaseAdmin,
       supabaseAnon,
     }));
-    const mod = await import("../src/app.js");
+    const mod = await import("../../../src/app.js");
     app = mod.app;
   });
 

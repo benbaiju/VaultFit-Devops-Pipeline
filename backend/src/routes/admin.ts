@@ -4,6 +4,7 @@ import { recordAdminAudit } from "../lib/admin-audit.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
+import { tagRouteModule } from "../middleware/route-module.js";
 
 const userAccessSchema = z.object({
   suspended: z.boolean(),
@@ -14,6 +15,7 @@ const trainerVerifiedSchema = z.object({
 });
 
 export const adminRouter = Router();
+adminRouter.use(tagRouteModule("admin"));
 
 adminRouter.get("/admin/stats", requireAuth, requireRole(["admin"]), async (_req, res) => {
   const openTicketStatuses = ["open", "in_progress", "waiting_user"];

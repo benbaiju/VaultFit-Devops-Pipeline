@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { ensureVerifiedTrainerUser, requireAuth, requireRole } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
+import { tagRouteModule } from "../middleware/route-module.js";
 
 const createPlanSchema = z.object({
   clientId: z.uuid(),
@@ -19,6 +20,7 @@ const updatePlanSchema = z.object({
 });
 
 export const plansRouter = Router();
+plansRouter.use(tagRouteModule("plans"));
 
 plansRouter.post("/", requireAuth, requireRole(["trainer", "nutritionist", "admin"]), async (req, res) => {
   const payload = createPlanSchema.parse(req.body);

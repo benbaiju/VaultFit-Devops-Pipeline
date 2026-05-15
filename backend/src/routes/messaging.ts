@@ -6,6 +6,7 @@ import { supabaseAdmin } from "../lib/supabase.js";
 import { ensureVerifiedTrainerUser } from "../middleware/auth.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
+import { tagRouteModule } from "../middleware/route-module.js";
 
 const createConversationSchema = z.object({
   bookingId: z.uuid(),
@@ -16,6 +17,7 @@ const sendMessageSchema = z.object({
 });
 
 export const messagingRouter = Router();
+messagingRouter.use(tagRouteModule("messaging"));
 let chatMediaBucketEnsured = false;
 const upload = multer({
   storage: multer.memoryStorage(),

@@ -4,6 +4,7 @@ import { recordAdminAudit } from "../lib/admin-audit.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
+import { tagRouteModule } from "../middleware/route-module.js";
 
 const createTicketSchema = z.object({
   subject: z.string().trim().min(3).max(180),
@@ -31,6 +32,7 @@ const listAdminTicketsSchema = z.object({
 });
 
 export const ticketsRouter = Router();
+ticketsRouter.use(tagRouteModule("tickets"));
 
 function routeTicketId(req: { params: { id?: string | string[] } }): string {
   const v = req.params.id;

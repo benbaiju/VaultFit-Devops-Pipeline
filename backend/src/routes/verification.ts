@@ -6,6 +6,7 @@ import { env } from "../config/env.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
+import { tagRouteModule } from "../middleware/route-module.js";
 
 const submitVerificationSchema = z.object({
   credentialUrl: z.string().min(3).optional(),
@@ -19,6 +20,7 @@ const reviewVerificationSchema = z.object({
 });
 
 export const verificationRouter = Router();
+verificationRouter.use(tagRouteModule("verification"));
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB

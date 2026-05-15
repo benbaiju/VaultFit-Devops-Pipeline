@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
+import { tagRouteModule } from "../middleware/route-module.js";
 
 const expertiseTagsSchema = z
   .array(z.string().trim().min(1).max(100))
@@ -21,6 +22,7 @@ const createTrainerSchema = z.object({
 const updateTrainerSchema = createTrainerSchema.partial();
 
 export const trainersRouter = Router();
+trainersRouter.use(tagRouteModule("trainers"));
 
 trainersRouter.get("/", async (req, res) => {
   const specialty = req.query.specialty as string | undefined;

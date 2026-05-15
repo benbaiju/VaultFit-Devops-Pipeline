@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/error-handler.js";
+import { tagRouteModule } from "../middleware/route-module.js";
 
 const createReviewSchema = z.object({
   rating: z.number().int().min(1).max(5),
@@ -10,6 +11,7 @@ const createReviewSchema = z.object({
 });
 
 export const reviewsRouter = Router();
+reviewsRouter.use(tagRouteModule("reviews"));
 
 reviewsRouter.post("/bookings/:id/review", requireAuth, async (req, res) => {
   const payload = createReviewSchema.parse(req.body);

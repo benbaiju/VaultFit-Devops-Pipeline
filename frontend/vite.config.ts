@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
       environment: "jsdom",
       globals: true,
       setupFiles: ["./src/test/setup.ts"],
-      include: ["src/**/*.{test,spec}.{ts,tsx}"],
+      include: ["src/__tests__/**/*.{test,spec}.{ts,tsx}"],
       fileParallelism: false,
       env: {
         VITE_API_URL: "http://127.0.0.1:4000",

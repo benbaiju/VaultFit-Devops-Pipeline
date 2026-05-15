@@ -5,15 +5,18 @@ api/node_modules/
 # Build output
 dist/
 api/dist/
+backend/coverage/
+frontend/coverage/
 
 # Environment files
 .env
 .env.*
-api/.env
-api/.env.*
-!api/.env.example
+!/.env.docker.example
+!backend/.env.example
 !frontend/.env.example
 !mobile/.env.example
+api/.env
+api/.env.*
 
 # Logs
 *.log

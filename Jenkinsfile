@@ -83,8 +83,10 @@ pipeline {
                 echo 'Running Trivy security scan'
 
                 sh '''
-                  trivy image vaultfit-backend:latest || true
-                  trivy image vaultfit-frontend:latest || true
+                export PATH="/opt/homebrew/bin:$PATH"
+
+                trivy image vaultfit-backend:latest || true
+                trivy image vaultfit-frontend:latest || true
                 '''
             }
         }

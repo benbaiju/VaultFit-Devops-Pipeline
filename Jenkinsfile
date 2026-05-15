@@ -55,6 +55,15 @@ pipeline {
                 '''
             }
         }
+        stage('Test') {
+            steps {
+                echo 'Running backend tests'
+                sh 'cd backend && npm test'
+
+                echo 'Running frontend tests'
+                sh 'cd frontend && npm test'
+            }
+}
     }
 
     post {

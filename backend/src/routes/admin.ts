@@ -18,7 +18,7 @@ export const adminRouter = Router();
 adminRouter.get("/admin/stats", requireAuth, requireRole(["admin"]), async (_req, res) => {
   const openTicketStatuses = ["open", "in_progress", "waiting_user"];
 
-  const [usersCount, trainersCount, bookingsCount, ticketsResult] = await Promise.all([
+  const [usersCount, activeProsCount, bookingsCount, ticketsResult] = await Promise.all([
     supabaseAdmin.from("profiles").select("id", { count: "exact", head: true }),
     supabaseAdmin.from("trainers").select("id", { count: "exact", head: true }),
     supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }),
@@ -26,13 +26,13 @@ adminRouter.get("/admin/stats", requireAuth, requireRole(["admin"]), async (_req
   ]);
 
   if (usersCount.error) throw new HttpError(400, usersCount.error.message, "ADMIN_STATS_USERS_FAILED");
-  if (trainersCount.error) throw new HttpError(400, trainersCount.error.message, "ADMIN_STATS_TRAINERS_FAILED");
+  if (activeProsCount.error) throw new HttpError(400, activeProsCount.error.message, "ADMIN_STATS_TRAINERS_FAILED");
   if (bookingsCount.error) throw new HttpError(400, bookingsCount.error.message, "ADMIN_STATS_BOOKINGS_FAILED");
   if (ticketsResult.error) throw new HttpError(400, ticketsResult.error.message, "ADMIN_STATS_TICKETS_FAILED");
 
   res.json({
     total_users: usersCount.count ?? 0,
-    trainer_profiles: trainersCount.count ?? 0,
+    active_trainers_nutritionists: activeProsCount.count ?? 0,
     total_bookings: bookingsCount.count ?? 0,
     open_support_tickets: ticketsResult.count ?? 0,
   });

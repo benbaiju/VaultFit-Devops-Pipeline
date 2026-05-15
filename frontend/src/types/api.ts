@@ -184,7 +184,7 @@ export interface VerificationRequest {
 
 export interface AdminStats {
   total_users: number;
-  trainer_profiles: number;
+  active_trainers_nutritionists: number;
   total_bookings: number;
   open_support_tickets: number;
 }

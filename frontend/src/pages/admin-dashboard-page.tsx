@@ -138,7 +138,7 @@ export function AdminDashboardPage() {
             <Dumbbell size={20} aria-hidden />
           </div>
           <div className="admin-kpi-meta">Active trainers / nutritionists</div>
-          <div className="admin-kpi-value">{statsQuery.isLoading ? "—" : stats?.trainer_profiles ?? 0}</div>
+          <div className="admin-kpi-value">{statsQuery.isLoading ? "—" : stats?.active_trainers_nutritionists ?? 0}</div>
         </article>
         <article className="admin-kpi-card">
           <div className="admin-kpi-icon admin-kpi-icon--green">

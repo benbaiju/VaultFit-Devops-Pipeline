@@ -52,7 +52,7 @@ pipeline {
         stage('Code Quality') {
             steps {
                 echo 'Running SonarCloud analysis'
-                withSonarQubeEnv('SonarCloud') {
+                withSonarQubeEnv('Sonar Cloud') {
                     sh '''
                         sonar-scanner \
                           -Dsonar.organization=benbaiju \

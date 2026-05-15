@@ -1,0 +1,52 @@
+# VaultFit full-stack stack for local runs and Jenkins pipelines.
+# Usage: copy .env.docker.example → .env (repo root), fill in Supabase keys, then:
+#   docker compose up --build
+name: vaultfit
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vaultfit-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      HOST: 0.0.0.0
+    ports:
+      - "4000:4000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:4000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks:
+      - vaultfit-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Browser calls same-origin /api; nginx proxies to the backend service.
+        VITE_API_URL: /api
+        VITE_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    container_name: vaultfit-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      # Use 3000 on the host to avoid clashing with Jenkins (default 8080).
+      - "3000:80"
+    networks:
+      - vaultfit-net
+
+networks:
+  vaultfit-net:
+    driver: bridge

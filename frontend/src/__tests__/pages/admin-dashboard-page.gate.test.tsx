@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
-import { AdminDashboardPage } from "./admin-dashboard-page";
-import { renderWithProviders } from "../test/test-utils";
+import { AdminDashboardPage } from "../../pages/admin-dashboard-page";
+import { renderWithProviders } from "../../test/test-utils";
 
-vi.mock("../state/auth-context", () => ({
+vi.mock("../../state/auth-context", () => ({
   useAuth: () => ({
     token: "",
     user: {

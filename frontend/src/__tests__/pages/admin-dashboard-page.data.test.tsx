@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { AdminDashboardPage } from "./admin-dashboard-page";
-import { renderWithProviders } from "../test/test-utils";
-import { server } from "../test/msw/server";
+import { AdminDashboardPage } from "../../pages/admin-dashboard-page";
+import { renderWithProviders } from "../../test/test-utils";
+import { server } from "../../test/msw/server";
 
-vi.mock("../state/auth-context", () => ({
+vi.mock("../../state/auth-context", () => ({
   useAuth: () => ({
     token: "test-token",
     user: {

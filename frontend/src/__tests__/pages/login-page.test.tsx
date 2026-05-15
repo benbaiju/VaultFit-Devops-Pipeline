@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { LoginPage } from "./login-page";
-import { renderWithProviders } from "../test/test-utils";
-import { server } from "../test/msw/server";
+import { LoginPage } from "../../pages/login-page";
+import { renderWithProviders } from "../../test/test-utils";
+import { server } from "../../test/msw/server";
 
 describe("LoginPage", () => {
   it("shows an error message when the API rejects credentials", async () => {

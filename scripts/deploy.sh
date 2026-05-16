@@ -14,6 +14,8 @@ git pull origin main
 docker pull benbaiju/vaultfit-backend:latest
 docker pull benbaiju/vaultfit-frontend:latest
 
-cp .env.docker.example .env || true
+if [ ! -f .env ]; then
+  cp .env.docker.example .env
+fi
 
-docker compose up -d --remove-orphans
+docker-compose up -d --remove-orphans

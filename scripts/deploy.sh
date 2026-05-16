@@ -47,9 +47,19 @@ echo "Checking frontend health"
 
 curl -f http://localhost:3000
 
-echo "Checking Loki readiness"
+echo "Waiting for Loki to become ready"
 
-curl -f http://localhost:3100/ready
+deadline=$((SECONDS + 60))
+
+until curl -fsS http://localhost:3100/ready; do
+  if [ "$SECONDS" -ge "$deadline" ]; then
+    echo "ERROR: Loki failed readiness check"
+    exit 1
+  fi
+
+  echo "Loki not ready yet, retrying..."
+  sleep 5
+done
 
 echo "Loki readiness check passed"
 

@@ -44,20 +44,20 @@ pipeline {
         stage('Test') {
             steps {
 
-                echo 'Running backend tests'
+                echo 'Running backend tests with coverage'
 
                 sh '''
                   cd backend
                   npm ci
-                  npm test
+                  npm test -- --coverage
                 '''
 
-                echo 'Running frontend tests'
+                echo 'Running frontend tests with coverage'
 
                 sh '''
                   cd frontend
                   npm ci
-                  npm test
+                  npm run test -- --coverage
                 '''
             }
         }
@@ -75,6 +75,7 @@ pipeline {
                           -Dsonar.projectKey=benbaiju_VaultFit-Devops-Pipeline \
                           -Dsonar.host.url=https://sonarcloud.io \
                           -Dsonar.sources=. \
+                          -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,frontend/coverage/lcov.info \
                           -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,**/.git/**,**/mobile/**,**/*.pdf,**/agent-transcripts/**
                     """
                 }
@@ -222,13 +223,13 @@ pipeline {
                 deadline=$((SECONDS + 60))
 
                 until curl -fsS http://${EC2_HOST}:3100/ready; do
-                if [ "$SECONDS" -ge "$deadline" ]; then
+                  if [ "$SECONDS" -ge "$deadline" ]; then
                     echo "ERROR: Loki failed readiness check"
                     exit 1
-                fi
+                  fi
 
-                echo "Loki not ready yet, retrying..."
-                sleep 5
+                  echo "Loki not ready yet, retrying..."
+                  sleep 5
                 done
 
                 echo "Loki readiness check passed"

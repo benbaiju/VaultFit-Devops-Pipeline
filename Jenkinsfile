@@ -153,7 +153,7 @@ pipeline {
 
                     echo "Creating deployment bundle"
 
-                    zip -r deployment.zip appspec.yaml scripts/
+                    zip -r deployment.zip appspec.yml scripts/
 
                     echo "Uploading deployment bundle to S3"
 

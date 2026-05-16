@@ -166,7 +166,7 @@ pipeline {
                       --application-name VaultFit \
                       --deployment-group-name vaultfit \
                       --deployment-config-name CodeDeployDefault.AllAtOnce \
-                      --s3-location bucket=vaultfit-deployments-benbaiju,bundleType=zip,key=deployment-${BUILD_NUMBER}.zip
+                      --s3-location bucket=vaultfit-deployments,bundleType=zip,key=deployment-${BUILD_NUMBER}.zip
                     '''
                 }
             }

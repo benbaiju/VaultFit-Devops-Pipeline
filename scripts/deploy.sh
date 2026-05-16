@@ -23,18 +23,17 @@ to_entries
 | .[]
 ' > .env
 
-echo "Pulling latest Docker images"
-
-docker pull benbaiju/vaultfit-backend:latest
-docker pull benbaiju/vaultfit-frontend:latest
-
 echo "Stopping old containers"
 
-docker compose down
+docker-compose down || true
+
+echo "Pulling latest Docker images"
+
+docker-compose pull
 
 echo "Starting updated containers"
 
-docker compose up -d --remove-orphans
+docker-compose up -d --remove-orphans
 
 echo "Waiting for services"
 

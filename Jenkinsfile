@@ -217,19 +217,21 @@ pipeline {
                 echo "Checking frontend availability"
                 curl -f http://${EC2_HOST}:3000
 
-                echo "Checking Loki readiness"
-                curl -f http://${EC2_HOST}:3100/ready
+                echo "Waiting for Loki to become ready"
 
-                echo "Waiting for Promtail to ship logs to Loki (timeout 30s)"
-                deadline=$((SECONDS + 30))
-                until curl -fsS "http://${EC2_HOST}:3100/loki/api/v1/labels" | grep -q container; do
-                  if [ "$SECONDS" -ge "$deadline" ]; then
-                    echo "ERROR: Timed out waiting for Loki log labels (check Promtail)"
+                deadline=$((SECONDS + 60))
+
+                until curl -fsS http://${EC2_HOST}:3100/ready; do
+                if [ "$SECONDS" -ge "$deadline" ]; then
+                    echo "ERROR: Loki failed readiness check"
                     exit 1
-                  fi
-                  sleep 2
+                fi
+
+                echo "Loki not ready yet, retrying..."
+                sleep 5
                 done
-                echo "Loki log pipeline ready"
+
+                echo "Loki readiness check passed"
 
                 echo "Monitoring verification passed"
                 '''

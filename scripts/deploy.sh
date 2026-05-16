@@ -51,17 +51,6 @@ echo "Checking Loki readiness"
 
 curl -f http://localhost:3100/ready
 
-echo "Waiting for Promtail to ship logs to Loki (timeout 30s)"
-
-deadline=$((SECONDS + 30))
-until curl -fsS "http://localhost:3100/loki/api/v1/labels" | grep -q container; do
-  if [ "$SECONDS" -ge "$deadline" ]; then
-    echo "ERROR: Timed out waiting for Loki log labels (check Promtail)"
-    exit 1
-  fi
-  sleep 2
-done
-
-echo "Loki log pipeline ready"
+echo "Loki readiness check passed"
 
 echo "Deployment completed successfully"

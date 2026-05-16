@@ -5,10 +5,16 @@ pipeline {
         jdk 'JDK22'
     }
 
+    environment {
+        AWS_DEFAULT_REGION = 'ap-southeast-2'
+        EC2_HOST = 'YOUR_EC2_IP_OR_DOMAIN'
+    }
+
     stages {
 
         stage('Checkout') {
             steps {
+
                 echo 'Cloning repository'
 
                 git branch: 'main',
@@ -16,7 +22,7 @@ pipeline {
             }
         }
 
-        stage('Prepare environment') {
+        stage('Prepare Environment') {
             steps {
 
                 echo 'Ensuring .env exists for docker compose'
@@ -91,10 +97,14 @@ pipeline {
 
                     docker buildx create --use --name multiarch-builder || true
 
+                    echo "Building backend image"
+
                     docker buildx build --platform linux/amd64 \
                       -t benbaiju/vaultfit-backend:v1.0.${BUILD_NUMBER} \
                       -t benbaiju/vaultfit-backend:latest \
                       --push ./backend
+
+                    echo "Building frontend image"
 
                     docker buildx build --platform linux/amd64 \
                       -t benbaiju/vaultfit-frontend:v1.0.${BUILD_NUMBER} \
@@ -120,9 +130,12 @@ pipeline {
         stage('Deploy') {
             steps {
 
-                echo 'Deploying to staging'
+                echo 'Deploying locally to staging'
 
-                sh 'docker compose up -d --remove-orphans'
+                sh '''
+                docker compose down || true
+                docker compose up -d --remove-orphans
+                '''
             }
         }
 
@@ -139,8 +152,6 @@ pipeline {
                 ]) {
 
                     sh '''
-                    export AWS_DEFAULT_REGION=ap-southeast-2
-
                     echo "Creating deployment bundle"
 
                     zip -r deployment.zip appspec.yml scripts/
@@ -150,13 +161,44 @@ pipeline {
                     /opt/homebrew/bin/aws s3 cp deployment.zip \
                       s3://vaultfit-deployments/deployment-${BUILD_NUMBER}.zip
 
-                    echo "Triggering CodeDeploy deployment"
+                    echo "Starting CodeDeploy deployment"
 
-                    /opt/homebrew/bin/aws deploy create-deployment \
-                      --application-name VaultFit \
-                      --deployment-group-name vaultfit \
-                      --deployment-config-name CodeDeployDefault.AllAtOnce \
-                      --s3-location bucket=vaultfit-deployments,bundleType=zip,key=deployment-${BUILD_NUMBER}.zip
+                    DEPLOYMENT_ID=$(
+                      /opt/homebrew/bin/aws deploy create-deployment \
+                        --application-name VaultFit \
+                        --deployment-group-name vaultfit \
+                        --deployment-config-name CodeDeployDefault.AllAtOnce \
+                        --s3-location bucket=vaultfit-deployments,bundleType=zip,key=deployment-${BUILD_NUMBER}.zip \
+                        --query deploymentId \
+                        --output text
+                    )
+
+                    echo "Deployment ID: $DEPLOYMENT_ID"
+
+                    echo "Waiting for deployment to complete..."
+
+                    /opt/homebrew/bin/aws deploy wait deployment-successful \
+                      --deployment-id $DEPLOYMENT_ID
+
+                    echo "CodeDeploy deployment succeeded"
+
+                    echo "Waiting for services to stabilise..."
+
+                    sleep 20
+
+                    echo "Checking backend health"
+
+                    curl -f http://${EC2_HOST}:3000/health
+
+                    echo "Backend health check passed"
+
+                    echo "Checking frontend health"
+
+                    curl -f http://${EC2_HOST}
+
+                    echo "Frontend health check passed"
+
+                    echo "Production deployment verified successfully"
                     '''
                 }
             }
@@ -171,6 +213,10 @@ pipeline {
 
         failure {
             echo 'Pipeline failed'
+        }
+
+        always {
+            cleanWs()
         }
     }
 }

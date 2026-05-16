@@ -11,6 +11,8 @@ cd vaultfit
 
 git pull origin main
 
+echo "Fetching production environment variables"
+
 aws secretsmanager get-secret-value \
   --secret-id vaultfit/prod/env \
   --region ap-southeast-2 \
@@ -21,7 +23,29 @@ to_entries
 | .[]
 ' > .env
 
+echo "Pulling latest Docker images"
+
 docker pull benbaiju/vaultfit-backend:latest
 docker pull benbaiju/vaultfit-frontend:latest
 
-docker-compose up -d --remove-orphans
+echo "Stopping old containers"
+
+docker compose down
+
+echo "Starting updated containers"
+
+docker compose up -d --remove-orphans
+
+echo "Waiting for services"
+
+sleep 20
+
+echo "Checking backend health"
+
+curl -f http://localhost:4000/health
+
+echo "Checking frontend health"
+
+curl -f http://localhost:3000
+
+echo "Deployment completed successfully"

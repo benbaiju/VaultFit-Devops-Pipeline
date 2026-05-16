@@ -10,6 +10,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Cloning repository'
+
                 git branch: 'main',
                     url: 'https://github.com/benbaiju/VaultFit-Devops-Pipeline.git'
             }
@@ -35,6 +36,7 @@ pipeline {
 
         stage('Test') {
             steps {
+
                 echo 'Running backend tests'
 
                 sh '''
@@ -55,9 +57,11 @@ pipeline {
 
         stage('Code Quality') {
             steps {
+
                 echo 'Running SonarCloud analysis'
 
                 withSonarQubeEnv('Sonar Cloud') {
+
                     sh """
                         ${tool 'SonarScanner'}/bin/sonar-scanner \
                           -Dsonar.organization=benbaiju \
@@ -72,6 +76,7 @@ pipeline {
 
         stage('Build') {
             steps {
+
                 echo 'Building Docker containers'
 
                 sh 'docker compose build'
@@ -83,8 +88,36 @@ pipeline {
             }
         }
 
+        stage('Push Images') {
+            steps {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
+
+                    sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
+                    docker push benbaiju/vaultfit-backend:v1.0.${BUILD_NUMBER}
+                    docker push benbaiju/vaultfit-frontend:v1.0.${BUILD_NUMBER}
+
+                    docker tag benbaiju/vaultfit-backend:v1.0.${BUILD_NUMBER} benbaiju/vaultfit-backend:latest
+                    docker tag benbaiju/vaultfit-frontend:v1.0.${BUILD_NUMBER} benbaiju/vaultfit-frontend:latest
+
+                    docker push benbaiju/vaultfit-backend:latest
+                    docker push benbaiju/vaultfit-frontend:latest
+                    '''
+                }
+            }
+        }
+
         stage('Security Scan') {
             steps {
+
                 echo 'Running Trivy security scans'
 
                 sh '''
@@ -96,6 +129,7 @@ pipeline {
 
         stage('Deploy') {
             steps {
+
                 echo 'Deploying to staging'
 
                 sh 'docker compose up -d --remove-orphans'
@@ -124,21 +158,23 @@ pipeline {
                     echo "Uploading deployment bundle to S3"
 
                     aws s3 cp deployment.zip \
-                    s3://vaultfit-deployments-benbaiju/deployment-${BUILD_NUMBER}.zip
+                      s3://vaultfit-deployments-benbaiju/deployment-${BUILD_NUMBER}.zip
 
                     echo "Triggering CodeDeploy deployment"
 
                     aws deploy create-deployment \
-                    --application-name VaultFitApp \
-                    --deployment-group-name VaultFitDG \
-                    --deployment-config-name CodeDeployDefault.AllAtOnce \
-                    --s3-location bucket=vaultfit-deployments-benbaiju,bundleType=zip,key=deployment-${BUILD_NUMBER}.zip
+                      --application-name VaultFitApp \
+                      --deployment-group-name VaultFitDG \
+                      --deployment-config-name CodeDeployDefault.AllAtOnce \
+                      --s3-location bucket=vaultfit-deployments-benbaiju,bundleType=zip,key=deployment-${BUILD_NUMBER}.zip
                     '''
                 }
             }
         }
+    }
 
     post {
+
         success {
             echo 'Pipeline completed successfully'
         }

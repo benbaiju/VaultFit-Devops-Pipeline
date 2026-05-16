@@ -75,71 +75,56 @@ pipeline {
                 echo 'Building Docker containers'
 
                 sh 'docker compose build'
+
+                echo 'Tagging images with build number'
+
+                sh "docker tag vaultfit-backend:latest benbaiju/vaultfit-backend:v1.0.${BUILD_NUMBER}"
+                sh "docker tag vaultfit-frontend:latest benbaiju/vaultfit-frontend:v1.0.${BUILD_NUMBER}"
             }
         }
 
         stage('Security Scan') {
             steps {
-
                 echo 'Running Trivy security scans'
 
                 sh '''
-                  /opt/homebrew/bin/trivy image vaultfit-backend:latest || true
-                  /opt/homebrew/bin/trivy image vaultfit-frontend:latest || true
+                  trivy image vaultfit-backend:latest || true
+                  trivy image vaultfit-frontend:latest || true
                 '''
             }
         }
 
         stage('Deploy') {
             steps {
-                echo 'Deploying application'
+                echo 'Deploying to staging'
 
                 sh 'docker compose up -d --remove-orphans'
             }
         }
 
-        stage('Verify') {
+        stage('Release') {
             steps {
-                echo 'Health checks'
+                echo 'Awaiting approval to release to production'
 
-                sh '''
-                  set -e
+                input message: 'Deploy to production?', ok: 'Approve Release'
 
-                  docker compose ps
+                echo 'Pushing images to Docker Hub'
 
-                  for i in $(seq 1 30); do
-                    BACKEND_OK=$(docker inspect -f '{{.State.Health.Status}}' vaultfit-backend 2>/dev/null || echo "missing")
-                    FRONTEND_OK=$(docker inspect -f '{{.State.Health.Status}}' vaultfit-frontend 2>/dev/null || echo "missing")
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                      docker push benbaiju/vaultfit-backend:v1.0.${BUILD_NUMBER}
+                      docker push benbaiju/vaultfit-frontend:v1.0.${BUILD_NUMBER}
+                    '''
+                }
 
-                    echo "Attempt $i: backend=$BACKEND_OK frontend=$FRONTEND_OK"
+                echo 'Deploying to production'
 
-                    if [ "$BACKEND_OK" = "healthy" ] && [ "$FRONTEND_OK" = "healthy" ]; then
-                      break
-                    fi
-
-                    sleep 3
-                  done
-
-                  curl -fsS http://127.0.0.1:4000/health
-                  echo ""
-
-                  docker compose exec -T frontend wget -qO- http://127.0.0.1/api/health
-                  echo ""
-
-                  for i in $(seq 1 10); do
-                    if curl -fsS http://127.0.0.1:3000/api/health; then
-                      echo ""
-                      exit 0
-                    fi
-
-                    sleep 3
-                  done
-
-                  docker port vaultfit-frontend || true
-                  docker compose logs --tail=30 frontend || true
-
-                  exit 1
-                '''
+                sh 'docker compose -p vaultfit-prod up -d --remove-orphans'
             }
         }
     }

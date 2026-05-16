@@ -18,6 +18,7 @@ pipeline {
 
         stage('Prepare environment') {
             steps {
+
                 echo 'Ensuring .env exists for docker compose'
 
                 sh '''
@@ -74,21 +75,7 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            steps {
-
-                echo 'Building Docker containers'
-
-                sh 'docker compose build'
-
-                echo 'Tagging images with build number'
-
-                sh "docker tag vaultfit-backend:latest benbaiju/vaultfit-backend:v1.0.${BUILD_NUMBER}"
-                sh "docker tag vaultfit-frontend:latest benbaiju/vaultfit-frontend:v1.0.${BUILD_NUMBER}"
-            }
-        }
-
-        stage('Push Images') {
+        stage('Build and Push Images') {
             steps {
 
                 withCredentials([
@@ -102,14 +89,17 @@ pipeline {
                     sh '''
                     echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
-                    docker push benbaiju/vaultfit-backend:v1.0.${BUILD_NUMBER}
-                    docker push benbaiju/vaultfit-frontend:v1.0.${BUILD_NUMBER}
+                    docker buildx create --use --name multiarch-builder || true
 
-                    docker tag benbaiju/vaultfit-backend:v1.0.${BUILD_NUMBER} benbaiju/vaultfit-backend:latest
-                    docker tag benbaiju/vaultfit-frontend:v1.0.${BUILD_NUMBER} benbaiju/vaultfit-frontend:latest
+                    docker buildx build --platform linux/amd64 \
+                      -t benbaiju/vaultfit-backend:v1.0.${BUILD_NUMBER} \
+                      -t benbaiju/vaultfit-backend:latest \
+                      --push ./backend
 
-                    docker push benbaiju/vaultfit-backend:latest
-                    docker push benbaiju/vaultfit-frontend:latest
+                    docker buildx build --platform linux/amd64 \
+                      -t benbaiju/vaultfit-frontend:v1.0.${BUILD_NUMBER} \
+                      -t benbaiju/vaultfit-frontend:latest \
+                      --push ./frontend
                     '''
                 }
             }
@@ -121,8 +111,8 @@ pipeline {
                 echo 'Running Trivy security scans'
 
                 sh '''
-                /opt/homebrew/bin/trivy image vaultfit-backend:latest || true
-                /opt/homebrew/bin/trivy image vaultfit-frontend:latest || true
+                /opt/homebrew/bin/trivy image benbaiju/vaultfit-backend:latest || true
+                /opt/homebrew/bin/trivy image benbaiju/vaultfit-frontend:latest || true
                 '''
             }
         }

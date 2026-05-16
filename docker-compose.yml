@@ -51,12 +51,40 @@ services:
     networks:
       - vaultfit-net
 
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: vaultfit-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/config.yml:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/config.yml
+    networks:
+      - vaultfit-net
+
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: vaultfit-promtail
+    restart: unless-stopped
+    depends_on:
+      - loki
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - vaultfit-net
+
   grafana:
     image: grafana/grafana:11.4.0
     container_name: vaultfit-grafana
     restart: unless-stopped
     depends_on:
       - prometheus
+      - loki
     ports:
       - "3001:3000"
     volumes:
@@ -66,6 +94,7 @@ services:
 
 volumes:
   grafana-data:
+  loki-data:
 
 networks:
   vaultfit-net:

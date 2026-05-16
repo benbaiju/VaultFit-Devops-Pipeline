@@ -104,21 +104,27 @@ pipeline {
 
         stage('Release') {
             steps {
+
                 script {
                     input message: 'Approve production release?', ok: 'Deploy'
                 }
 
-                withAWS(region: 'ap-southeast-2', credentials: 'aws-creds') {
+                withCredentials([
+                    string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
 
                     sh '''
+                    export AWS_DEFAULT_REGION=ap-southeast-2
+
                     echo "Creating deployment bundle"
 
                     zip -r deployment.zip appspec.yaml scripts/
 
-                    echo "Uploading bundle to S3"
+                    echo "Uploading deployment bundle to S3"
 
                     aws s3 cp deployment.zip \
-                    s3://YOUR_BUCKET_NAME/deployment-${BUILD_NUMBER}.zip
+                    s3://vaultfit-deployments-benbaiju/deployment-${BUILD_NUMBER}.zip
 
                     echo "Triggering CodeDeploy deployment"
 
@@ -126,12 +132,11 @@ pipeline {
                     --application-name VaultFitApp \
                     --deployment-group-name VaultFitDG \
                     --deployment-config-name CodeDeployDefault.AllAtOnce \
-                    --s3-location bucket=YOUR_BUCKET_NAME,bundleType=zip,key=deployment-${BUILD_NUMBER}.zip
+                    --s3-location bucket=vaultfit-deployments-benbaiju,bundleType=zip,key=deployment-${BUILD_NUMBER}.zip
                     '''
                 }
             }
         }
-    }
 
     post {
         success {

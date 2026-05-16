@@ -88,8 +88,8 @@ pipeline {
                 echo 'Running Trivy security scans'
 
                 sh '''
-                  trivy image vaultfit-backend:latest || true
-                  trivy image vaultfit-frontend:latest || true
+                /opt/homebrew/bin/trivy image vaultfit-backend:latest || true
+                /opt/homebrew/bin/trivy image vaultfit-frontend:latest || true
                 '''
             }
         }

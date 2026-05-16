@@ -104,39 +104,30 @@ pipeline {
 
         stage('Release') {
             steps {
-                echo 'Awaiting approval to release to production'
-                input message: 'Deploy to production?', ok: 'Approve Release'
-
-                echo 'Pushing images to Docker Hub'
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-credentials',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh '''
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    docker push benbaiju/vaultfit-backend:v1.0.${BUILD_NUMBER}
-                    docker push benbaiju/vaultfit-frontend:v1.0.${BUILD_NUMBER}
-                    '''
+                script {
+                    input message: 'Approve production release?', ok: 'Deploy'
                 }
 
-                echo 'Triggering CodeDeploy'
-                withCredentials([
-                    string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY'),
-                    string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_KEY')
-                ]) {
-                    awsCodeDeploy(
-                        applicationName: 'vaultfit',
-                        deploymentGroupName: 'vaultfit-prod',
-                        deploymentConfig: 'CodeDeployDefault.AllAtOnce',
-                        awsAccessKey: "${AWS_ACCESS_KEY}",
-                        awsSecretKey: "${AWS_SECRET_KEY}",
-                        awsRegion: 'us-east-1',
-                        s3bucket: 'vaultfit-deployments-benbaiju',
-                        s3prefix: '',
-                        includes: '**',
-                        excludes: 'node_modules/**'
-                    )
+                withAWS(region: 'ap-southeast-2', credentials: 'aws-creds') {
+
+                    sh '''
+                    echo "Creating deployment bundle"
+
+                    zip -r deployment.zip appspec.yaml scripts/
+
+                    echo "Uploading bundle to S3"
+
+                    aws s3 cp deployment.zip \
+                    s3://YOUR_BUCKET_NAME/deployment-${BUILD_NUMBER}.zip
+
+                    echo "Triggering CodeDeploy deployment"
+
+                    aws deploy create-deployment \
+                    --application-name VaultFitApp \
+                    --deployment-group-name VaultFitDG \
+                    --deployment-config-name CodeDeployDefault.AllAtOnce \
+                    --s3-location bucket=YOUR_BUCKET_NAME,bundleType=zip,key=deployment-${BUILD_NUMBER}.zip
+                    '''
                 }
             }
         }

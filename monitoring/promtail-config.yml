@@ -9,15 +9,20 @@ clients:
 
 scrape_configs:
   - job_name: vaultfit-containers
+
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
+        api_version: "1.44"
         refresh_interval: 5s
+
     relabel_configs:
       - source_labels: ["__meta_docker_container_name"]
         regex: "/(.*)"
         target_label: container
+
       - source_labels: ["__meta_docker_container_name"]
         regex: "/(vaultfit-backend|vaultfit-frontend)"
         action: keep
+
       - source_labels: ["__meta_docker_container_log_stream"]
         target_label: stream

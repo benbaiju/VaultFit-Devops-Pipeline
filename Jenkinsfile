@@ -163,8 +163,8 @@ pipeline {
                     echo "Triggering CodeDeploy deployment"
 
                     /opt/homebrew/bin/aws deploy create-deployment \
-                      --application-name VaultFitApp \
-                      --deployment-group-name VaultFitDG \
+                      --application-name VaultFit \
+                      --deployment-group-name vaultfit \
                       --deployment-config-name CodeDeployDefault.AllAtOnce \
                       --s3-location bucket=vaultfit-deployments-benbaiju,bundleType=zip,key=deployment-${BUILD_NUMBER}.zip
                     '''

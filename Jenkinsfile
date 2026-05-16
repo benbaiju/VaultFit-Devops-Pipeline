@@ -157,12 +157,12 @@ pipeline {
 
                     echo "Uploading deployment bundle to S3"
 
-                    aws s3 cp deployment.zip \
+                    /opt/homebrew/bin/aws s3 cp deployment.zip \
                       s3://vaultfit-deployments-benbaiju/deployment-${BUILD_NUMBER}.zip
 
                     echo "Triggering CodeDeploy deployment"
 
-                    aws deploy create-deployment \
+                    /opt/homebrew/bin/aws deploy create-deployment \
                       --application-name VaultFitApp \
                       --deployment-group-name VaultFitDG \
                       --deployment-config-name CodeDeployDefault.AllAtOnce \

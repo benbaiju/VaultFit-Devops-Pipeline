@@ -71,12 +71,12 @@ pipeline {
 
                     sh """
                         ${tool 'SonarScanner'}/bin/sonar-scanner \
-                          -Dsonar.organization=benbaiju \
-                          -Dsonar.projectKey=benbaiju_VaultFit-Devops-Pipeline \
-                          -Dsonar.host.url=https://sonarcloud.io \
-                          -Dsonar.sources=. \
-                          -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,frontend/coverage/lcov.info \
-                          -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,**/.git/**,**/mobile/**,**/*.pdf,**/agent-transcripts/**
+                        -Dsonar.organization=benbaiju \
+                        -Dsonar.projectKey=benbaiju_VaultFit-Devops-Pipeline \
+                        -Dsonar.host.url=https://sonarcloud.io \
+                        -Dsonar.sources=backend/src,frontend/src \
+                        -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,frontend/coverage/lcov.info \
+                        -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,**/.git/**
                     """
                 }
             }

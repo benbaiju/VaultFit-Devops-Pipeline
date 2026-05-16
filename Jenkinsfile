@@ -7,7 +7,7 @@ pipeline {
 
     environment {
         AWS_DEFAULT_REGION = 'ap-southeast-2'
-        EC2_HOST = 'YOUR_EC2_IP_OR_DOMAIN'
+        EC2_HOST = '15.134.85.70'
     }
 
     stages {

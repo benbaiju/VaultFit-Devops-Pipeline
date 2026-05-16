@@ -80,13 +80,12 @@ pipeline {
 
         stage('Security Scan') {
             steps {
-                echo 'Running Trivy security scan'
+
+                echo 'Running Trivy security scans'
 
                 sh '''
-                export PATH="/opt/homebrew/bin:$PATH"
-
-                trivy image vaultfit-backend:latest || true
-                trivy image vaultfit-frontend:latest || true
+                  /opt/homebrew/bin/trivy image vaultfit-backend:latest || true
+                  /opt/homebrew/bin/trivy image vaultfit-frontend:latest || true
                 '''
             }
         }

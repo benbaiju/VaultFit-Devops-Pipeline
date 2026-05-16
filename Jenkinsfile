@@ -188,13 +188,13 @@ pipeline {
 
                     echo "Checking backend health"
 
-                    curl -f http://${EC2_HOST}:3000/health
+                    curl -f http://${EC2_HOST}:4000/health
 
                     echo "Backend health check passed"
 
                     echo "Checking frontend health"
 
-                    curl -f http://${EC2_HOST}
+                    curl -f http://${EC2_HOST}:3000
 
                     echo "Frontend health check passed"
 

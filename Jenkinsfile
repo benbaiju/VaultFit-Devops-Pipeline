@@ -203,6 +203,24 @@ pipeline {
                 }
             }
         }
+
+        stage('Monitoring') {
+            steps {
+                sh '''
+                echo "Verifying production monitoring endpoints"
+
+                sleep 10
+
+                echo "Checking backend Prometheus metrics"
+                curl -f http://${EC2_HOST}:4000/metrics
+
+                echo "Checking frontend availability"
+                curl -f http://${EC2_HOST}:3000
+
+                echo "Monitoring verification passed"
+                '''
+            }
+        }
     }
 
     post {

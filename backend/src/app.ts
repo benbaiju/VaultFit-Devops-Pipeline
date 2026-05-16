@@ -17,11 +17,13 @@ import { trainersRouter } from "./routes/trainers.js";
 import { verificationRouter } from "./routes/verification.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { httpLogger } from "./middleware/http-logger.js";
+import { metricsMiddleware } from "./middleware/metrics.js";
 
 export const app = express();
 
 app.use(helmet());
 app.use(cors());
+app.use(metricsMiddleware);
 app.use(httpLogger);
 app.use(express.json({ limit: "2mb" }));
 

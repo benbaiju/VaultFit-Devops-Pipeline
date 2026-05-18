@@ -122,8 +122,8 @@ pipeline {
                 echo 'Running Trivy security scans'
 
                 sh '''
-                /opt/homebrew/bin/trivy image benbaiju/vaultfit-backend:latest || true
-                /opt/homebrew/bin/trivy image benbaiju/vaultfit-frontend:latest || true
+                trivy image --severity HIGH,CRITICAL benbaiju/vaultfit-backend:latest
+                trivy image --severity HIGH,CRITICAL benbaiju/vaultfit-frontend:latest
                 '''
             }
         }
@@ -134,7 +134,7 @@ pipeline {
                 echo 'Deploying locally to staging'
 
                 sh '''
-                docker compose down || true
+                docker compose down || echo "No existing containers to stop"
                 docker compose up -d --remove-orphans
                 '''
             }
@@ -159,13 +159,13 @@ pipeline {
 
                     echo "Uploading deployment bundle to S3"
 
-                    /opt/homebrew/bin/aws s3 cp deployment.zip \
+                    aws s3 cp deployment.zip \
                       s3://vaultfit-deployments/deployment-${BUILD_NUMBER}.zip
 
                     echo "Starting CodeDeploy deployment"
 
                     DEPLOYMENT_ID=$(
-                      /opt/homebrew/bin/aws deploy create-deployment \
+                      aws deploy create-deployment \
                         --application-name VaultFit \
                         --deployment-group-name vaultfit \
                         --deployment-config-name CodeDeployDefault.AllAtOnce \
@@ -178,7 +178,7 @@ pipeline {
 
                     echo "Waiting for deployment to complete..."
 
-                    /opt/homebrew/bin/aws deploy wait deployment-successful \
+                    aws deploy wait deployment-successful \
                       --deployment-id $DEPLOYMENT_ID
 
                     echo "CodeDeploy deployment succeeded"

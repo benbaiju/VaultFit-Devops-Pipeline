@@ -91,8 +91,8 @@ pipeline {
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     ),
-                    string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
-                    string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                    string(credentialsId: 'vaultfit-vite-supabase-url', variable: 'VITE_SUPABASE_URL'),
+                    string(credentialsId: 'vaultfit-vite-supabase-anon-key', variable: 'VITE_SUPABASE_ANON_KEY')
                 ]) {
 
                     sh '''
@@ -108,30 +108,12 @@ pipeline {
                       -t benbaiju/vaultfit-backend:latest \
                       --push ./backend
 
-                    echo "Loading Supabase anon config for frontend build (publishable key only)"
-
-                    if ! command -v jq >/dev/null 2>&1; then
-                      echo "ERROR: jq is required to read vaultfit/prod/env (brew install jq)."
-                      exit 1
-                    fi
-
-                    SECRET_JSON=$(aws secretsmanager get-secret-value \
-                      --secret-id vaultfit/prod/env \
-                      --region "${AWS_DEFAULT_REGION}" \
-                      --query SecretString \
-                      --output text)
-
-                    VITE_SUPABASE_URL=$(echo "$SECRET_JSON" | jq -r '.VITE_SUPABASE_URL // .NEXT_PUBLIC_SUPABASE_URL // empty')
-                    VITE_SUPABASE_ANON_KEY=$(echo "$SECRET_JSON" | jq -r '.VITE_SUPABASE_ANON_KEY // .NEXT_PUBLIC_SUPABASE_ANON_KEY // empty')
-
                     if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
-                      echo "ERROR: Supabase anon URL/key missing in vaultfit/prod/env (need VITE_* or NEXT_PUBLIC_*)."
+                      echo "ERROR: Add Jenkins credentials vaultfit-vite-supabase-url and vaultfit-vite-supabase-anon-key (Supabase publishable anon key only)."
                       exit 1
                     fi
 
-                    echo "Supabase anon config loaded for Vite build"
-
-                    echo "Building frontend image"
+                    echo "Building frontend image (Supabase anon config from Jenkins credentials)"
 
                     docker buildx build --platform linux/amd64 \
                       --build-arg VITE_API_URL=/api \

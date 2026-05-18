@@ -122,8 +122,8 @@ pipeline {
                 echo 'Running Trivy security scans'
 
                 sh '''
-                trivy image --severity HIGH,CRITICAL benbaiju/vaultfit-backend:latest
-                trivy image --severity HIGH,CRITICAL benbaiju/vaultfit-frontend:latest
+                trivy image benbaiju/vaultfit-backend:latest
+                trivy image benbaiju/vaultfit-frontend:latest
                 '''
             }
         }

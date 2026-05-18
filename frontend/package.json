@@ -8,9 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "npx vitest run",
-    "test:watch": "npx vitest",
-    "test:coverage": "npx vitest run --coverage"
+    "test": "NODE_OPTIONS= npx vitest run",
+    "test:watch": "NODE_OPTIONS= npx vitest",
+    "test:coverage": "NODE_OPTIONS= npx vitest run --coverage"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.104.1",

@@ -1,4 +1,4 @@
-# VaultFit web — React 19 + Vite 8 (static build served by nginx)
+# VaultFit web DockerFile
 FROM node:20-alpine AS build
 WORKDIR /app
 

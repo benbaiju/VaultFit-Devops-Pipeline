@@ -90,13 +90,16 @@ pipeline {
                         credentialsId: 'dockerhub-credentials',
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
-                    )
+                    ),
+                    string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
 
                     sh '''
+                    set -e
                     echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
-                    docker buildx create --use --name multiarch-builder || true
+                    docker buildx use multiarch-builder 2>/dev/null || docker buildx create --use --name multiarch-builder
 
                     echo "Building backend image"
 
@@ -105,9 +108,35 @@ pipeline {
                       -t benbaiju/vaultfit-backend:latest \
                       --push ./backend
 
+                    echo "Loading Supabase anon config for frontend build (publishable key only)"
+
+                    if ! command -v jq >/dev/null 2>&1; then
+                      echo "ERROR: jq is required to read vaultfit/prod/env (brew install jq)."
+                      exit 1
+                    fi
+
+                    SECRET_JSON=$(aws secretsmanager get-secret-value \
+                      --secret-id vaultfit/prod/env \
+                      --region "${AWS_DEFAULT_REGION}" \
+                      --query SecretString \
+                      --output text)
+
+                    VITE_SUPABASE_URL=$(echo "$SECRET_JSON" | jq -r '.VITE_SUPABASE_URL // .NEXT_PUBLIC_SUPABASE_URL // empty')
+                    VITE_SUPABASE_ANON_KEY=$(echo "$SECRET_JSON" | jq -r '.VITE_SUPABASE_ANON_KEY // .NEXT_PUBLIC_SUPABASE_ANON_KEY // empty')
+
+                    if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+                      echo "ERROR: Supabase anon URL/key missing in vaultfit/prod/env (need VITE_* or NEXT_PUBLIC_*)."
+                      exit 1
+                    fi
+
+                    echo "Supabase anon config loaded for Vite build"
+
                     echo "Building frontend image"
 
                     docker buildx build --platform linux/amd64 \
+                      --build-arg VITE_API_URL=/api \
+                      --build-arg VITE_SUPABASE_URL="$VITE_SUPABASE_URL" \
+                      --build-arg VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY" \
                       -t benbaiju/vaultfit-frontend:v1.0.${BUILD_NUMBER} \
                       -t benbaiju/vaultfit-frontend:latest \
                       --push ./frontend

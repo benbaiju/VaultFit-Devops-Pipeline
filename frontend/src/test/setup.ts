@@ -1,6 +1,6 @@
 import { ensureWebStorage, resetWebStorage } from "./ensure-web-storage";
 
-// Must run before jsdom/React imports: Jenkins JDK22 can inject a broken Node localStorage.
+// Must run before DOM/React imports: Jenkins JDK22 can inject a broken Node localStorage.
 ensureWebStorage();
 
 import "@testing-library/jest-dom/vitest";

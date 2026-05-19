@@ -76,7 +76,7 @@ pipeline {
                         -Dsonar.host.url=https://sonarcloud.io \
                         -Dsonar.sources=backend/src,frontend/src \
                         -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,frontend/coverage/lcov.info \
-                        -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,**/.git/**,**/test/** \
+                        -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,**/.git/**,**/test/**,**/__tests__/** \
                         -Dsonar.tests=backend/tests,frontend/src/__tests__
                     """
                 }

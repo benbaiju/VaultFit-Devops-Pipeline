@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
       },
       coverage: {
         provider: "v8",
-        reporter: ["text", "html"],
+        reporter: ["text", "html", "lcov"],
       },
     },
     server: {
